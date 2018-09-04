@@ -2,8 +2,10 @@
 // http://bigblueboo.tumblr.com/post/174117883078/bigblueboo-eyeball#notes
 
 import * as THREE from 'three';
+import * as TWEEN from '@tweenjs/tween.js';
 require('./utils/GLTFLoader');
 // require('./utils/OrbitControls');
+
 
 import eyesGltfPath from './assets/eye/eyes.gltf';
 import irisBumpMapPath from './assets/eye/iris_bump.png';
@@ -11,20 +13,40 @@ import irisColorMapPath from './assets/eye/iris_color.png';
 import eyeAlphaMapPath from './assets/eye/translucent_mask.png';
 import eyeBumpMapPath from './assets/eye/sclera_bump.png';
 import eyeColorMapPath from './assets/eye/sclera_color.png';
-import { createConstructorTypeNode } from 'typescript';
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.x = 0;
+camera.position.y = 0;
+camera.position.z = 50;
+camera.lookAt(new THREE.Vector3(0, 0, 0));
 // const controls = new THREE.OrbitControls(camera);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setClearColor(0xffffff);
+renderer.setClearColor(0x000000);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
+// const prevCanvasEl = document.getElementsByTagName('canvas');
+// if (prevCanvasEl[0]) document.body.removeChild(prevCanvasEl[0]);
 document.body.appendChild(renderer.domElement);
 
-const light = new THREE.AmbientLight(0xffffff, 1);
+const light = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(light);
+
+const spotLight = new THREE.SpotLight( 0xffffff, 1 );
+spotLight.position.set( 0, 10, 25 );
+spotLight.angle = Math.PI / 4;
+spotLight.penumbra = 0.5;
+spotLight.decay = 2;
+spotLight.distance = 50;
+spotLight.castShadow = true;
+// spotLight.shadow.mapSize.width = 1024;
+// spotLight.shadow.mapSize.height = 1024;
+// spotLight.shadow.camera.near = 10;
+// spotLight.shadow.camera.far = 200;
+scene.add( spotLight );
+// const lightHelper = new THREE.SpotLightHelper( spotLight );
+// scene.add( lightHelper );
 
 class EyeMeshFactory {
   loader = new THREE.GLTFLoader();
@@ -56,8 +78,12 @@ class EyeMeshFactory {
           }
         });
 
+        const innerGroup = new THREE.Group();
+        meshes.forEach(x => innerGroup.add(x));
+        innerGroup.rotateY(- Math.PI / 2);
         this.group = new THREE.Group();
-        meshes.forEach(x => this.group.add(x));
+        this.group.add(innerGroup);
+        this.group.castShadow = true;
 
         resolve();
       }, null, err => reject(err));
@@ -75,19 +101,59 @@ async function createScene() {
   const eyeFactory = new EyeMeshFactory();
   await eyeFactory.init();
 
-  const eye1 = eyeFactory.create();
-  scene.add(eye1);
+  (window as any).eyes = pointsOnSphere(100).filter(pos => pos.z > 0.2).map((pos) => {
+    const eye = eyeFactory.create();
+    const scale = 10.5;
+    eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale);
+    scene.add(eye);
+    return eye;
+  });
 
-  const eye2 = eyeFactory.create();
-  eye2.position.z = 4;
-  scene.add(eye2);
+  // Look at the mouse
+  // var plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -25);
+  // var raycaster = new THREE.Raycaster();
+  // var mouse = new THREE.Vector2();
+  // var intersectPoint = new THREE.Vector3();
+  // window.addEventListener('mousemove', (event) => {
+  //   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  //   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  //   raycaster.setFromCamera(mouse, camera);
+  //   raycaster.ray.intersectPlane(plane, intersectPoint);
+  //   eyes.forEach(x => x.lookAt(intersectPoint))
+  // }, false);
+}
+createScene();
+
+
+// https://github.com/spite/looper/blob/master/modules/points-sphere.js
+function pointsOnSphere(n) {
+  const pts = [];
+  const inc = Math.PI * (3 - Math.sqrt(5));
+  const off = 2.0 / n;
+  let r;
+  var phi;
+  let dmin = 10000;
+  const prev = new THREE.Vector3();
+  const cur = new THREE.Vector3();
+
+  for (var k = 0; k < n; k++){
+    cur.y = k * off - 1 + (off /2);
+    r = Math.sqrt(1 - cur.y * cur.y);
+    phi = k * inc;
+    cur.x = Math.cos(phi) * r;
+    cur.z = Math.sin(phi) * r;
+
+    const dist = cur.distanceTo(prev);
+    if(dist < dmin) dmin = dist;
+
+    pts.push(cur.clone());
+    prev.copy(cur);
+  }
+
+  return pts;
 }
 
-camera.position.x = 25;
-camera.position.y = 0;
-camera.position.z = 0;
-
-camera.lookAt(new THREE.Vector3(0, 0, 0));
 
 function animate() {
   // controls.update();
@@ -95,4 +161,3 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
-createScene();
