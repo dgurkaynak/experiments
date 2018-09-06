@@ -16,6 +16,7 @@ import eyeColorMapPath from './assets/eye/sclera_color.png';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+// const camera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 0.1, 1000);
 camera.position.x = 0;
 camera.position.y = 0;
 camera.position.z = 50;
@@ -106,6 +107,80 @@ async function createScene() {
     const scale = 10.5;
     eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale);
     scene.add(eye);
+
+    eye.lookAt(camera.position);
+    eye.rotationToCamera = {
+      x: eye.rotation.x,
+      y: eye.rotation.y,
+      z: eye.rotation.z
+    };
+
+    // TWEEN-Z
+    eye.tweenZ = function() {
+      if (this.tweenZ_) this.tweenZ_.stop();
+      this.tweenZ_ = new TWEEN.Tween({ z: this.rotation.z }).to({ z: (Math.random() - 0.5) * 0.5 }, 1000 + (Math.random() - 0.5) * 500);
+      this.tweenZ_.onUpdate((data) => {
+        eye.rotation.z = data.z;
+      });
+      this.tweenZ_.easing(TWEEN.Easing.Elastic.InOut);
+      this.tweenZ_.onComplete(() => this.tweenZ());
+      this.tweenZ_.start();
+    };
+    eye.tweenZ();
+
+    // TWEEN-X
+    eye.tweenX = function() {
+      if (this.tweenX_) this.tweenX_.stop();
+      this.tweenX_ = new TWEEN.Tween({ x: this.rotation.x }).to({ x: (Math.random() - 0.5) * 1.25 }, 3000 + (Math.random() - 0.5) * 2500);
+      this.tweenX_.onUpdate((data) => {
+        eye.rotation.x = data.x;
+      });
+      // this.tweenX_.easing(TWEEN.Easing.Elastic.InOut);
+      this.tweenX_.onComplete(() => this.tweenX());
+      this.tweenX_.start();
+    };
+    eye.tweenX();
+
+    // TWEEN-Y
+    eye.tweenY = function() {
+      if (this.tweenY_) this.tweenY_.stop();
+      this.tweenY_ = new TWEEN.Tween({ y: this.rotation.y }).to({ y: (Math.random() - 0.5) * 1.25 }, 3000 + (Math.random() - 0.5) * 2500);
+      this.tweenY_.onUpdate((data) => {
+        eye.rotation.y = data.y;
+      });
+      // this.tweenY_.easing(TWEEN.Easing.Elastic.InOut);
+      this.tweenY_.onComplete(() => this.tweenY());
+      this.tweenY_.start();
+    };
+    eye.tweenY();
+
+    // TWEEN-CAMERA
+    eye.tweenToCamera = function() {
+      if (this.tweenX_) this.tweenX_.stop();
+      if (this.tweenY_) this.tweenY_.stop();
+      if (this.tweenZ_) this.tweenZ_.stop();
+
+      this.tweenToCamera_ = new TWEEN.Tween({ x: this.rotation.x, y: this.rotation.y, z: this.rotation.z }).to(this.rotationToCamera, 500);
+      this.tweenToCamera_.easing(TWEEN.Easing.Elastic.Out);
+      this.tweenToCamera_.onUpdate((data) => {
+        eye.rotation.x = data.x;
+        eye.rotation.y = data.y;
+        eye.rotation.z = data.z;
+      });
+      this.tweenToCamera_.onComplete(() => {
+        setTimeout(() => {
+          this.tweenX();
+          this.tweenY();
+          this.tweenZ();
+        }, 500);
+      });
+      this.tweenToCamera_.start();
+    };
+
+    setInterval(() => {
+      setTimeout(() => eye.tweenToCamera(), Math.random() * 150);
+    }, 10000);
+
     return eye;
   });
 
@@ -122,6 +197,8 @@ async function createScene() {
   //   raycaster.ray.intersectPlane(plane, intersectPoint);
   //   eyes.forEach(x => x.lookAt(intersectPoint))
   // }, false);
+
+  requestAnimationFrame(animate);
 }
 createScene();
 
@@ -155,9 +232,10 @@ function pointsOnSphere(n) {
 }
 
 
-function animate() {
+function animate(time) {
+  TWEEN.default.update(time);
   // controls.update();
-  requestAnimationFrame(animate);
   renderer.render(scene, camera);
+
+  requestAnimationFrame(animate);
 }
-animate();
