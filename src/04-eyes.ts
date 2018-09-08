@@ -121,6 +121,11 @@ async function createScene() {
       y: eye.rotation.y,
       z: eye.rotation.z
     };
+    eye.rotation.set(
+      (Math.random() - 0.5) * 1.0,
+      (Math.random() - 0.5) * 1.0,
+      (Math.random() - 0.5) * 1.0
+    );
 
     // TWEEN-Z
     eye.tweenZ = function() {
