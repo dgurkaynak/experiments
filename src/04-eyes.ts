@@ -172,7 +172,7 @@ async function createScene() {
           this.tweenX();
           this.tweenY();
           this.tweenZ();
-        }, 500);
+        }, 1000);
       });
       this.tweenToCamera_.start();
     };
