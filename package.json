@@ -17,6 +17,7 @@
     "@types/three": "^0.92.18",
     "@types/tweenjs": "^1.0.0",
     "parcel-bundler": "^1.9.7",
+    "randomcolor": "^0.5.3",
     "three": "^0.96.0",
     "typescript": "^3.0.3"
   }

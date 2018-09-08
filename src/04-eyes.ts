@@ -3,9 +3,9 @@
 
 import * as THREE from 'three';
 import * as TWEEN from '@tweenjs/tween.js';
+import randomColor from 'randomcolor';
 require('./utils/GLTFLoader');
 // require('./utils/OrbitControls');
-
 
 import eyesGltfPath from './assets/eye/eyes.gltf';
 import irisBumpMapPath from './assets/eye/iris_bump.png';
@@ -98,7 +98,16 @@ class EyeMeshFactory {
 
 
   create() {
-    if (this.group) return this.group.clone();
+    if (!this.group) return;
+    const eye = this.group.clone();
+
+    // Random color
+    const iris = eye.children[0].children[1];
+    const newIrisMaterial = iris.material.clone();
+    newIrisMaterial.color = new THREE.Color(randomColor({ luminosity: 'light' }));
+    iris.material = newIrisMaterial;
+
+    return eye;
   }
 }
 
