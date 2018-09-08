@@ -45,9 +45,13 @@ spotLight.castShadow = true;
 // spotLight.shadow.mapSize.height = 1024;
 // spotLight.shadow.camera.near = 10;
 // spotLight.shadow.camera.far = 200;
-scene.add( spotLight );
+// scene.add(spotLight);
 // const lightHelper = new THREE.SpotLightHelper( spotLight );
-// scene.add( lightHelper );
+// scene.add(lightHelper);
+
+const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+pointLight.position.set(0, 0, 0);
+scene.add(pointLight);
 
 class EyeMeshFactory {
   loader = new THREE.GLTFLoader();
@@ -62,7 +66,8 @@ class EyeMeshFactory {
           if (child.name.indexOf('Right_Iris') == 0) {
             child.material = new THREE.MeshPhongMaterial({
               bumpMap: new THREE.TextureLoader().load(irisBumpMapPath),
-              map: new THREE.TextureLoader().load(irisColorMapPath)
+              map: new THREE.TextureLoader().load(irisColorMapPath),
+              // color: 0xffffff
             });
             child.position.z = 7.252;
             meshes.push(child);
@@ -102,10 +107,12 @@ async function createScene() {
   const eyeFactory = new EyeMeshFactory();
   await eyeFactory.init();
 
-  (window as any).eyes = pointsOnSphere(100).filter(pos => pos.z > 0.2).map((pos) => {
+  (window as any).eyes = pointsOnSphere(150)
+  // .filter(pos => pos.z > 0.0)
+  .map((pos) => {
     const eye = eyeFactory.create();
     const scale = 10.5;
-    eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale);
+    eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale * 5);
     scene.add(eye);
 
     eye.lookAt(camera.position);
@@ -131,7 +138,7 @@ async function createScene() {
     // TWEEN-X
     eye.tweenX = function() {
       if (this.tweenX_) this.tweenX_.stop();
-      this.tweenX_ = new TWEEN.Tween({ x: this.rotation.x }).to({ x: (Math.random() - 0.5) * 1.25 }, 3000 + (Math.random() - 0.5) * 2500);
+      this.tweenX_ = new TWEEN.Tween({ x: this.rotation.x }).to({ x: (Math.random() - 0.5) * 1.75 }, 3000 + (Math.random() - 0.5) * 2500);
       this.tweenX_.onUpdate((data) => {
         eye.rotation.x = data.x;
       });
@@ -144,7 +151,7 @@ async function createScene() {
     // TWEEN-Y
     eye.tweenY = function() {
       if (this.tweenY_) this.tweenY_.stop();
-      this.tweenY_ = new TWEEN.Tween({ y: this.rotation.y }).to({ y: (Math.random() - 0.5) * 1.25 }, 3000 + (Math.random() - 0.5) * 2500);
+      this.tweenY_ = new TWEEN.Tween({ y: this.rotation.y }).to({ y: (Math.random() - 0.5) * 1.75 }, 3000 + (Math.random() - 0.5) * 2500);
       this.tweenY_.onUpdate((data) => {
         eye.rotation.y = data.y;
       });
