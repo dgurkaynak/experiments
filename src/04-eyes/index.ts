@@ -4,19 +4,18 @@
 import * as THREE from 'three';
 import * as TWEEN from '@tweenjs/tween.js';
 import randomColor from 'randomcolor';
-require('./utils/GLTFLoader');
-// require('./utils/OrbitControls');
+require('../utils/three/GLTFLoader');
+// require('../utils/three/OrbitControls');
 
-import eyesGltfPath from './assets/eye/eyes.gltf';
-import irisBumpMapPath from './assets/eye/iris_bump.png';
-import irisColorMapPath from './assets/eye/iris_color.png';
-import eyeAlphaMapPath from './assets/eye/translucent_mask.png';
-import eyeBumpMapPath from './assets/eye/sclera_bump.png';
-import eyeColorMapPath from './assets/eye/sclera_color.png';
+import eyesGltfPath from './assets/eyes.gltf';
+import irisBumpMapPath from './assets/iris_bump.png';
+import irisColorMapPath from './assets/iris_color.png';
+import eyeAlphaMapPath from './assets/translucent_mask.png';
+import eyeBumpMapPath from './assets/sclera_bump.png';
+import eyeColorMapPath from './assets/sclera_color.png';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-// const camera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, 0.1, 1000);
 camera.position.x = 0;
 camera.position.y = 0;
 camera.position.z = 50;
