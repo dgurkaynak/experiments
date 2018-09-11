@@ -205,6 +205,13 @@ async function createScene() {
     return eye;
   });
 
+  // Fine-tune positions
+  eyes[10].position.x -= 1;
+  eyes[22].position.x += 1;
+  eyes[35].position.x += 0.5; eyes[35].position.y -= 0.5;
+  eyes[37].position.x += 1; eyes[37].position.z -= 2;
+  eyes[103].position.y -= 1; eyes[103].position.z -= 1; eyes[103].position.x -= 0.5;
+
   // Look at the mouse
   // var plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -25);
   // var raycaster = new THREE.Raycaster();
