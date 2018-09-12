@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "sourceMap": true,
+    "module": "es6",
+    "lib": [
+      "dom",
+      "es2015"
+    ]
+  }
+}

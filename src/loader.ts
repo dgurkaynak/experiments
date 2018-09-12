@@ -1,7 +1,11 @@
 import * as THREE from 'three';
-import * as eyes from './04-eyes';
-import * as rotatingCubes from './03-rotating-cubes';
-import * as waves from './01-waves';
+
+
+const EXPERIMENTS = {
+  1: import('./01-waves'),
+  3: import('./03-rotating-cubes'),
+  4: import('./04-eyes'),
+};
 
 
 interface Experiment {
@@ -15,6 +19,7 @@ interface Experiment {
 
 
 const canvasContainerEl = document.getElementById('canvas-container');
+window.addEventListener('hashchange', onHashChange, false);
 
 
 async function load(exp: Experiment) {
@@ -50,4 +55,16 @@ async function unload() {
 }
 
 
-load(waves);
+async function onHashChange() {
+  const hash = window.location.hash.substr(1).trim();
+  const hashInt = parseInt(hash, 10);
+
+  if (isNaN(hashInt) || !EXPERIMENTS[hashInt]) {
+    console.error(`Oops, experiment #${hash} does not exist`);
+    return;
+  }
+
+  const exp = await EXPERIMENTS[hashInt];
+  load(exp);
+}
+onHashChange();
