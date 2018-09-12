@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import * as eyes from './04-eyes';
+import * as rotatingCubes from './03-rotating-cubes';
+import * as waves from './01-waves';
 
 
 interface Experiment {
@@ -48,4 +50,4 @@ async function unload() {
 }
 
 
-load(eyes);
+load(waves);

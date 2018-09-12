@@ -10,9 +10,7 @@ import pointsOnSphere from './points-on-sphere';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.x = 0;
-camera.position.y = 0;
-camera.position.z = 50;
+camera.position.set(0, 0, 50);
 camera.lookAt(new THREE.Vector3(0, 0, 0));
 // const controls = new THREE.OrbitControls(camera);
 
