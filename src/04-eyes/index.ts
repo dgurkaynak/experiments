@@ -5,100 +5,118 @@ import * as THREE from 'three';
 import * as TWEEN from '@tweenjs/tween.js';
 import EyeMeshFactory from './eye-factory';
 import pointsOnSphere from './points-on-sphere';
+import IExperiment from '../iexperiment';
 // require('../utils/three/OrbitControls');
 
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 0, 50);
-camera.lookAt(new THREE.Vector3(0, 0, 0));
-// const controls = new THREE.OrbitControls(camera);
-
-export const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
-renderer.setClearColor(0x000000);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
-
-const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-pointLight.position.set(0, 0, 0);
-scene.add(pointLight);
-
-const eyeFactory = new EyeMeshFactory();
-const eyes = [];
+const WIDTH = window.innerWidth;
+const HEIGHT = window.innerHeight;
+const EYE_FACTORY = new EyeMeshFactory();
 
 
-export async function init() {
-  await eyeFactory.init();
+export default class Eyes implements IExperiment {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
+  // controls = new THREE.OrbitControls(camera);
+  renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+
+  eyes = [];
+
+
+  constructor() {
+    this.camera.position.set(0, 0, 50);
+    this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    this.renderer.setClearColor(0x000000);
+    this.renderer.setSize(WIDTH, HEIGHT);
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    this.scene.add(ambientLight);
+
+    const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+    pointLight.position.set(0, 0, 0);
+    this.scene.add(pointLight);
+  }
+
+
+  async init() {
+    await EYE_FACTORY.init();
+    
+    pointsOnSphere(150).forEach((pos) => {
+      const eye = EYE_FACTORY.create();
   
-  pointsOnSphere(150).forEach((pos) => {
-    const eye = eyeFactory.create();
-
-    const scale = 10.5;
-    eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale * 5);
-    scene.add(eye);
-
-    // Cache rotation to camera
-    eye.lookAt(camera.position);
-    eye._rotationToCamera = {
-      x: eye.rotation.x,
-      y: eye.rotation.y,
-      z: eye.rotation.z
-    };
-
-    // Randomize rotation
-    eye.rotation.set(
-      (Math.random() - 0.5) * 1.0,
-      (Math.random() - 0.5) * 1.0,
-      (Math.random() - 0.5) * 1.0
-    );
-
-    eyes.push(eye);
-  });
-
-  // Fine-tune positions
-  eyes[10].position.x -= 1;
-  eyes[22].position.x += 1;
-  eyes[35].position.x += 0.5; eyes[35].position.y -= 0.5;
-  eyes[37].position.x += 1; eyes[37].position.z -= 2;
-  eyes[103].position.y -= 1; eyes[103].position.z -= 1; eyes[103].position.x -= 0.5;
-}
-
-
-export async function destroy() {
-  renderer.dispose();
-  eyes.forEach((eye) => {
-    eye.children[0].children.forEach((child) => {
-      child.geometry.dispose();
-      child.material.dispose();
+      const scale = 10.5;
+      eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale * 5);
+      this.scene.add(eye);
+  
+      // Cache rotation to camera
+      eye.lookAt(this.camera.position);
+      eye._rotationToCamera = {
+        x: eye.rotation.x,
+        y: eye.rotation.y,
+        z: eye.rotation.z
+      };
+  
+      // Randomize rotation
+      eye.rotation.set(
+        (Math.random() - 0.5) * 1.0,
+        (Math.random() - 0.5) * 1.0,
+        (Math.random() - 0.5) * 1.0
+      );
+  
+      this.eyes.push(eye);
     });
-  });
-}
+  
+    // Fine-tune positions
+    this.eyes[10].position.x -= 1;
+    this.eyes[22].position.x += 1;
+    this.eyes[35].position.x += 0.5; this.eyes[35].position.y -= 0.5;
+    this.eyes[37].position.x += 1; this.eyes[37].position.z -= 2;
+    this.eyes[103].position.y -= 1; this.eyes[103].position.z -= 1; this.eyes[103].position.x -= 0.5;
+  }
 
 
-export async function start() {
-  eyes.forEach((eye) => {
-    tweenX(eye);
-    tweenY(eye);
-    tweenZ(eye);
-
-    eye._tweenToCameraInterval = setInterval(() => {
-      eye._tweenToCameraTimeout = setTimeout(() => tweenToCamera(eye), Math.random() * 150);
-    }, 10000);
-  });
-}
+  async destroy() {
+    this.renderer.dispose();
+    this.eyes.forEach((eye) => {
+      eye.children[0].children.forEach((child) => {
+        child.geometry.dispose();
+        child.material.dispose();
+      });
+    });
+  }
 
 
-export async function stop() {
-  eyes.forEach((eye) => {
-    if (eye._tweenX) eye._tweenX.stop();
-    if (eye._tweenY) eye._tweenY.stop();
-    if (eye._tweenZ) eye._tweenZ.stop();
-    clearTimeout(eye._tweenToCameraTimeout);
-    clearInterval(eye._tweenToCameraInterval);
-  });
+  async start() {
+    this.eyes.forEach((eye) => {
+      tweenX(eye);
+      tweenY(eye);
+      tweenZ(eye);
+  
+      eye._tweenToCameraInterval = setInterval(() => {
+        eye._tweenToCameraTimeout = setTimeout(() => tweenToCamera(eye), Math.random() * 150);
+      }, 10000);
+    });
+  }
+  
+
+  async stop() {
+    this.eyes.forEach((eye) => {
+      if (eye._tweenX) eye._tweenX.stop();
+      if (eye._tweenY) eye._tweenY.stop();
+      if (eye._tweenZ) eye._tweenZ.stop();
+      clearTimeout(eye._tweenToCameraTimeout);
+      clearInterval(eye._tweenToCameraInterval);
+    });
+  }
+
+
+  animate() {
+    TWEEN.default.update();
+    // controls.update();
+    this.renderer.render(this.scene, this.camera);
+  }
 }
 
 
@@ -163,11 +181,4 @@ function tweenToCamera(eye) {
     }, 1000);
   });
   eye._tweenToCamera.start();
-}
-
-
-export function animate(time) {
-  TWEEN.default.update(time);
-  // controls.update();
-  renderer.render(scene, camera);
 }

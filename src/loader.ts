@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import IExperiment from './iexperiment';
 
 
 const EXPERIMENTS = {
@@ -7,22 +7,10 @@ const EXPERIMENTS = {
   4: import('./04-eyes'),
 };
 
-
-interface Experiment {
-  renderer: THREE.WebGLRenderer;
-  init(): Promise<void>;
-  destroy(): Promise<void>;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  animate();
-}
-
-
 const canvasContainerEl = document.getElementById('canvas-container');
-window.addEventListener('hashchange', onHashChange, false);
 
 
-async function load(exp: Experiment) {
+async function load(exp: IExperiment) {
   if (window.currentExperiment) await unload();
   window.currentExperiment = exp; 
 
@@ -55,7 +43,7 @@ async function unload() {
 }
 
 
-async function onHashChange() {
+const onHashChange = window.onhashchange = async function() {
   const hash = window.location.hash.substr(1).trim();
   const hashInt = parseInt(hash, 10);
 
@@ -64,7 +52,7 @@ async function onHashChange() {
     return;
   }
 
-  const exp = await EXPERIMENTS[hashInt];
-  load(exp);
+  const Experiment = await EXPERIMENTS[hashInt];
+  load(new Experiment.default());
 }
 onHashChange();
