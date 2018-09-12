@@ -17,7 +17,7 @@ const EYE_FACTORY = new EyeMeshFactory();
 export default class Eyes implements IExperiment {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
-  // controls = new THREE.OrbitControls(camera);
+  // controls = new THREE.OrbitControls(this.camera);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 
   eyes = [];
@@ -114,7 +114,7 @@ export default class Eyes implements IExperiment {
 
   animate() {
     TWEEN.default.update();
-    // controls.update();
+    // this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 }

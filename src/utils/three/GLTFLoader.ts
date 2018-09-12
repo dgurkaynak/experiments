@@ -8,7 +8,7 @@ import * as THREE from 'three';
  * @author Don McCurdy / https://www.donmccurdy.com
  */
 
-(THREE as any).GLTFLoader = ( function () {
+THREE.GLTFLoader = ( function () {
 
 	function GLTFLoader( manager ) {
 
