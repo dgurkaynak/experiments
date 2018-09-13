@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import IExperiment from '../iexperiment';
 import Wave2D from './wave2d';
+import Perlin from './perlin';
 require('../utils/three/CTMLoader');
 require('../utils/three/OrbitControls');
 
@@ -26,7 +27,8 @@ export default class Head implements IExperiment {
   rayCaster = new THREE.Raycaster();
   mousePosition = new THREE.Vector2();
   mesh: THREE.Mesh;
-  wave2d = new Wave2D(64, 16);
+  // wave2d = new Wave2D(64, 16);
+  perlin = new Perlin(512);
 
   constructor() {
     this.camera.position.set(0, 0, 1);
@@ -43,9 +45,12 @@ export default class Head implements IExperiment {
     pointLight.position.set(0, 1, 2);
     this.scene.add(pointLight);
 
-    this.wave2d.dampeningFactor = 0.95;
-    this.wave2d.pullStrength = 0.01;
-    this.wave2d.draw();
+    // this.wave2d.dampeningFactor = 0.95;
+    // this.wave2d.pullStrength = 0.01;
+    // this.wave2d.draw();
+
+    this.perlin.noiseDivider = 50;
+    this.perlin.draw();
 
     // this.wave2d.canvas.id = 'head-displacement-map';
     // this.wave2d.canvas.style = 'position: absolute; top: 0; left: 0; width: 1024px; height: 1024px; zoom: 0.25;';
@@ -62,9 +67,10 @@ export default class Head implements IExperiment {
         normalScale: new THREE.Vector2(0.8, 0.8),
         metalness: 0.1,
         roughness: 0.5,
-        displacementMap: new THREE.CanvasTexture(this.wave2d.canvas),
-        displacementScale: 0.05,
-        displacementBias: -0.025,
+        // displacementMap: new THREE.CanvasTexture(this.wave2d.canvas),
+        displacementMap: new THREE.CanvasTexture(this.perlin.canvas),
+        displacementScale: 0.005,
+        displacementBias: -0.0025,
       });
       
 
@@ -92,8 +98,9 @@ export default class Head implements IExperiment {
   animate() {
     this.controls.update();
 
-    this.wave2d.draw();
-    this.wave2d.iterate();
+    this.perlin.draw();
+    // this.wave2d.draw();
+    // this.wave2d.iterate();
     if (this.mesh) this.mesh.material.displacementMap.needsUpdate = true;
 
     this.renderer.render(this.scene, this.camera);
@@ -107,11 +114,11 @@ export default class Head implements IExperiment {
     this.rayCaster.setFromCamera(this.mousePosition, this.camera);
     const intersects = this.rayCaster.intersectObject(this.mesh, true);
     
-    if (intersects[0]) {
-      const x = Math.floor(intersects[0].uv.x * 1024);
-      const y = Math.floor((1 - intersects[0].uv.y) * 1024);
-      console.log('Applying force...', x, y);
-      this.wave2d.applyForce(x, y, -2);
-    }
+    // if (intersects[0]) {
+    //   const x = Math.floor(intersects[0].uv.x * 1024);
+    //   const y = Math.floor((1 - intersects[0].uv.y) * 1024);
+    //   console.log('Applying force...', x, y);
+    //   this.wave2d.applyForce(x, y, -2);
+    // }
   }
 }
