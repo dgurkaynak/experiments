@@ -1,5 +1,3 @@
-// https://www.turbosquid.com/3d-models/free-3ds-mode-scan-photogrammetry-heads-human-eyes/777450
-
 import * as THREE from 'three';
 import IExperiment from '../iexperiment';
 import Wave2D from './wave2d';
@@ -48,6 +46,10 @@ export default class Head implements IExperiment {
     this.wave2d.dampeningFactor = 0.95;
     this.wave2d.pullStrength = 0.01;
     this.wave2d.draw();
+
+    // this.wave2d.canvas.id = 'head-displacement-map';
+    // this.wave2d.canvas.style = 'position: absolute; top: 0; left: 0; width: 1024px; height: 1024px; zoom: 0.25;';
+    // document.body.appendChild(this.wave2d.canvas);
   }
 
 
