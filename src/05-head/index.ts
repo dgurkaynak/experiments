@@ -111,7 +111,7 @@ export default class Head implements IExperiment {
       const x = Math.floor(intersects[0].uv.x * 1024);
       const y = Math.floor((1 - intersects[0].uv.y) * 1024);
       console.log('Applying force...', x, y);
-      this.wave2d.applyForce(x, y, -2);
+      this.wave2d.applyForce(x, y, -1);
     }
   }
 }
