@@ -3,4 +3,5 @@ export default {
   3: import('./03-rotating-cubes'),
   4: import('./04-eyes'),
   5: import('./05-head'),
+  6: import('./06-blah-blah'),
 };
