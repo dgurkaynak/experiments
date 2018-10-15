@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import * as TWEEN from '@tweenjs/tween.js';
 import EyeMeshFactory from './eye-factory';
 import pointsOnSphere from './points-on-sphere';
-import IExperiment from '../iexperiment';
+import ExperimentThreeJs from '../experiment-threejs';
 // require('../utils/three/OrbitControls');
 
 
@@ -14,7 +14,7 @@ const HEIGHT = window.innerHeight;
 const EYE_FACTORY = new EyeMeshFactory();
 
 
-export default class Eyes implements IExperiment {
+export default class Eyes extends ExperimentThreeJs {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
   // controls = new THREE.OrbitControls(this.camera);
@@ -24,6 +24,8 @@ export default class Eyes implements IExperiment {
 
 
   constructor() {
+    super();
+
     this.camera.position.set(0, 0, 50);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -42,14 +44,14 @@ export default class Eyes implements IExperiment {
 
   async init() {
     await EYE_FACTORY.init();
-    
+
     pointsOnSphere(150).forEach((pos) => {
       const eye = EYE_FACTORY.create();
-  
+
       const scale = 10.5;
       eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale * 5);
       this.scene.add(eye);
-  
+
       // Cache rotation to camera
       eye.lookAt(this.camera.position);
       eye._rotationToCamera = {
@@ -57,27 +59,32 @@ export default class Eyes implements IExperiment {
         y: eye.rotation.y,
         z: eye.rotation.z
       };
-  
+
       // Randomize rotation
       eye.rotation.set(
         (Math.random() - 0.5) * 1.0,
         (Math.random() - 0.5) * 1.0,
         (Math.random() - 0.5) * 1.0
       );
-  
+
       this.eyes.push(eye);
     });
-  
+
     // Fine-tune positions
     this.eyes[10].position.x -= 1;
     this.eyes[22].position.x += 1;
     this.eyes[35].position.x += 0.5; this.eyes[35].position.y -= 0.5;
     this.eyes[37].position.x += 1; this.eyes[37].position.z -= 2;
     this.eyes[103].position.y -= 1; this.eyes[103].position.z -= 1; this.eyes[103].position.x -= 0.5;
+
+    this.start();
+
+    super.init();
   }
 
 
   async destroy() {
+    this.stop();
     this.renderer.dispose();
     this.eyes.forEach((eye) => {
       eye.children[0].children.forEach((child) => {
@@ -93,13 +100,13 @@ export default class Eyes implements IExperiment {
       tweenX(eye);
       tweenY(eye);
       tweenZ(eye);
-  
+
       eye._tweenToCameraInterval = setInterval(() => {
         eye._tweenToCameraTimeout = setTimeout(() => tweenToCamera(eye), Math.random() * 150);
       }, 10000);
     });
   }
-  
+
 
   async stop() {
     this.eyes.forEach((eye) => {
@@ -112,7 +119,7 @@ export default class Eyes implements IExperiment {
   }
 
 
-  animate() {
+  requestAnimationFrame() {
     TWEEN.default.update();
     // this.controls.update();
     this.renderer.render(this.scene, this.camera);
@@ -162,8 +169,8 @@ function tweenToCamera(eye) {
   if (eye._tweenZ) eye._tweenZ.stop();
 
   eye._tweenToCamera = new TWEEN.Tween({
-    x: eye.rotation.x, 
-    y: eye.rotation.y, 
+    x: eye.rotation.x,
+    y: eye.rotation.y,
     z: eye.rotation.z
   }).to(eye._rotationToCamera, 500);
 

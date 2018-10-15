@@ -1,6 +1,6 @@
 {
-  "name": "threejs-playground",
-  "version": "1.0.0",
+  "name": "experiments",
+  "version": "0.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Deniz Gurkaynak <dgurkaynak@gmail.com>",
   "license": "ISC",
   "devDependencies": {
     "@tweenjs/tween.js": "^17.2.0",

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import IExperiment from '../iexperiment';
+import ExperimentThreeJs from '../experiment-threejs';
 import GeometrySpringModifier from './spring-modifier';
 require('../utils/three/CTMLoader');
 require('../utils/three/OrbitControls');
@@ -17,7 +17,7 @@ const ctmLoader = new THREE.CTMLoader();
 const textureLoader = new THREE.TextureLoader();
 
 
-export default class Head implements IExperiment {
+export default class Head extends ExperimentThreeJs {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
   controls = new THREE.OrbitControls(this.camera);
@@ -30,6 +30,8 @@ export default class Head implements IExperiment {
 
 
   constructor() {
+    super();
+
     this.camera.position.set(0, 0, 1);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -62,7 +64,7 @@ export default class Head implements IExperiment {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.z = 0.1;
       mesh.scale.setScalar(2.25);
-      
+
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       this.scene.add(mesh);
@@ -72,17 +74,14 @@ export default class Head implements IExperiment {
       this.renderer.domElement.addEventListener('mousemove', this.onMouseMove.bind(this), false);
 
     });
+
+    super.init();
   }
 
 
-  async destroy() {}
-  async start() {}
-  async stop() {}
-
-
-  animate() {
+  requestAnimationFrame() {
     this.controls.update();
-    
+
     if (this.mesh) {
       this.springModifier.updateVertexSprings();
       this.mesh.geometry.verticesNeedUpdate = true;
@@ -90,7 +89,7 @@ export default class Head implements IExperiment {
       this.mesh.geometry.computeFaceNormals();
       this.mesh.geometry.computeVertexNormals();
     }
-    
+
     this.renderer.render(this.scene, this.camera);
   }
 

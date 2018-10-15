@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import IExperiment from '../iexperiment';
+import ExperimentThreeJs from '../experiment-threejs';
 // require('../utils/OrbitControls');
 
 
@@ -13,7 +13,7 @@ const NUMBER_Z = 50;
 const SPHERE_DISTANCE = 1;
 
 
-export default class Waves implements IExperiment {
+export default class Waves extends ExperimentThreeJs {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 1000);
   // controls = new THREE.OrbitControls(camera);
@@ -26,6 +26,7 @@ export default class Waves implements IExperiment {
 
 
   constructor() {
+    super();
     this.camera.position.set(0, 4, NUMBER_Z / 2 * SPHERE_DISTANCE);
 
     this.renderer.setClearColor(BG_COLOR);
@@ -37,7 +38,7 @@ export default class Waves implements IExperiment {
   async init() {
     for (let i = 0; i < NUMBER_X; i++) {
       const cubesX = [];
-  
+
       for (let j = 0; j < NUMBER_Z; j++) {
         const cube = new THREE.Mesh(this.geometry, this.material);
         cube.position.x = i * SPHERE_DISTANCE - (NUMBER_X / 2 * SPHERE_DISTANCE);
@@ -45,9 +46,11 @@ export default class Waves implements IExperiment {
         cubesX.push(cube);
         this.scene.add(cube);
       }
-  
+
       this.cubes.push(cubesX);
     }
+
+    super.init();
   }
 
 
@@ -58,11 +61,7 @@ export default class Waves implements IExperiment {
   }
 
 
-  async start() {}
-  async stop() {}
-
-
-  animate() {
+  requestAnimationFrame() {
     for (let i = 0; i < NUMBER_X; i++) {
       for (let j = 0; j < NUMBER_Z; j++) {
         const cube = this.cubes[i][j];
