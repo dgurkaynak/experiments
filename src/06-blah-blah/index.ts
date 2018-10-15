@@ -52,35 +52,56 @@ export default class Head extends ExperimentThreeJs {
   async init() {
     super.init();
 
-    const geometry = new THREE.TextGeometry('BLAH', {
+    const text = 'BLAH BLAH';
+
+    const geometry1 = new THREE.TextGeometry(text.split(' ')[0], {
       font: theBoldFont,
       size: 1,
       height: 0.75,
       curveSegments: 12
     });
 
-    const material = new THREE.MeshStandardMaterial({
+    const geometry2 = new THREE.TextGeometry(text.split(' ')[1], {
+      font: theBoldFont,
+      size: 1,
+      height: 0.75,
+      curveSegments: 12
+    });
+
+    const texture1 = new THREE.CanvasTexture(this.perlin.canvas);
+    texture1.wrapS = THREE.MirroredRepeatWrapping;
+    texture1.wrapT = THREE.MirroredRepeatWrapping;
+
+    const texture2 = new THREE.CanvasTexture(this.perlin.canvas);
+    texture2.wrapS = THREE.MirroredRepeatWrapping;
+    texture2.wrapT = THREE.MirroredRepeatWrapping;
+    texture2.flipY = false;
+
+    const material1 = new THREE.MeshStandardMaterial({
       color: 0xff0000,
-      // wireframe: true,
-      // map: new THREE.CanvasTexture(this.perlin.canvas),
-      // normalMap: new THREE.CanvasTexture(this.perlin.canvas),
-      // normalScale: new THREE.Vector2(0.8, 0.8),
-      displacementMap: new THREE.CanvasTexture(this.perlin.canvas),
+      displacementMap: texture1,
       displacementScale: 0.1,
       displacementBias: -0.05,
       metalness: 0.1,
       roughness: 0.5
     });
 
-    // const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
+    const material2 = new THREE.MeshStandardMaterial({
+      color: 0xff0000,
+      displacementMap: texture2,
+      displacementScale: 0.1,
+      displacementBias: -0.05,
+      metalness: 0.1,
+      roughness: 0.5
+    });
 
-    const mesh1 = new THREE.Mesh(geometry, material);
+    const mesh1 = new THREE.Mesh(geometry1, material1);
     mesh1.castShadow = true;
     mesh1.receiveShadow = true;
     mesh1.position.x = -1.6;
     this.scene.add(mesh1);
 
-    const mesh2 = new THREE.Mesh(geometry, material);
+    const mesh2 = new THREE.Mesh(geometry2, material2);
     mesh2.castShadow = true;
     mesh2.receiveShadow = true;
     mesh2.position.x = -1.6;
