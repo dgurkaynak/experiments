@@ -18,7 +18,7 @@ const theBoldFont = fontLoader.parse(theBoldFontData);
 
 export default class Head extends ExperimentThreeJs {
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(25, WIDTH / HEIGHT, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
   controls = new THREE.OrbitControls(this.camera);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 
@@ -31,12 +31,11 @@ export default class Head extends ExperimentThreeJs {
   transformAux1 = new Ammo.btTransform();
   softBodyHelpers = new Ammo.btSoftBodyHelpers();
 
-  ffd = new FFD();
-
-  undeformedVertices = [];
-  geometry1: THREE.TextGeometry;
-  geometryIndexToLatticeMapping = {};
-
+  defaultMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff0000,
+    metalness: 0.1,
+    roughness: 0.5
+  });
 
   constructor() {
     super();
@@ -72,75 +71,80 @@ export default class Head extends ExperimentThreeJs {
 
     // Create objects
     // Ground
-    this.pos.set( 0, - 0.5, 0 );
-    this.quat.set( 0, 0, 0, 1 );
+    this.pos.set(0, -0.5, 0);
+    this.quat.set(0, 0, 0, 1);
     const groundMaterial = new THREE.MeshPhongMaterial({color: 0x000000});
     const ground = this.createParalellepiped(40, 1, 40, 0, this.pos, this.quat, groundMaterial);
     ground.castShadow = true;
     ground.receiveShadow = true;
 
 
-    const geometry1 = this.geometry1 = new THREE.TextGeometry('BLAH', {
+    setInterval(() => {
+      this.addSoftBody((geometry) => {
+        geometry.translate(0, 5, 0);
+        // geometry.rotateY(Math.random() * Math.PI / 4);
+      });
+    }, 2500);
+
+  }
+
+
+  addSoftBody(
+    decorator: (bufferGeometry: THREE.BufferGeometry) => void = () => {},
+    geometry: THREE.Geometry = new THREE.TextGeometry('BLAH', {
       font: theBoldFont,
       size: 1,
       height: 0.75,
       curveSegments: 12
-    });
-    // geometry1.translate(-1.6, 0, 0);
-    const material1 = new THREE.MeshStandardMaterial({
-      color: 0xff0000,
-      metalness: 0.1,
-      roughness: 0.5
-    });
-    const mesh1 = new THREE.Mesh(geometry1, material1);
-    mesh1.castShadow = true;
-    mesh1.receiveShadow = true;
-    this.scene.add(mesh1);
+    }),
+    material: THREE.Material = this.defaultMaterial
+  ) {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
 
-    for (let i = 0; i < geometry1.vertices.length; i++) {
-      var copy_pt = new THREE.Vector3();
-      copy_pt.copy(geometry1.vertices[i]);
-      this.undeformedVertices.push(copy_pt);
+    const undeformedVertices = [];
+
+    for (let i = 0; i < geometry.vertices.length; i++) {
+      const copy_pt = new THREE.Vector3();
+      copy_pt.copy(geometry.vertices[i]);
+      undeformedVertices.push(copy_pt);
     }
 
-    const bbox = new THREE.Box3();
-    // Compute the bounding box that encloses all vertices of the smooth model.
-    bbox.setFromPoints(geometry1.vertices);
+    const bBox = new THREE.Box3();
+    bBox.setFromPoints(geometry.vertices);
 
-    this.ffd.rebuildLattice(bbox, [8, 4, 1]);
+    const segments = [8, 4, 1];
+    const ffd = new FFD();
+    ffd.rebuildLattice(bBox, segments);
 
-    const bBoxWidth = Math.abs(bbox.max.x - bbox.min.x);
-    const bBoxHeight = Math.abs(bbox.max.y - bbox.min.y);
-    const bBoxDepth = Math.abs(bbox.max.z - bbox.min.z);
-    const geometry = new THREE.BoxGeometry(bBoxWidth, bBoxHeight, bBoxDepth, 8, 4, 1);
-    const bufferGeometry = new THREE.BufferGeometry().fromGeometry(geometry);
-    const asd = new THREE.Geometry().fromBufferGeometry(bufferGeometry);
-    bufferGeometry.translate(0, 2.5, 0);
-    this.createSoftVolume(bufferGeometry, 25, 15);
+    const bBoxWidth = Math.abs(bBox.max.x - bBox.min.x);
+    const bBoxHeight = Math.abs(bBox.max.y - bBox.min.y);
+    const bBoxDepth = Math.abs(bBox.max.z - bBox.min.z);
+    const bBoxGeometry = new THREE.BoxGeometry(bBoxWidth, bBoxHeight, bBoxDepth, segments[0], segments[1], segments[2]);
+    const bBoxBufferGeometry = new THREE.BufferGeometry().fromGeometry(bBoxGeometry);
+    const bBoxGeometryTemp = new THREE.Geometry().fromBufferGeometry(bBoxBufferGeometry);
 
-    // geometry.translate(bBoxWidth / 2, bBoxHeight / 2, bBoxDepth / 2);
-    // geometry.vertices.forEach((v) => {
-    //   const point = new THREE.Mesh(new THREE.SphereGeometry(0.025), new THREE.MeshLambertMaterial({ color: 0x00ff00 }));
-    //   point.position.set(v.x, v.y, v.z);
-    //   this.scene.add(point);
-    // })
+    decorator(bBoxBufferGeometry);
+    // bufferGeometry.translate(0, 2.5, 0);
+    const volume = this.createSoftVolume(bBoxBufferGeometry, 25, 50);
 
-    asd.translate(bBoxWidth / 2, bBoxHeight / 2, bBoxDepth / 2);
-    asd.mergeVertices();
+    bBoxGeometryTemp.translate(bBoxWidth / 2, bBoxHeight / 2, bBoxDepth / 2);
+    bBoxGeometryTemp.mergeVertices();
 
+    const vertexIndexToLatticeMapping = {};
 
-    for (let i = 0; i < this.ffd.getTotalCtrlPtCount() ; i++) {
-      const ctrlPos = this.ffd.getPosition(i);
-
-      // const point = new THREE.Mesh(new THREE.SphereGeometry(0.025), new THREE.MeshLambertMaterial({ color: 0x0000ff }));
-      // point.position.set(ctrlPos.x, ctrlPos.y, ctrlPos.z);
-      // this.scene.add(point);
-
-      const targetI = findMinIndex(asd.vertices, v => v.distanceTo(ctrlPos));
-      this.geometryIndexToLatticeMapping[targetI] = i;
-      // console.log(i, targetI);
+    for (let i = 0; i < ffd.getTotalCtrlPtCount() ; i++) {
+      const ctrlPos = ffd.getPosition(i);
+      const targetI = findMinIndex(bBoxGeometryTemp.vertices, v => v.distanceTo(ctrlPos));
+      vertexIndexToLatticeMapping[targetI] = i;
     }
 
+    volume.textGeometry = geometry;
+    volume.undeformedVertices = undeformedVertices;
+    volume.vertexIndexToLatticeMapping = vertexIndexToLatticeMapping;
+    volume.ffd = ffd;
   }
 
 
@@ -194,19 +198,19 @@ export default class Head extends ExperimentThreeJs {
         geometry.attributes.position.needsUpdate = true;
         geometry.attributes.normal.needsUpdate = true;
 
-        const geo = new THREE.Geometry().fromBufferGeometry(geometry);
-        geo.mergeVertices();
-        geo.vertices.forEach((vertex, i) => {
-          const latticeIndex = this.geometryIndexToLatticeMapping[i];
-          this.ffd.setPosition(latticeIndex, vertex);
+        const originalGeometry = new THREE.Geometry().fromBufferGeometry(geometry);
+        originalGeometry.mergeVertices();
+        originalGeometry.vertices.forEach((vertex, i) => {
+          const latticeIndex = volume.vertexIndexToLatticeMapping[i];
+          volume.ffd.setPosition(latticeIndex, vertex);
         });
 
-        for (let i = 0; i < this.geometry1.vertices.length; i++) {
-          var eval_pt = this.ffd.evalWorld(this.undeformedVertices[i]);
-          if (eval_pt.equals(this.geometry1.vertices[i])) continue;
-          this.geometry1.vertices[i].copy(eval_pt);
+        for (let i = 0; i < volume.textGeometry.vertices.length; i++) {
+          var eval_pt = volume.ffd.evalWorld(volume.undeformedVertices[i]);
+          if (eval_pt.equals(volume.textGeometry.vertices[i])) continue;
+          volume.textGeometry.vertices[i].copy(eval_pt);
         }
-        this.geometry1.verticesNeedUpdate = true;
+        volume.textGeometry.verticesNeedUpdate = true;
     }
 
     // Update rigid bodies
@@ -257,91 +261,14 @@ export default class Head extends ExperimentThreeJs {
   }
 
 
-  createIndexedBufferGeometryFromGeometry(geometry) {
-    const numVertices = geometry.vertices.length;
-    const numFaces = geometry.faces.length;
-    const bufferGeom = new THREE.BufferGeometry();
-    const vertices = new Float32Array(numVertices * 3);
-    const indices = new (numFaces * 3 > 65535 ? Uint32Array : Uint16Array)(numFaces * 3);
-
-    for (let i = 0; i < numVertices; i++) {
-        var p = geometry.vertices[ i ];
-        var i3 = i * 3;
-        vertices[ i3 ] = p.x;
-        vertices[ i3 + 1 ] = p.y;
-        vertices[ i3 + 2 ] = p.z;
-    }
-
-    for ( var i = 0; i < numFaces; i++ ) {
-        var f = geometry.faces[ i ];
-        var i3 = i * 3;
-        indices[ i3 ] = f.a;
-        indices[ i3 + 1 ] = f.b;
-        indices[ i3 + 2 ] = f.c;
-    }
-
-    bufferGeom.setIndex(new THREE.BufferAttribute(indices, 1));
-    bufferGeom.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    return bufferGeom;
-  }
-
-  isEqual(x1, y1, z1, x2, y2, z2) {
-    const delta = 0.000001;
-    return Math.abs( x2 - x1 ) < delta &&
-      Math.abs( y2 - y1 ) < delta &&
-      Math.abs( z2 - z1 ) < delta;
-  }
-
-
-  mapIndices(bufGeometry, indexedBufferGeom) {
-    // Creates ammoVertices, ammoIndices and ammoIndexAssociation in bufGeometry
-    const vertices = bufGeometry.attributes.position.array;
-    const idxVertices = indexedBufferGeom.attributes.position.array;
-    const indices = indexedBufferGeom.index.array;
-    const numIdxVertices = idxVertices.length / 3;
-    const numVertices = vertices.length / 3;
-    bufGeometry.ammoVertices = idxVertices;
-    bufGeometry.ammoIndices = indices;
-    bufGeometry.ammoIndexAssociation = [];
-
-    for (let i = 0; i < numIdxVertices; i++) {
-        const association = [];
-        bufGeometry.ammoIndexAssociation.push( association );
-        const i3 = i * 3;
-
-        for (let j = 0; j < numVertices; j++) {
-            const j3 = j * 3;
-            if (this.isEqual(
-              idxVertices[ i3 ], idxVertices[ i3 + 1 ],  idxVertices[ i3 + 2 ],
-              vertices[ j3 ], vertices[ j3 + 1 ], vertices[ j3 + 2 ]
-            )) {
-                association.push(j3);
-            }
-        }
-    }
-  }
-
-
-  processGeometry(bufGeometry) {
-    // Obtain a Geometry
-    const geometry = new THREE.Geometry().fromBufferGeometry(bufGeometry);
-    // Merge the vertices so the triangle soup is converted to indexed triangles
-    const vertsDiff = geometry.mergeVertices();
-    // Convert again to BufferGeometry, indexed
-    const indexedBufferGeom = this.createIndexedBufferGeometryFromGeometry(geometry);
-    // Create index arrays mapping the indexed vertices to bufGeometry vertices
-    this.mapIndices(bufGeometry, indexedBufferGeom);
-  }
-
-
 
   createSoftVolume(bufferGeom, mass, pressure) {
-    this.processGeometry(bufferGeom);
+    processGeometry(bufferGeom);
     var volume = new THREE.Mesh(bufferGeom, new THREE.MeshPhongMaterial({
       color: 0xFFFFFF,
       wireframe: true,
       transparent: true,
-      // opacity: 0
+      opacity: 0
     }));
     volume.castShadow = true;
     volume.receiveShadow = true;
@@ -377,7 +304,10 @@ export default class Head extends ExperimentThreeJs {
     // Disable deactivation
     volumeSoftBody.setActivationState(4);
     this.softBodies.push(volume);
+
+    return volume;
   }
+
 }
 
 
@@ -394,4 +324,82 @@ function findMinIndex(arr: THREE.Vector3[], fn) {
   });
 
   return index;
+}
+
+
+function processGeometry(bufGeometry: THREE.BufferGeometry) {
+  // Obtain a Geometry
+  const geometry = new THREE.Geometry().fromBufferGeometry(bufGeometry);
+  // Merge the vertices so the triangle soup is converted to indexed triangles
+  geometry.mergeVertices();
+  // Convert again to BufferGeometry, indexed
+  const indexedBufferGeom = createIndexedBufferGeometryFromGeometry(geometry);
+  // Create index arrays mapping the indexed vertices to bufGeometry vertices
+  mapIndices(bufGeometry, indexedBufferGeom);
+}
+
+
+function createIndexedBufferGeometryFromGeometry(geometry: THREE.Geometry) {
+  const numVertices = geometry.vertices.length;
+  const numFaces = geometry.faces.length;
+  const bufferGeom = new THREE.BufferGeometry();
+  const vertices = new Float32Array(numVertices * 3);
+  const indices = new (numFaces * 3 > 65535 ? Uint32Array : Uint16Array)(numFaces * 3);
+
+  for (let i = 0; i < numVertices; i++) {
+      const p = geometry.vertices[i];
+      const i3 = i * 3;
+      vertices[i3] = p.x;
+      vertices[i3 + 1] = p.y;
+      vertices[i3 + 2] = p.z;
+  }
+
+  for (let i = 0; i < numFaces; i++) {
+      const f = geometry.faces[i];
+      const i3 = i * 3;
+      indices[i3] = f.a;
+      indices[i3 + 1] = f.b;
+      indices[i3 + 2] = f.c;
+  }
+
+  bufferGeom.setIndex(new THREE.BufferAttribute(indices, 1));
+  bufferGeom.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+  return bufferGeom;
+}
+
+
+// Creates ammoVertices, ammoIndices and ammoIndexAssociation in bufGeometry
+function mapIndices(bufGeometry: THREE.BufferGeometry, indexedBufferGeom: THREE.BufferGeometry) {
+  const vertices = bufGeometry.attributes.position.array;
+  const idxVertices = indexedBufferGeom.attributes.position.array;
+  const indices = indexedBufferGeom.index.array;
+  const numIdxVertices = idxVertices.length / 3;
+  const numVertices = vertices.length / 3;
+  bufGeometry.ammoVertices = idxVertices;
+  bufGeometry.ammoIndices = indices;
+  bufGeometry.ammoIndexAssociation = [];
+
+  for (let i = 0; i < numIdxVertices; i++) {
+      const association = [];
+      bufGeometry.ammoIndexAssociation.push( association );
+      const i3 = i * 3;
+
+      for (let j = 0; j < numVertices; j++) {
+          const j3 = j * 3;
+          if (isEqual(
+            idxVertices[ i3 ], idxVertices[ i3 + 1 ],  idxVertices[ i3 + 2 ],
+            vertices[ j3 ], vertices[ j3 + 1 ], vertices[ j3 + 2 ]
+          )) {
+              association.push(j3);
+          }
+      }
+  }
+}
+
+
+function isEqual(x1, y1, z1, x2, y2, z2, delta = 0.000001) {
+  return Math.abs(x2 - x1) < delta &&
+    Math.abs(y2 - y1) < delta &&
+    Math.abs(z2 - z1) < delta;
 }
