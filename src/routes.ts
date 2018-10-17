@@ -4,4 +4,5 @@ export default {
   4: import('./04-eyes'),
   5: import('./05-head'),
   6: import('./06-blah-blah'),
+  7: import('./07-blah-blah2'),
 };
