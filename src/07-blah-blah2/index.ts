@@ -4,7 +4,11 @@ import theBoldFontData from '../06-blah-blah/the-bold-font.json';
 import { FFD } from '../utils/three/ffd';
 const Ammo = {}; require('../utils/ammo.js')(Ammo);
 require('../utils/three/OrbitControls');
-require('../utils/three/SubdivisionModifier');
+require('../utils/three/GLTFLoader');
+
+import toiletGltfPath from './assets/toilet.gltf';
+import toiletColorMapPath from './assets/toilet_color.jpg';
+import { CopyShader, WireframeGeometry } from 'three';
 
 
 const WIDTH = window.innerWidth;
@@ -12,13 +16,10 @@ const HEIGHT = window.innerHeight;
 const GRAVITY = -9.8;
 const MARGIN = 0.05;
 
-const fontLoader = new THREE.FontLoader();
-const theBoldFont = fontLoader.parse(theBoldFontData);
-
 
 export default class Head extends ExperimentThreeJs {
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(20, WIDTH / HEIGHT, 0.1, 1000);
   controls = new THREE.OrbitControls(this.camera);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 
@@ -31,17 +32,24 @@ export default class Head extends ExperimentThreeJs {
   transformAux1 = new Ammo.btTransform();
   softBodyHelpers = new Ammo.btSoftBodyHelpers();
 
+  gltfLoader = new THREE.GLTFLoader();
+  textureLoader = new THREE.TextureLoader();
+  fontLoader = new THREE.FontLoader();
+  theBoldFont = this.fontLoader.parse(theBoldFontData);
+
   defaultMaterial = new THREE.MeshStandardMaterial({
     color: 0xff0000,
     metalness: 0.1,
     roughness: 0.5
   });
 
+  cleanSoftBodiesThrottled = throttle(this.cleanSoftBodies, 500, this);
+
   constructor() {
     super();
 
-    this.camera.position.set(2.5, 2.5, 10);
-    this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+    this.camera.position.set(15, 5, 25);
+    this.camera.lookAt(new THREE.Vector3(-100, 100, 0));
 
     this.renderer.setClearColor(0x000000);
     this.renderer.setSize(WIDTH, HEIGHT);
@@ -71,28 +79,79 @@ export default class Head extends ExperimentThreeJs {
 
     // Create objects
     // Ground
-    this.pos.set(0, -0.5, 0);
-    this.quat.set(0, 0, 0, 1);
-    const groundMaterial = new THREE.MeshPhongMaterial({color: 0x000000});
-    const ground = this.createParalellepiped(40, 1, 40, 0, this.pos, this.quat, groundMaterial);
-    ground.castShadow = true;
-    ground.receiveShadow = true;
+    // this.pos.set(0, -0.5, 0);
+    // this.quat.set(0, 0, 0, 1);
+    // const groundMaterial = new THREE.MeshPhongMaterial({color: 0x000000});
+    // const ground = this.createParalellepiped(40, 1, 40, 0, this.pos, this.quat, groundMaterial);
+    // ground.castShadow = true;
+    // ground.receiveShadow = true;
+
+
+    const [toiletGtlf, toiletColorMapTexture] = await Promise.all([
+      this.loadGltf(toiletGltfPath),
+      this.loadTexture(toiletColorMapPath)
+    ]);
+
+    toiletGtlf.scene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.material = new THREE.MeshPhongMaterial({
+          // wireframe: true,
+          // transparent: true,
+          // opacity: 0.25,
+          map: toiletColorMapTexture
+        });
+        
+        child.geometry.rotateX(- Math.PI / 2);
+        child.geometry.translate(5, 0, 0);
+        child.geometry.scale(0.5, 0.5, 0.5);
+
+        this.setupCollision();
+
+        this.scene.add(child);
+      }
+    });
 
 
     setInterval(() => {
       this.addSoftBody((geometry) => {
-        geometry.translate(0, 5, 0);
-        // geometry.rotateY(Math.random() * Math.PI / 4);
+        // geometry.translate(0, 25, -5);
+        geometry.translate(
+          (Math.random() < 0.5 ? -1.35 : 1.35) + (Math.random() - 0.5) * 0.15, 
+          6.5, 
+          (Math.random() < 0.5 ? -1.15 : 1.55) + (Math.random() - 0.5) * 0.15
+        );
+        geometry.rotateY((Math.random() - 0.25) * Math.PI / 2);
+        // geometry.rotateX((Math.random() - 0.5) * Math.PI / 8);
+        // geometry.rotateZ((Math.random() - 0.5) * Math.PI / 8);
       });
-    }, 2500);
+    }, 1000);
 
+  }
+
+
+  setupCollision() {
+    const material = new THREE.MeshBasicMaterial({ 
+      color: 0xff0000, 
+      transparent: true, 
+      opacity: 0.0
+    });
+
+    const geo1 = new THREE.TorusGeometry(3, 0.5, null, 20);
+    geo1.rotateX(Math.PI / 2);
+    geo1.scale(1.05, 0.25, 1.25)
+    geo1.translate(-0.15, -2.0, 0.55);
+    const mesh1 = new THREE.Mesh(geo1, material);
+    this.scene.add(mesh1);
+
+    const shape = generateAmmoShapeFromGeometry(geo1);
+    this.createRigidBody(mesh1, shape, 0, this.pos, this.quat);
   }
 
 
   addSoftBody(
     decorator: (bufferGeometry: THREE.BufferGeometry) => void = () => {},
     geometry: THREE.Geometry = new THREE.TextGeometry('BLAH', {
-      font: theBoldFont,
+      font: this.theBoldFont,
       size: 1,
       height: 0.75,
       curveSegments: 12
@@ -128,7 +187,7 @@ export default class Head extends ExperimentThreeJs {
 
     decorator(bBoxBufferGeometry);
     // bufferGeometry.translate(0, 2.5, 0);
-    const volume = this.createSoftVolume(bBoxBufferGeometry, 25, 50);
+    const volume = this.createSoftVolume(bBoxBufferGeometry, 2, 1);
 
     bBoxGeometryTemp.translate(bBoxWidth / 2, bBoxHeight / 2, bBoxDepth / 2);
     bBoxGeometryTemp.mergeVertices();
@@ -141,10 +200,33 @@ export default class Head extends ExperimentThreeJs {
       vertexIndexToLatticeMapping[targetI] = i;
     }
 
+    volume.textMesh = mesh;
     volume.textGeometry = geometry;
     volume.undeformedVertices = undeformedVertices;
     volume.vertexIndexToLatticeMapping = vertexIndexToLatticeMapping;
     volume.ffd = ffd;
+  }
+
+
+  cleanSoftBodies() {
+    const softBodiesToBeDeleted = [];
+
+    this.softBodies.forEach((softBody) => {
+      if (softBody.textGeometry.vertices[0].y < -4) {
+        softBodiesToBeDeleted.push(softBody);
+      }
+    });
+
+    softBodiesToBeDeleted.forEach((softBody) => {
+      const index = this.softBodies.indexOf(softBody);
+      if (index > -1) this.softBodies.splice(index, 1);
+
+      this.scene.remove(softBody);
+      this.scene.remove(softBody.textMesh);
+      softBody.textGeometry.dispose();
+
+      this.physicsWorld.removeSoftBody(softBody.userData.physicsBody);
+    });
   }
 
 
@@ -153,6 +235,7 @@ export default class Head extends ExperimentThreeJs {
 
     const deltaTime = this.clock.getDelta();
     this.updatePhysics(deltaTime);
+    this.cleanSoftBodiesThrottled();
 
     this.renderer.render(this.scene, this.camera);
   }
@@ -289,7 +372,7 @@ export default class Head extends ExperimentThreeJs {
     // Soft-soft and soft-rigid collisions
     sbConfig.set_collisions(0x11);
     // Friction
-    sbConfig.set_kDF(0.1);
+    sbConfig.set_kDF(0.0);
     // Damping
     sbConfig.set_kDP(0.01);
     // Pressure
@@ -306,6 +389,20 @@ export default class Head extends ExperimentThreeJs {
     this.softBodies.push(volume);
 
     return volume;
+  }
+
+
+  async loadGltf(path) {
+    return new Promise((resolve, reject) => {
+      this.gltfLoader.load(path, resolve, null, reject);
+    });
+  }
+
+
+  async loadTexture(path): Promise<THREE.Texture> {
+    return new Promise((resolve, reject) => {
+      this.textureLoader.load(path, resolve, null, reject);
+    });
   }
 
 }
@@ -402,4 +499,65 @@ function isEqual(x1, y1, z1, x2, y2, z2, delta = 0.000001) {
   return Math.abs(x2 - x1) < delta &&
     Math.abs(y2 - y1) < delta &&
     Math.abs(z2 - z1) < delta;
+}
+
+
+function generateAmmoShapeFromGeometry(geometry) {
+  const vertices = geometry.vertices;
+  const triangles = [];
+  geometry.mergeVertices();
+  geometry.faces.forEach((face) => {
+    triangles.push([
+      { x: vertices[face.a].x, y: vertices[face.a].y, z: vertices[face.a].z },
+      { x: vertices[face.b].x, y: vertices[face.b].y, z: vertices[face.b].z },
+      { x: vertices[face.c].x, y: vertices[face.c].y, z: vertices[face.c].z }
+    ]);
+  });
+
+  const triangleMesh = new Ammo.btTriangleMesh();
+  const _vec3_1 = new Ammo.btVector3(0,0,0);
+  const _vec3_2 = new Ammo.btVector3(0,0,0);
+  const _vec3_3 = new Ammo.btVector3(0,0,0);
+  triangles.forEach((triangle) => {
+    _vec3_1.setX(triangle[0].x);
+    _vec3_1.setY(triangle[0].y);
+    _vec3_1.setZ(triangle[0].z);
+
+    _vec3_2.setX(triangle[1].x);
+    _vec3_2.setY(triangle[1].y);
+    _vec3_2.setZ(triangle[1].z);
+
+    _vec3_3.setX(triangle[2].x);
+    _vec3_3.setY(triangle[2].y);
+    _vec3_3.setZ(triangle[2].z);
+
+    triangleMesh.addTriangle(_vec3_1, _vec3_2, _vec3_3, true);
+  });
+  const shape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true, true);
+  shape.setMargin(MARGIN);
+  return shape;
+}
+
+
+function throttle(fn, threshhold, scope) {
+  threshhold || (threshhold = 250);
+  var last,
+      deferTimer;
+  return function () {
+    var context = scope || this;
+
+    var now = +new Date,
+        args = arguments;
+    if (last && now < last + threshhold) {
+      // hold on to it
+      clearTimeout(deferTimer);
+      deferTimer = setTimeout(function () {
+        last = now;
+        fn.apply(context, args);
+      }, threshhold);
+    } else {
+      last = now;
+      fn.apply(context, args);
+    }
+  };
 }
