@@ -59,7 +59,7 @@ export default class Head extends ExperimentThreeJs {
     this.scene.add(ambientLight);
 
     const pointLight = new THREE.PointLight(0xffffff, 1, 10);
-    pointLight.position.set(-1, 0, 3);
+    pointLight.position.set(-1, 1, 3);
     this.scene.add(pointLight);
   }
 
@@ -114,11 +114,10 @@ export default class Head extends ExperimentThreeJs {
 
     setInterval(() => {
       this.addSoftBody((geometry) => {
-        // geometry.translate(0, 25, -5);
         geometry.translate(
-          (Math.random() < 0.5 ? -1.35 : 1.35) + (Math.random() - 0.5) * 0.15, 
+          (Math.random() < 0.5 ? -1.35 : 0.95) + (Math.random() - 0.5) * 0.15, 
           6.5, 
-          (Math.random() < 0.5 ? -1.15 : 1.55) + (Math.random() - 0.5) * 0.15
+          (Math.random() < 0.5 ? -1.05 : 1.35) + (Math.random() - 0.5) * 0.15
         );
         geometry.rotateY((Math.random() - 0.25) * Math.PI / 2);
         // geometry.rotateX((Math.random() - 0.5) * Math.PI / 8);
@@ -143,8 +142,22 @@ export default class Head extends ExperimentThreeJs {
     const mesh1 = new THREE.Mesh(geo1, material);
     this.scene.add(mesh1);
 
-    const shape = generateAmmoShapeFromGeometry(geo1);
-    this.createRigidBody(mesh1, shape, 0, this.pos, this.quat);
+    const shape1 = generateAmmoShapeFromGeometry(geo1);
+    this.createRigidBody(mesh1, shape1, 0, this.pos, this.quat);
+
+
+    const lathePoints = [];
+    for (let i = 0; i < 10; i++) {
+      lathePoints.push(new THREE.Vector2(Math.sin(i * 0.2) * 10 + 5, (i - 5) * 2));
+    }
+    const geo2 = new THREE.LatheGeometry(lathePoints);
+    geo2.scale(0.25, 0.25, 0.3);
+    geo2.translate(-0.20, -4, 0.5);
+    const mesh2 = new THREE.Mesh(geo2, material);
+    this.scene.add(mesh2);
+
+    const shape2 = generateAmmoShapeFromGeometry(geo2);
+    this.createRigidBody(mesh2, shape2, 0, this.pos, this.quat);
   }
 
 
@@ -212,7 +225,7 @@ export default class Head extends ExperimentThreeJs {
     const softBodiesToBeDeleted = [];
 
     this.softBodies.forEach((softBody) => {
-      if (softBody.textGeometry.vertices[0].y < -4) {
+      if (softBody.textGeometry.vertices[0].y < -4.5) {
         softBodiesToBeDeleted.push(softBody);
       }
     });
