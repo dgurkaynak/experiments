@@ -3,7 +3,6 @@ import ExperimentThreeJs from '../experiment-threejs';
 import theBoldFontData from './the-bold-font.json';
 import Perlin from '../05-head/perlin';
 require('../utils/three/OrbitControls');
-require('../utils/three/SubdivisionModifier');
 
 
 const WIDTH = window.innerWidth;
@@ -15,7 +14,7 @@ const theBoldFont = fontLoader.parse(theBoldFontData);
 
 export default class Head extends ExperimentThreeJs {
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(25, WIDTH / HEIGHT, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(35, WIDTH / HEIGHT, 0.1, 1000);
   controls = new THREE.OrbitControls(this.camera);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 
@@ -52,16 +51,14 @@ export default class Head extends ExperimentThreeJs {
   async init() {
     super.init();
 
-    const text = 'BLAH BLAH';
-
-    const geometry1 = new THREE.TextGeometry(text.split(' ')[0], {
+    const geometry1 = new THREE.TextGeometry(`HAYAT`, {
       font: theBoldFont,
       size: 1,
       height: 0.75,
       curveSegments: 12
     });
 
-    const geometry2 = new THREE.TextGeometry(text.split(' ')[1], {
+    const geometry2 = new THREE.TextGeometry(`HOYRAT`, {
       font: theBoldFont,
       size: 1,
       height: 0.75,
@@ -98,13 +95,13 @@ export default class Head extends ExperimentThreeJs {
     const mesh1 = new THREE.Mesh(geometry1, material1);
     mesh1.castShadow = true;
     mesh1.receiveShadow = true;
-    mesh1.position.x = -1.6;
+    mesh1.position.x = -2.6;
     this.scene.add(mesh1);
 
     const mesh2 = new THREE.Mesh(geometry2, material2);
     mesh2.castShadow = true;
     mesh2.receiveShadow = true;
-    mesh2.position.x = -1.6;
+    mesh2.position.x = -2.6;
     mesh2.position.y = -1.1;
     this.scene.add(mesh2);
 
