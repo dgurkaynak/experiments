@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
-import theBoldFontData from '../06-blah-blah/the-bold-font.json';
+import theBoldFontData from '../06-text/the-bold-font.json';
 import { FFD } from '../utils/three/ffd';
 const Ammo = {}; require('../utils/ammo.js')(Ammo);
 require('../utils/three/GLTFLoader');
