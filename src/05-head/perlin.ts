@@ -1,4 +1,4 @@
-import perlin from '../utils/perlin';
+import noise from '../utils/noise';
 
 export default class Perlin {
   canvas = document.createElement('canvas');
@@ -23,7 +23,7 @@ export default class Perlin {
     const cHeight = this.canvas.height;
     let max = -Infinity;
     let min = Infinity;
-    const noiseFn = perlin.noise.perlin3 // noise.simplex3;
+    const noiseFn = noise.noise.perlin3 // noise.simplex3;
 
     for (let x = 0; x < cWidth; x++) {
       for (let y = 0; y < cHeight; y++) {
