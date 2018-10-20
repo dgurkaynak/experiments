@@ -1,7 +1,16 @@
 import Experiment from './experiment';
 import routes from './routes';
+import Stats from 'stats.js';
+
+
+const ENABLE_STATS = true;
+
 
 const containerEl = document.getElementById('container');
+const statsEl = document.getElementById('stats');
+const stats = new Stats();
+stats.showPanel(0);
+if (ENABLE_STATS) statsEl.appendChild(stats.dom);
 
 
 async function load(exp: Experiment) {
@@ -18,7 +27,9 @@ async function animate() {
   if (!window.currentExperiment.requestAnimationFrame) return;
 
   window.currentAnimationFrame = requestAnimationFrame(() => {
+    if (ENABLE_STATS) stats.begin();
     window.currentExperiment.requestAnimationFrame();
+    if (ENABLE_STATS) stats.end();
     animate();
   });
 }
