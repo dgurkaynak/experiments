@@ -49,14 +49,13 @@ async function unload() {
 
 const onHashChange = window.onhashchange = async function() {
   const hash = window.location.hash.substr(1).trim();
-  const hashInt = parseInt(hash, 10);
 
-  if (isNaN(hashInt) || !routes[hashInt]) {
+  if (!hash || !routes[hash]) {
     console.error(`Oops, experiment #${hash} does not exist`);
     return;
   }
 
-  const Experiment = await routes[hashInt];
+  const Experiment = await routes[hash];
   load(new Experiment.default());
 }
 onHashChange();
