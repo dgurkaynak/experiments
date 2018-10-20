@@ -1,5 +1,3 @@
-// http://bigblueboo.tumblr.com/post/145035932469/from-all-angles#notes
-
 import * as THREE from 'three';
 import ExperimentThreeJS from '../experiment-threejs';
 
@@ -11,9 +9,9 @@ const NUMBER_OF_BOXES_X = 10;
 const NUMBER_OF_BOXES_Y = 10;
 
 
-export default class RotatingCubes extends ExperimentThreeJS {
+export default class RotatingCubesV1 extends ExperimentThreeJS {
   scene = new THREE.Scene();
-  camera = new THREE.OrthographicCamera(WIDTH / -2, WIDTH / 2, HEIGHT / 2, HEIGHT / -2, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(150, WIDTH / HEIGHT, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: true });
 
   geometry = new THREE.BoxBufferGeometry(25, 25, 25);
