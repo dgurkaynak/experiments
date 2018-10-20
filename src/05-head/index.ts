@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
 import GeometrySpringModifier from './spring-modifier';
 require('../utils/three/CTMLoader');
-require('../utils/three/OrbitControls');
 
 import headCtmPath from './assets/LeePerry.ctm';
 import colorMapTexturePath from './assets/Map-COL.jpg';
@@ -20,8 +19,8 @@ const textureLoader = new THREE.TextureLoader();
 export default class Head extends ExperimentThreeJs {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
-  controls = new THREE.OrbitControls(this.camera);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+  enableOrbitControls = false;
 
   rayCaster = new THREE.Raycaster();
   mousePosition = new THREE.Vector2();
@@ -80,7 +79,7 @@ export default class Head extends ExperimentThreeJs {
 
 
   requestAnimationFrame() {
-    this.controls.update();
+    super.requestAnimationFrame();
 
     if (this.mesh) {
       this.springModifier.updateVertexSprings();

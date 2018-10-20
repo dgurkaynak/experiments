@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
 import theBoldFontData from './the-bold-font.json';
 import Perlin from '../05-head/perlin';
-require('../utils/three/OrbitControls');
 
 
 const WIDTH = window.innerWidth;
@@ -15,8 +14,8 @@ const theBoldFont = fontLoader.parse(theBoldFontData);
 export default class Head extends ExperimentThreeJs {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(35, WIDTH / HEIGHT, 0.1, 1000);
-  controls = new THREE.OrbitControls(this.camera);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+  enableOrbitControls = false;
 
   perlin = new Perlin(128);
   mesh1: THREE.Mesh;
@@ -111,7 +110,7 @@ export default class Head extends ExperimentThreeJs {
 
 
   requestAnimationFrame() {
-    this.controls.update();
+    super.requestAnimationFrame();
 
     this.perlin.draw();
     if (this.mesh1) this.mesh1.material.displacementMap.needsUpdate = true;

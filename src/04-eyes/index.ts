@@ -6,7 +6,6 @@ import * as TWEEN from '@tweenjs/tween.js';
 import EyeMeshFactory from './eye-factory';
 import pointsOnSphere from './points-on-sphere';
 import ExperimentThreeJs from '../experiment-threejs';
-// require('../utils/three/OrbitControls');
 
 
 const WIDTH = window.innerWidth;
@@ -17,8 +16,8 @@ const EYE_FACTORY = new EyeMeshFactory();
 export default class Eyes extends ExperimentThreeJs {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
-  // controls = new THREE.OrbitControls(this.camera);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+  enableOrbitControls = false;
 
   eyes = [];
 
@@ -120,8 +119,8 @@ export default class Eyes extends ExperimentThreeJs {
 
 
   requestAnimationFrame() {
+    super.requestAnimationFrame();
     TWEEN.default.update();
-    // this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 }

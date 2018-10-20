@@ -70,6 +70,8 @@ export default class RotatingCubes extends ExperimentThreeJS {
 
 
   requestAnimationFrame() {
+    super.requestAnimationFrame();
+
     for (let i = 0; i < NUMBER_OF_BOXES_X; i++) {
       for (let j = 0; j < NUMBER_OF_BOXES_Y; j++) {
         const box = this.boxes[i][j];

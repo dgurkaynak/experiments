@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
-// require('../utils/OrbitControls');
 
 
 const WIDTH = window.innerWidth;
@@ -16,8 +15,8 @@ const SPHERE_DISTANCE = 1;
 export default class Waves extends ExperimentThreeJs {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 1000);
-  // controls = new THREE.OrbitControls(camera);
   renderer = new THREE.WebGLRenderer({ antialias: true });
+  enableOrbitControls = false;
 
   geometry = new THREE.SphereGeometry(SPHERE_RADIUS);
   material = new THREE.MeshBasicMaterial({ color: SPHERE_COLOR });
@@ -62,6 +61,8 @@ export default class Waves extends ExperimentThreeJs {
 
 
   requestAnimationFrame() {
+    super.requestAnimationFrame();
+
     for (let i = 0; i < NUMBER_X; i++) {
       for (let j = 0; j < NUMBER_Z; j++) {
         const cube = this.cubes[i][j];
@@ -69,7 +70,7 @@ export default class Waves extends ExperimentThreeJs {
       }
     }
     this.delta++;
-    // this.controls.update();
+
     this.renderer.render(this.scene, this.camera);
   }
 }

@@ -3,12 +3,10 @@ import ExperimentThreeJs from '../experiment-threejs';
 import theBoldFontData from '../06-blah-blah/the-bold-font.json';
 import { FFD } from '../utils/three/ffd';
 const Ammo = {}; require('../utils/ammo.js')(Ammo);
-require('../utils/three/OrbitControls');
 require('../utils/three/GLTFLoader');
 
 import toiletGltfPath from './assets/toilet.gltf';
 import toiletColorMapPath from './assets/toilet_color.jpg';
-import { CopyShader, WireframeGeometry } from 'three';
 
 
 const WIDTH = window.innerWidth;
@@ -20,8 +18,8 @@ const MARGIN = 0.05;
 export default class Head extends ExperimentThreeJs {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(20, WIDTH / HEIGHT, 0.1, 1000);
-  controls = new THREE.OrbitControls(this.camera);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+  enableOrbitControls = true; // TODO: false not working?
 
   clock = new THREE.Clock();
   pos = new THREE.Vector3();
@@ -100,7 +98,7 @@ export default class Head extends ExperimentThreeJs {
           // opacity: 0.25,
           map: toiletColorMapTexture
         });
-        
+
         child.geometry.rotateX(- Math.PI / 2);
         child.geometry.translate(5, 0, 0);
         child.geometry.scale(0.5, 0.5, 0.5);
@@ -115,8 +113,8 @@ export default class Head extends ExperimentThreeJs {
     setInterval(() => {
       this.addSoftBody((geometry) => {
         geometry.translate(
-          (Math.random() < 0.5 ? -1.35 : 0.95) + (Math.random() - 0.5) * 0.15, 
-          6.5, 
+          (Math.random() < 0.5 ? -1.35 : 0.95) + (Math.random() - 0.5) * 0.15,
+          6.5,
           (Math.random() < 0.5 ? -1.05 : 1.35) + (Math.random() - 0.5) * 0.15
         );
         geometry.rotateY((Math.random() - 0.25) * Math.PI / 2);
@@ -129,9 +127,9 @@ export default class Head extends ExperimentThreeJs {
 
 
   setupCollision() {
-    const material = new THREE.MeshBasicMaterial({ 
-      color: 0xff0000, 
-      transparent: true, 
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      transparent: true,
       opacity: 0.0
     });
 
@@ -244,7 +242,7 @@ export default class Head extends ExperimentThreeJs {
 
 
   requestAnimationFrame() {
-    this.controls.update();
+    super.requestAnimationFrame();
 
     const deltaTime = this.clock.getDelta();
     this.updatePhysics(deltaTime);

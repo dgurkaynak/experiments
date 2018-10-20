@@ -1,5 +1,6 @@
 import Experiment from './experiment';
 import * as THREE from 'three';
+require('./utils/three/OrbitControls');
 
 
 export default class ExperimentThreeJs extends Experiment {
@@ -8,12 +9,16 @@ export default class ExperimentThreeJs extends Experiment {
   renderer: THREE.Renderer;
   onWindowResizeBinded = this.onWindowResize.bind(this);
 
+  enableOrbitControls = false;
+  controls: THREE.OrbitControls;
 
   async init() {
     document.body.style.overflow = 'hidden';
     this.renderer.domElement.style.width = '100%';
     this.renderer.domElement.style.height = '100%';
     this.containerEl.appendChild(this.renderer.domElement);
+
+    if (this.enableOrbitControls) this.controls = new THREE.OrbitControls(this.camera);
 
     window.addEventListener('resize', this.onWindowResizeBinded, false);
   }
@@ -41,5 +46,9 @@ export default class ExperimentThreeJs extends Experiment {
     }
 
     this.renderer.setSize(WIDTH, HEIGHT);
+  }
+
+  requestAnimationFrame() {
+    if (this.enableOrbitControls) this.controls.update();
   }
 }
