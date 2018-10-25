@@ -17,6 +17,7 @@
     "@types/three": "^0.92.18",
     "@types/tweenjs": "^1.0.0",
     "cross-env": "^5.2.0",
+    "p5": "^0.7.2",
     "parcel-bundler": "^1.9.7",
     "randomcolor": "^0.5.3",
     "stats.js": "^0.17.0",
