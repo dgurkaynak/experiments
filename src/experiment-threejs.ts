@@ -1,5 +1,6 @@
 import Experiment from './experiment';
 import * as THREE from 'three';
+import Stats from 'stats.js';
 require('./utils/three/OrbitControls');
 
 
@@ -12,6 +13,9 @@ export default class ExperimentThreeJs extends Experiment {
   enableOrbitControls = false;
   controls: THREE.OrbitControls;
 
+  enableStats = true;
+  stats: Stats;
+
   async init() {
     document.body.style.overflow = 'hidden';
     this.renderer.domElement.style.width = '100%';
@@ -19,6 +23,12 @@ export default class ExperimentThreeJs extends Experiment {
     this.containerEl.appendChild(this.renderer.domElement);
 
     if (this.enableOrbitControls) this.controls = new THREE.OrbitControls(this.camera);
+
+    if (this.enableStats) {
+      this.stats = new Stats();
+      this.stats.showPanel(0);
+      this.statsEl.appendChild(this.stats.dom);
+    }
 
     window.addEventListener('resize', this.onWindowResizeBinded, false);
   }

@@ -14,6 +14,7 @@
   "license": "ISC",
   "devDependencies": {
     "@tweenjs/tween.js": "^17.2.0",
+    "@types/stats": "^0.16.30",
     "@types/three": "^0.92.18",
     "@types/tweenjs": "^1.0.0",
     "cross-env": "^5.2.0",
