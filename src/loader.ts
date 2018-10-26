@@ -4,11 +4,13 @@ import routes from './routes';
 
 const containerEl = document.getElementById('container');
 const statsEl = document.getElementById('stats');
+let currentExperiment: Experiment = (window as any).experiment;
+let currentAnimationFrame: number = (window as any).currentAnimationFrame;
 
 
 async function load(exp: Experiment) {
-  if (window.currentExperiment) await unload();
-  window.currentExperiment = exp;
+  if (currentExperiment) await unload();
+  setCurrentExperiment(exp);
 
   await exp.init();
   animate();
@@ -16,23 +18,25 @@ async function load(exp: Experiment) {
 
 
 async function animate() {
-  if (!window.currentExperiment) return;
-  if (!window.currentExperiment.requestAnimationFrame) return;
+  if (!currentExperiment) return;
+  if (!currentExperiment.requestAnimationFrame) return;
 
-  if (window.currentExperiment.stats) {
-    const stats = window.currentExperiment.stats;
+  const stats = (currentExperiment as any).stats;
 
-    window.currentAnimationFrame = requestAnimationFrame(() => {
+  if (stats) {
+    const frameNumber = requestAnimationFrame(() => {
       stats.begin();
-      window.currentExperiment.requestAnimationFrame();
+      currentExperiment.requestAnimationFrame();
       stats.end();
       animate();
     });
+    setCurrentAnimationFrame(frameNumber);
   } else {
-    window.currentAnimationFrame = requestAnimationFrame(() => {
-      window.currentExperiment.requestAnimationFrame();
+    const frameNumber = requestAnimationFrame(() => {
+      currentExperiment.requestAnimationFrame();
       animate();
     });
+    setCurrentAnimationFrame(frameNumber);
   }
 }
 
@@ -46,14 +50,24 @@ async function unload() {
     statsEl.removeChild(statsEl.firstChild);
   }
 
-  cancelAnimationFrame(window.currentAnimationFrame);
-  await window.currentExperiment.destroy();
-  window.currentExperiment = null;
-  window.currentAnimationFrame = null;
+  cancelAnimationFrame(currentAnimationFrame);
+  await currentExperiment.destroy();
+  setCurrentExperiment(null);
+  setCurrentAnimationFrame(null);
 }
 
 
-const onHashChange = window.onhashchange = async function() {
+function setCurrentExperiment(experiment: Experiment) {
+  currentExperiment = (window as any).experiment = experiment;
+}
+
+
+function setCurrentAnimationFrame(frameNumber: number) {
+  currentAnimationFrame = (window as any).animationFrame = frameNumber;
+}
+
+
+const onHashChange = async function() {
   const hash = window.location.hash.substr(1).trim();
 
   if (!hash || !routes[hash]) {
@@ -64,4 +78,5 @@ const onHashChange = window.onhashchange = async function() {
   const Experiment = await routes[hash];
   load(new Experiment.default());
 }
+window.onhashchange = onHashChange;
 onHashChange();
