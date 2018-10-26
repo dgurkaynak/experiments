@@ -42,6 +42,10 @@ async function unload() {
     containerEl.removeChild(containerEl.firstChild);
   }
 
+  while (statsEl.firstChild) {
+    statsEl.removeChild(statsEl.firstChild);
+  }
+
   cancelAnimationFrame(window.currentAnimationFrame);
   await window.currentExperiment.destroy();
   window.currentExperiment = null;
