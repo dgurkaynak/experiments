@@ -15,7 +15,8 @@ export default class Test extends ExperimentP5 {
   draw() {
     this.p.background(0);
     this.p.fill(255, 0, 255);
-    this.p.rect(100, 100, 50, 50);
-    this.p.noLoop();
+    this.p.rect((Math.random() * WIDTH), 100, 50, 50);
+    // this.p.noLoop();
+    // this.p.frameRate(10);
   }
 }
