@@ -2,9 +2,13 @@ import p5 from 'p5';
 import ExperimentP5 from '../experiment-p5';
 
 
+const WIDTH = window.innerWidth;
+const HEIGHT = window.innerHeight;
+
+
 export default class Test extends ExperimentP5 {
   setup() {
-    this.p.createCanvas(300, 300);
+    this.p.createCanvas(WIDTH, HEIGHT);
   }
 
 
