@@ -23,6 +23,7 @@
     "randomcolor": "^0.5.3",
     "stats.js": "^0.17.0",
     "three": "^0.96.0",
+    "three-orbitcontrols-ts": "^0.1.2",
     "typescript": "^3.0.3"
   }
 }

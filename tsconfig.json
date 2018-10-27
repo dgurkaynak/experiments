@@ -7,5 +7,8 @@
       "dom",
       "es2015"
     ]
-  }
+  },
+  "include": [
+    "./node_modules/three-orbitcontrols-ts/dist"
+  ]
 }

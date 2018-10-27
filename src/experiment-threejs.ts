@@ -1,7 +1,7 @@
 import Experiment from './experiment';
 import * as THREE from 'three';
 import Stats from 'stats.js';
-require('./utils/three/OrbitControls');
+import { OrbitControls } from 'three-orbitcontrols-ts';
 
 
 export default class ExperimentThreeJs extends Experiment {
@@ -11,7 +11,7 @@ export default class ExperimentThreeJs extends Experiment {
   onWindowResizeBinded = this.onWindowResize.bind(this);
 
   enableOrbitControls = false;
-  controls: THREE.OrbitControls;
+  controls: OrbitControls;
 
   enableStats = true;
   stats: Stats;
@@ -22,7 +22,7 @@ export default class ExperimentThreeJs extends Experiment {
     this.renderer.domElement.style.height = '100%';
     this.containerEl.appendChild(this.renderer.domElement);
 
-    if (this.enableOrbitControls) this.controls = new THREE.OrbitControls(this.camera);
+    if (this.enableOrbitControls) this.controls = new OrbitControls(this.camera);
 
     if (this.enableStats) {
       this.stats = new Stats();
