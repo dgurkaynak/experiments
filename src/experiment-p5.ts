@@ -26,6 +26,7 @@ export default class ExperimentP5 extends Experiment {
         this.draw();
         this.postDraw();
       };
+      this.p.windowResized = this.windowResized.bind(this);
     }, this.containerEl);
   }
 
@@ -54,5 +55,10 @@ export default class ExperimentP5 extends Experiment {
 
   postDraw() {
     if (this.enableStats) this.stats.end();
+  }
+
+
+  windowResized() {
+    this.p.resizeCanvas(window.innerWidth, window.innerHeight);
   }
 }
