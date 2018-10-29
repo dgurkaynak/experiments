@@ -12,8 +12,8 @@ const LINE_WIDTH = 1;
 const NOISE_X_STEP = 0.20;
 const NOISE_X_FRAME_STEP = 0.015;
 const NOISE_Y_STEP = 0.125;
-const NOISE_Y_INFLUENCE = 10;
-const FIXED_POINTS = 3;
+const NOISE_Y_INFLUENCE = 30;
+const LEFT_RIGHT_DAMPING_FACTOR = 2;
 
 
 export default class Test extends ExperimentP5 {
@@ -41,17 +41,16 @@ export default class Test extends ExperimentP5 {
       times(HORIZONTAL_SAMPLE_COUNT, (j) => {
         const x = PADDING.LEFT + (horizontalSampleWidth * j);
 
-        if (j < FIXED_POINTS || j >= HORIZONTAL_SAMPLE_COUNT - FIXED_POINTS) {
-          this.p.curveVertex(x, baseY);
-          return;
-        }
-
         const noise = this.p.noise(
           this.noiseX + NOISE_X_STEP * j,
           NOISE_Y_STEP * i
         );
         const offsetY = (noise - 0.5) * lineVerticalMargin * NOISE_Y_INFLUENCE;
-        const y = baseY + offsetY;
+
+        const dampingFactorLeft = 1 - (1 / Math.pow(Math.E, j / HORIZONTAL_SAMPLE_COUNT * LEFT_RIGHT_DAMPING_FACTOR));
+        const dampingFactorRight = 1 - (1 / Math.pow(Math.E, (1 - (j / HORIZONTAL_SAMPLE_COUNT)) * LEFT_RIGHT_DAMPING_FACTOR));
+
+        const y = baseY + offsetY * dampingFactorLeft * dampingFactorRight;
         this.p.curveVertex(x, y);
       });
 
