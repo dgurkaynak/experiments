@@ -7,4 +7,5 @@ export default {
   6: import('./06-text'),
   7: import('./07-blah-blah'),
   8: import('./08-perlin-line-swing'),
+  '8.1': import('./08-perlin-line-swing/index.1'),
 };
