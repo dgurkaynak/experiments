@@ -7,13 +7,13 @@ const WIDTH = window.innerWidth;
 const HEIGHT = window.innerHeight;
 const PADDING = { TOP: 100, RIGHT: 100, BOTTOM: 100, LEFT: 100 };
 const LINE_COUNT = 50;
-const HORIZONTAL_SAMPLE_COUNT = 20;
+const HORIZONTAL_SAMPLE_COUNT = 30;
 const LINE_WIDTH = 1;
 const NOISE_X_STEP = 0.20;
 const NOISE_X_FRAME_STEP = 0.015;
 const NOISE_Y_STEP = 0.125;
-const NOISE_Y_INFLUENCE = 30;
-const LEFT_RIGHT_DAMPING_FACTOR = 2;
+const NOISE_Y_INFLUENCE = 17;
+const LEFT_RIGHT_DAMPING_FACTOR = 3;
 
 
 export default class Test extends ExperimentP5 {
