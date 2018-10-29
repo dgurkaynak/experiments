@@ -17,6 +17,7 @@
     "@types/stats": "^0.16.30",
     "@types/three": "^0.92.18",
     "@types/tweenjs": "^1.0.0",
+    "ccapture.js": "github:aceslowman/ccapture.js#npm-fix",
     "cross-env": "^5.2.0",
     "p5": "^0.7.2",
     "parcel-bundler": "^1.9.7",
