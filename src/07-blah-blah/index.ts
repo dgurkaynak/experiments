@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
 import theBoldFontData from '../06-text/the-bold-font.json';
 import { FFD } from '../utils/three/ffd';
-const Ammo = {}; require('../utils/ammo.js')(Ammo);
+import getAmmo from 'ammo.js'; const Ammo = getAmmo();
 require('../utils/three/GLTFLoader');
 
 import toiletGltfPath from './assets/toilet.gltf';
