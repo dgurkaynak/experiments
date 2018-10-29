@@ -1,6 +1,7 @@
 import p5 from 'p5';
 import ExperimentP5 from '../experiment-p5';
 import times from 'lodash/times';
+import Clock from '../utils/clock';
 
 
 const WIDTH = window.innerWidth;
@@ -10,14 +11,14 @@ const LINE_COUNT = 50;
 const HORIZONTAL_SAMPLE_COUNT = 30;
 const LINE_WIDTH = 1;
 const NOISE_X_STEP = 0.20;
-const NOISE_X_FRAME_STEP = 0.015;
+const NOISE_X_CLOCK_FACTOR = 0.4;
 const NOISE_Y_STEP = 0.125;
 const NOISE_Y_INFLUENCE = 17;
 const LEFT_RIGHT_DAMPING_FACTOR = 3;
 
 
 export default class Test extends ExperimentP5 {
-  noiseX = 0;
+  clock = new Clock();
 
 
   setup() {
@@ -31,6 +32,7 @@ export default class Test extends ExperimentP5 {
     this.p.strokeWeight(LINE_WIDTH);
     this.p.stroke(255, 255, 255);
 
+    const baseX = this.clock.getElapsedTime() * NOISE_X_CLOCK_FACTOR;
     const lineVerticalMargin = (window.innerHeight - PADDING.TOP - PADDING.BOTTOM) / (LINE_COUNT - 1);
     const horizontalSampleWidth = (window.innerWidth - PADDING.LEFT - PADDING.RIGHT) / (HORIZONTAL_SAMPLE_COUNT - 1);
 
@@ -42,7 +44,7 @@ export default class Test extends ExperimentP5 {
         const x = PADDING.LEFT + (horizontalSampleWidth * j);
 
         const noise = this.p.noise(
-          this.noiseX + NOISE_X_STEP * j,
+          baseX + NOISE_X_STEP * j,
           NOISE_Y_STEP * i
         );
         const offsetY = (noise - 0.5) * lineVerticalMargin * NOISE_Y_INFLUENCE;
@@ -59,7 +61,5 @@ export default class Test extends ExperimentP5 {
 
     // this.p.noLoop();
     this.p.frameRate(30);
-
-    this.noiseX += NOISE_X_FRAME_STEP;
   }
 }
