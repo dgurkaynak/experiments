@@ -5,10 +5,10 @@ import Clock from '../utils/clock';
 import CanvasResizer from '../utils/canvas-resizer';
 
 
-const PADDING = { TOP: 100, RIGHT: 100, BOTTOM: 100, LEFT: 100 };
+const PADDING_RATIO = { TOP: 0.15, RIGHT: 0.15, BOTTOM: 0.15, LEFT: 0.15 };
 const LINE_COUNT = 50;
 const HORIZONTAL_SAMPLE_COUNT = 30;
-const LINE_WIDTH = 1;
+const LINE_WIDTH = 3;
 const NOISE_X_STEP = 0.20;
 const NOISE_X_CLOCK_FACTOR = 0.4;
 const NOISE_Y_STEP = 0.125;
@@ -38,16 +38,22 @@ export default class Test extends ExperimentP5 {
     this.p.strokeWeight(LINE_WIDTH);
     this.p.stroke(255, 255, 255);
 
+    const padding = {
+      top: this.canvasResizer.canvasHeight * PADDING_RATIO.TOP,
+      right: this.canvasResizer.canvasWidth * PADDING_RATIO.RIGHT,
+      bottom: this.canvasResizer.canvasHeight * PADDING_RATIO.BOTTOM,
+      left: this.canvasResizer.canvasWidth * PADDING_RATIO.LEFT
+    };
     const baseX = this.clock.getElapsedTime() * NOISE_X_CLOCK_FACTOR;
-    const lineVerticalMargin = (this.canvasResizer.canvasHeight - PADDING.TOP - PADDING.BOTTOM) / (LINE_COUNT - 1);
-    const horizontalSampleWidth = (this.canvasResizer.canvasWidth - PADDING.LEFT - PADDING.RIGHT) / (HORIZONTAL_SAMPLE_COUNT - 1);
+    const lineVerticalMargin = (this.canvasResizer.canvasHeight - padding.top - padding.bottom) / (LINE_COUNT - 1);
+    const horizontalSampleWidth = (this.canvasResizer.canvasWidth - padding.left - padding.right) / (HORIZONTAL_SAMPLE_COUNT - 1);
 
     times(LINE_COUNT, (i) => {
       this.p.beginShape();
 
-      const baseY = PADDING.TOP + (lineVerticalMargin * i);
+      const baseY = padding.top + (lineVerticalMargin * i);
       times(HORIZONTAL_SAMPLE_COUNT, (j) => {
-        const x = PADDING.LEFT + (horizontalSampleWidth * j);
+        const x = padding.left + (horizontalSampleWidth * j);
 
         const noise = this.p.noise(
           baseX + NOISE_X_STEP * j,

@@ -5,9 +5,9 @@ import times from 'lodash/times';
 import Clock from '../utils/clock';
 
 
-const PADDING = { TOP: 100, RIGHT: 100, BOTTOM: 100, LEFT: 100 };
+const PADDING_RATIO = { TOP: 0.15, RIGHT: 0.15, BOTTOM: 0.15, LEFT: 0.15 };
 const CIRCLE_COUNT = 25;
-const LINE_WIDTH = 1;
+const LINE_WIDTH = 3;
 const CIRCLE_MIN_RADIUS = 50;
 const CIRCLE_DRAW_SAMPLE_ANGLE = Math.PI / 10;
 const NOISE_X_CLOCK_FACTOR = 0.4;
@@ -37,9 +37,15 @@ export default class Test extends ExperimentP5 {
     this.p.strokeWeight(LINE_WIDTH);
     this.p.stroke(255, 255, 255);
 
+    const padding = {
+      top: this.canvasResizer.canvasHeight * PADDING_RATIO.TOP,
+      right: this.canvasResizer.canvasWidth * PADDING_RATIO.RIGHT,
+      bottom: this.canvasResizer.canvasHeight * PADDING_RATIO.BOTTOM,
+      left: this.canvasResizer.canvasWidth * PADDING_RATIO.LEFT
+    };
     const baseX = this.clock.getElapsedTime() * NOISE_X_CLOCK_FACTOR;
-    const radiusMarginX = (((this.canvasResizer.canvasWidth - PADDING.LEFT - PADDING.RIGHT) / 2) - CIRCLE_MIN_RADIUS) / (CIRCLE_COUNT - 1);
-    const radiusMarginY = (((this.canvasResizer.canvasHeight - PADDING.TOP - PADDING.BOTTOM) / 2) - CIRCLE_MIN_RADIUS) / (CIRCLE_COUNT - 1);
+    const radiusMarginX = (((this.canvasResizer.canvasWidth - padding.left - padding.right) / 2) - CIRCLE_MIN_RADIUS) / (CIRCLE_COUNT - 1);
+    const radiusMarginY = (((this.canvasResizer.canvasHeight - padding.top - padding.bottom) / 2) - CIRCLE_MIN_RADIUS) / (CIRCLE_COUNT - 1);
     const radiusMargin = Math.min(radiusMarginX, radiusMarginY);
     const center = {
       x: this.canvasResizer.canvasWidth / 2,
