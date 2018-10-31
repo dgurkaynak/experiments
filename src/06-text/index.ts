@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
 import theBoldFontData from './the-bold-font.json';
-import Perlin from '../05-head/perlin';
+import PerlinCanvas from '../05-head/perlin-canvas';
 import CanvasResizer from '../utils/canvas-resizer';
 
 
@@ -20,7 +20,7 @@ export default class Head extends ExperimentThreeJs {
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
   enableOrbitControls = false;
 
-  perlin = new Perlin(128);
+  perlin = new PerlinCanvas(128);
   mesh1: THREE.Mesh;
   mesh2: THREE.Mesh;
 

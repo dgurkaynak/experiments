@@ -1,6 +1,6 @@
 import noise from '../utils/noise';
 
-export default class Perlin {
+export default class PerlinCanvas {
   canvas = document.createElement('canvas');
   ctx = this.canvas.getContext('2d');
   image: ImageData;

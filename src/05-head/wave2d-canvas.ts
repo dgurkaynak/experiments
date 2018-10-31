@@ -1,15 +1,15 @@
 // http://curran.github.io/HTML5Examples/canvas/waveSimulation2D/
 
-export default class Wave2D {
+export default class Wave2dCanvas {
   canvas: HTMLCanvasElement = document.createElement('canvas');
   c = this.canvas.getContext('2d');
   grayStrings: string[] = []
-  
+
   pullStrength = 0.005;
   dampeningFactor = 0.98;
   cells: {height: number, velocity: number}[] = [];
 
-  
+
   constructor(private cellCount: number, private cellSize: number) {
     this.canvas.width = cellCount * cellSize;
     this.canvas.height = cellCount * cellSize;
@@ -44,7 +44,7 @@ export default class Wave2D {
         const y = j / (this.cellCount-1) * this.canvas.height;
         let gray = Math.floor(cell.height * 255);
         gray = gray > 255 ? 255 : gray < 0 ? 0 : gray;
-        
+
         this.c.fillStyle = this.grayStrings[gray];
         this.c.fillRect(x, y, this.cellSize + 1, this.cellSize + 1);
       }
@@ -62,16 +62,16 @@ export default class Wave2D {
             if(di !== 0 || dj !== 0){
               const ni = ((i + di) + this.cellCount) % this.cellCount;
               const nj = ((j + dj) + this.cellCount) % this.cellCount;
-  
+
               const neighbor = this.cells[ni + nj * this.cellCount];
               c.velocity += this.pullStrength * (neighbor.height - c.height);
             }
           }
         }
-        
+
         // increment velocity
         c.height += c.velocity;
-        
+
         // apply dampening
         c.velocity *= this.dampeningFactor;
       }
