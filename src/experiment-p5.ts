@@ -1,16 +1,18 @@
 import Experiment from './experiment';
 import p5 from 'p5';
 import Stats from 'stats.js';
+import CanvasResizer from './utils/canvas-resizer';
 
 
 export default class ExperimentP5 extends Experiment {
+  canvasResizer: CanvasResizer;
   p: p5;
 
   enableStats = true;
   stats: Stats;
 
   async init() {
-    document.body.style.overflow = 'hidden';
+    this.canvasResizer.resize = this.onWindowResize.bind(this);
 
     if (this.enableStats) {
       this.stats = new Stats();
@@ -26,13 +28,12 @@ export default class ExperimentP5 extends Experiment {
         this.draw();
         this.postDraw();
       };
-      this.p.windowResized = this.windowResized.bind(this);
     }, this.containerEl);
   }
 
 
   async destroy() {
-    document.body.style.overflow = '';
+    this.canvasResizer.destroy();
     this.p.remove();
     this.p = null;
   }
@@ -58,7 +59,7 @@ export default class ExperimentP5 extends Experiment {
   }
 
 
-  windowResized() {
-    this.p.resizeCanvas(window.innerWidth, window.innerHeight);
+  onWindowResize(width, height) {
+    this.p.resizeCanvas(width, height);
   }
 }

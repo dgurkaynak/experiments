@@ -6,16 +6,20 @@ import * as TWEEN from '@tweenjs/tween.js';
 import EyeMeshFactory from './eye-factory';
 import pointsOnSphere from './points-on-sphere';
 import ExperimentThreeJs from '../experiment-threejs';
+import CanvasResizer from '../utils/canvas-resizer';
 
 
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight;
 const EYE_FACTORY = new EyeMeshFactory();
 
 
 export default class Eyes extends ExperimentThreeJs {
+  canvasResizer = new CanvasResizer({
+    dimension: 'fullscreen',
+    dimensionScaleFactor: window.devicePixelRatio
+  });
+
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(50, WIDTH / HEIGHT, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(50, this.canvasResizer.canvasWidth / this.canvasResizer.canvasHeight, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
   enableOrbitControls = false;
 
@@ -29,8 +33,7 @@ export default class Eyes extends ExperimentThreeJs {
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     this.renderer.setClearColor(0x000000);
-    this.renderer.setSize(WIDTH, HEIGHT);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     this.scene.add(ambientLight);
@@ -84,13 +87,14 @@ export default class Eyes extends ExperimentThreeJs {
 
   async destroy() {
     this.stop();
-    this.renderer.dispose();
     this.eyes.forEach((eye) => {
       eye.children[0].children.forEach((child) => {
         child.geometry.dispose();
         child.material.dispose();
       });
     });
+
+    super.destroy();
   }
 
 

@@ -1,17 +1,21 @@
 import * as THREE from 'three';
 import ExperimentThreeJS from '../experiment-threejs';
+import CanvasResizer from '../utils/canvas-resizer';
 
 
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight;
 const DISTANCE = 50;
 const NUMBER_OF_BOXES_X = 10;
 const NUMBER_OF_BOXES_Y = 10;
 
 
 export default class RotatingCubesV1 extends ExperimentThreeJS {
+  canvasResizer = new CanvasResizer({
+    dimension: 'fullscreen',
+    dimensionScaleFactor: window.devicePixelRatio
+  });
+
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(150, WIDTH / HEIGHT, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(150, this.canvasResizer.canvasWidth / this.canvasResizer.canvasHeight, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: true });
 
   geometry = new THREE.BoxBufferGeometry(25, 25, 25);
@@ -24,8 +28,7 @@ export default class RotatingCubesV1 extends ExperimentThreeJS {
     this.camera.position.set(0, 0, 100);
 
     this.renderer.setClearColor(0xffffff);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
   }
 
 
@@ -63,6 +66,8 @@ export default class RotatingCubesV1 extends ExperimentThreeJS {
     this.geometry.dispose();
     this.material.dispose();
     this.renderer.dispose();
+
+    super.destroy();
   }
 
 

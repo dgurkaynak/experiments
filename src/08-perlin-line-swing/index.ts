@@ -2,10 +2,9 @@ import p5 from 'p5';
 import ExperimentP5 from '../experiment-p5';
 import times from 'lodash/times';
 import Clock from '../utils/clock';
+import CanvasResizer from '../utils/canvas-resizer';
 
 
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight;
 const PADDING = { TOP: 100, RIGHT: 100, BOTTOM: 100, LEFT: 100 };
 const LINE_COUNT = 50;
 const HORIZONTAL_SAMPLE_COUNT = 30;
@@ -18,11 +17,18 @@ const LEFT_RIGHT_DAMPING_FACTOR = 3;
 
 
 export default class Test extends ExperimentP5 {
+  canvasResizer = new CanvasResizer({
+    dimension: 'fullscreen',
+    dimensionScaleFactor: window.devicePixelRatio
+  });
   clock = new Clock();
 
 
   setup() {
-    this.p.createCanvas(WIDTH, HEIGHT);
+    // this.p.pixelDensity(window.devicePixelRatio);
+    this.p.pixelDensity(1);
+    const renderer: any = this.p.createCanvas(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
+    this.canvasResizer.init(renderer.canvas);
   }
 
 
@@ -33,8 +39,8 @@ export default class Test extends ExperimentP5 {
     this.p.stroke(255, 255, 255);
 
     const baseX = this.clock.getElapsedTime() * NOISE_X_CLOCK_FACTOR;
-    const lineVerticalMargin = (window.innerHeight - PADDING.TOP - PADDING.BOTTOM) / (LINE_COUNT - 1);
-    const horizontalSampleWidth = (window.innerWidth - PADDING.LEFT - PADDING.RIGHT) / (HORIZONTAL_SAMPLE_COUNT - 1);
+    const lineVerticalMargin = (this.canvasResizer.canvasHeight - PADDING.TOP - PADDING.BOTTOM) / (LINE_COUNT - 1);
+    const horizontalSampleWidth = (this.canvasResizer.canvasWidth - PADDING.LEFT - PADDING.RIGHT) / (HORIZONTAL_SAMPLE_COUNT - 1);
 
     times(LINE_COUNT, (i) => {
       this.p.beginShape();

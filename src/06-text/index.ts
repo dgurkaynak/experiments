@@ -2,18 +2,21 @@ import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
 import theBoldFontData from './the-bold-font.json';
 import Perlin from '../05-head/perlin';
+import CanvasResizer from '../utils/canvas-resizer';
 
-
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight;
 
 const fontLoader = new THREE.FontLoader();
 const theBoldFont = fontLoader.parse(theBoldFontData);
 
 
 export default class Head extends ExperimentThreeJs {
+  canvasResizer = new CanvasResizer({
+    dimension: 'fullscreen',
+    dimensionScaleFactor: window.devicePixelRatio
+  });
+
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(35, WIDTH / HEIGHT, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(35, this.canvasResizer.canvasWidth / this.canvasResizer.canvasHeight, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
   enableOrbitControls = false;
 
@@ -28,8 +31,7 @@ export default class Head extends ExperimentThreeJs {
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     this.renderer.setClearColor(0x000000);
-    this.renderer.setSize(WIDTH, HEIGHT);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     this.scene.add(ambientLight);

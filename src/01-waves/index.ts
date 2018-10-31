@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
+import CanvasResizer from '../utils/canvas-resizer';
 
 
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight;
 const BG_COLOR = 0x000000;
 const SPHERE_COLOR = 0xffffff;
 const SPHERE_RADIUS = 0.025;
@@ -13,8 +12,13 @@ const SPHERE_DISTANCE = 1;
 
 
 export default class Waves extends ExperimentThreeJs {
+  canvasResizer = new CanvasResizer({
+    dimension: 'fullscreen',
+    dimensionScaleFactor: window.devicePixelRatio
+  });
+
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(75, WIDTH / HEIGHT, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(75, this.canvasResizer.canvasWidth / this.canvasResizer.canvasHeight, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: true });
   enableOrbitControls = false;
 
@@ -29,8 +33,7 @@ export default class Waves extends ExperimentThreeJs {
     this.camera.position.set(0, 4, NUMBER_Z / 2 * SPHERE_DISTANCE);
 
     this.renderer.setClearColor(BG_COLOR);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
   }
 
 
@@ -57,6 +60,8 @@ export default class Waves extends ExperimentThreeJs {
     this.geometry.dispose();
     this.material.dispose();
     this.renderer.dispose();
+
+    super.destroy();
   }
 
 

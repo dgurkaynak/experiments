@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import ExperimentThreeJs from '../experiment-threejs';
+import CanvasResizer from '../utils/canvas-resizer';
 import theBoldFontData from '../06-text/the-bold-font.json';
 import { FFD } from '../utils/three/ffd';
 import getAmmo from 'ammo.js'; const Ammo = getAmmo();
@@ -9,15 +10,18 @@ import toiletGltfPath from './assets/toilet.gltf';
 import toiletColorMapPath from './assets/toilet_color.jpg';
 
 
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight;
 const GRAVITY = -9.8;
 const MARGIN = 0.05;
 
 
 export default class Head extends ExperimentThreeJs {
+  canvasResizer = new CanvasResizer({
+    dimension: 'fullscreen',
+    dimensionScaleFactor: window.devicePixelRatio
+  });
+
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(20, WIDTH / HEIGHT, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(20, this.canvasResizer.canvasWidth / this.canvasResizer.canvasHeight, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
   enableOrbitControls = true; // TODO: false not working?
 
@@ -50,8 +54,7 @@ export default class Head extends ExperimentThreeJs {
     this.camera.lookAt(new THREE.Vector3(-100, 100, 0));
 
     this.renderer.setClearColor(0x000000);
-    this.renderer.setSize(WIDTH, HEIGHT);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     this.scene.add(ambientLight);

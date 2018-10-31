@@ -1,11 +1,10 @@
 import p5 from 'p5';
 import ExperimentP5 from '../experiment-p5';
+import CanvasResizer from '../utils/canvas-resizer';
 import times from 'lodash/times';
 import Clock from '../utils/clock';
 
 
-const WIDTH = window.innerWidth;
-const HEIGHT = window.innerHeight;
 const PADDING = { TOP: 100, RIGHT: 100, BOTTOM: 100, LEFT: 100 };
 const CIRCLE_COUNT = 25;
 const LINE_WIDTH = 1;
@@ -17,11 +16,18 @@ const NOISE_Y_STEP = 0.125;
 
 
 export default class Test extends ExperimentP5 {
+  canvasResizer = new CanvasResizer({
+    dimension: 'fullscreen',
+    dimensionScaleFactor: window.devicePixelRatio
+  });
   clock = new Clock();
 
 
   setup() {
-    this.p.createCanvas(WIDTH, HEIGHT);
+    // this.p.pixelDensity(window.devicePixelRatio);
+    this.p.pixelDensity(1);
+    const renderer: any = this.p.createCanvas(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
+    this.canvasResizer.init(renderer.canvas);
   }
 
 
@@ -32,12 +38,12 @@ export default class Test extends ExperimentP5 {
     this.p.stroke(255, 255, 255);
 
     const baseX = this.clock.getElapsedTime() * NOISE_X_CLOCK_FACTOR;
-    const radiusMarginX = (((window.innerWidth - PADDING.LEFT - PADDING.RIGHT) / 2) - CIRCLE_MIN_RADIUS) / (CIRCLE_COUNT - 1);
-    const radiusMarginY = (((window.innerHeight - PADDING.TOP - PADDING.BOTTOM) / 2) - CIRCLE_MIN_RADIUS) / (CIRCLE_COUNT - 1);
+    const radiusMarginX = (((this.canvasResizer.canvasWidth - PADDING.LEFT - PADDING.RIGHT) / 2) - CIRCLE_MIN_RADIUS) / (CIRCLE_COUNT - 1);
+    const radiusMarginY = (((this.canvasResizer.canvasHeight - PADDING.TOP - PADDING.BOTTOM) / 2) - CIRCLE_MIN_RADIUS) / (CIRCLE_COUNT - 1);
     const radiusMargin = Math.min(radiusMarginX, radiusMarginY);
     const center = {
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2
+      x: this.canvasResizer.canvasWidth / 2,
+      y: this.canvasResizer.canvasHeight / 2
     };
 
     times(CIRCLE_COUNT, (i) => {
