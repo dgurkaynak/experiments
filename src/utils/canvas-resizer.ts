@@ -13,7 +13,7 @@ interface CanvasResizerOptions {
 }
 
 
-export default class ClassResizer {
+export default class CanvasResizer {
   canvas: HTMLCanvasElement;
   dimension: CanvasResizerDimension = 'fullscreen';
   dimensionScaleFactor = 1;
