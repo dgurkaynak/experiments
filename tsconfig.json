@@ -9,6 +9,7 @@
     ]
   },
   "include": [
+    "./src/**/*",
     "./node_modules/three-orbitcontrols-ts/dist"
   ]
 }
