@@ -1,9 +1,29 @@
 import p5 from 'p5';
 import ExperimentP5 from '../experiment-p5';
 import times from 'lodash/times';
+import sample from 'lodash/sample';
 import Clock from '../utils/clock';
 import CanvasResizer from '../utils/canvas-resizer';
+import colors from 'nice-color-palettes';
 
+
+// Random color selection
+// const COLOR_PALETTE = sample(colors);
+// const COLORS = {
+//   BG: sample(COLOR_PALETTE),
+//   UP: sample(COLOR_PALETTE),
+//   DOWN: sample(COLOR_PALETTE)
+// };
+// console.log(COLORS);
+
+// Some pre-selected colors
+const COLORS = [
+  {BG: "#f1edd0", UP: "#f38a8a", DOWN: "#55443d"},
+  {BG: "#151101", UP: "#b3204d", DOWN: "#edf6ee"},
+  {BG: "#edf6ee", UP: "#b3204d", DOWN: "#151101"},
+  {BG: "#3b2d38", UP: "#f02475", DOWN: "#f27435"},
+  {BG: "#f7e4be", UP: "#b38184", DOWN: "#f0b49e"},
+][3];
 
 const PADDING_RATIO = { TOP: 0.15, RIGHT: 0.15, BOTTOM: 0.15, LEFT: 0.15 };
 const LINE_COUNT = 50;
@@ -33,7 +53,7 @@ export default class Test extends ExperimentP5 {
 
 
   draw() {
-    this.p.background(0);
+    this.p.background(COLORS.BG);
     this.p.noFill();
     this.p.strokeWeight(LINE_WIDTH);
     this.p.stroke(255, 255, 255);
@@ -50,6 +70,13 @@ export default class Test extends ExperimentP5 {
 
     times(LINE_COUNT, (i) => {
       this.p.beginShape();
+
+      const color = this.p.lerpColor(
+        this.p.color(COLORS.UP),
+        this.p.color(COLORS.DOWN),
+        this.p.map(i, 0, LINE_COUNT, 0, 1)
+      );
+      this.p.stroke(color);
 
       const baseY = padding.top + (lineVerticalMargin * i);
       times(HORIZONTAL_SAMPLE_COUNT, (j) => {
