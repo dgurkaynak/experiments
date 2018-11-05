@@ -49,6 +49,7 @@ export default class Test extends ExperimentP5 {
     this.p.pixelDensity(1);
     const renderer: any = this.p.createCanvas(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
     this.canvasResizer.init(renderer.canvas);
+    this.p.frameRate(30);
   }
 
 
@@ -99,6 +100,5 @@ export default class Test extends ExperimentP5 {
     });
 
     // this.p.noLoop();
-    this.p.frameRate(30);
   }
 }
