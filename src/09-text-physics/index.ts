@@ -30,7 +30,7 @@ export default class TextPhysics extends Experiment {
   constructor() {
     super();
 
-    
+
     this.two = new Two({
       type: Two.Types.canvas,
       width: 800,
@@ -43,24 +43,41 @@ export default class TextPhysics extends Experiment {
 
   async init() {
     const font = await loadFont(fontPath);
-    
+
+    const refRect = this.two.makeRectangle(450, 400, 700, 400);
+    refRect.noFill();
+    refRect.stroke = 'rgba(0, 0, 255, 0.5)';
+    refRect.linewidth = 1;
+
     // l (kucuk le) de sikinti var
     let left = 0;
-    ('ABTCH').split('').forEach((char) => {
-      const letter = new Letter(font, this.two, char, 144, 200 + left, 200);;
+    ('VWXYZ').split('').forEach((char) => {
+      const letter = new Letter(font, this.two, char, 144, 100 + left, 200);;
       Matter.World.add(this.engine.world, letter.body);
+
       letter.view.fill = 'black';
-      letter.view.noStroke();
+      // letter.view.noStroke();
+
+      const rect = this.two.makeRectangle(0, 0, letter.pathWidth, letter.pathHeight);
+      rect.fill = 'rgba(0, 0, 0, 0)';
+      rect.stroke = 'rgba(0, 255, 0, 0.5)';
+      rect.linewidth = 1;
+      letter.view.add(rect);
+
       this.letters.push(letter);
 
-      left += letter.pathWidth * 1.5;
+      left += letter.pathWidth;
     });
 
     const ground = Matter.Bodies.rectangle(400, 610, 810, 60, { isStatic: true });
     Matter.World.add(this.engine.world, ground);
 
+    const groundView = this.two.makeRectangle(400, 610, 810, 60);
+    groundView.fill = 'rgba(255, 0, 0, 0.25)';
+    groundView.noStroke();
+
     this.two.update();
-    
+
     return super.init();
   }
 
