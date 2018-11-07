@@ -24,6 +24,9 @@ const LETTER_BODY_CORRECTIONS = {
   'R': { x: 0, y: -8, w: 0},
   'T': { x: 0, y: -20, w: 0},
   'Y': { x: 0, y: -10, w: 0},
+  ',': { x: 0, y: 88, w: 20},
+  '.': { x: 0, y: 92, w: 0},
+  '\'': { x: 0, y: -10, w: 10},
 };
 const LETTER_VIEW_CORRECTIONS = {
   'A': { x: 0, y: -6 },
@@ -39,6 +42,7 @@ const LETTER_VIEW_CORRECTIONS = {
   'R': { x: 0, y: 8 },
   'T': { x: 0, y: 20 },
   'Y': { x: 0, y: 10 },
+  '?': { x: 0, y: 8 },
 };
 
 
@@ -51,8 +55,11 @@ export default class Letter {
 
 
   constructor(font: opentype.Font, two: Two, char: string, size: number, x: number, y: number) {
+    let viewChar = char;
+    if (char == `'`) viewChar = ',';
+
     this.char = char;
-    const path = font.getPath(char, 0, 0, size);
+    const path = font.getPath(viewChar, 0, 0, size);
     const pathStr = path.toSVG(2);
     const pathBB = path.getBoundingBox();
     const letterBodyCorrection = LETTER_BODY_CORRECTIONS[char] || {};
