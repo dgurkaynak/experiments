@@ -8,6 +8,7 @@ import ExperimentTwoJs from '../experiment-twojs';
 import CanvasResizer from '../utils/canvas-resizer';
 import * as opentype from 'opentype.js';
 import Letter from './letter';
+import Line from './line';
 
 import fontPath from './ModernSans-Light.otf';
 
@@ -17,7 +18,7 @@ export default class TextPhysics extends ExperimentTwoJs {
     dimension: 'fullscreen'
   });
   two: Two;
-  letters: Letter[] = [];
+  lines: Line[] = [];
 
   engine = Matter.Engine.create();
   // render = Matter.Render.create({
@@ -41,48 +42,57 @@ export default class TextPhysics extends ExperimentTwoJs {
   async init() {
     const font = await loadFont(fontPath);
 
-    let left = 0;
-    ('HAPPY?').split('').forEach((char) => {
-      const letter = new Letter(font, char, 144);
-      letter.init(this.two, 100 + left, 200);
-      
-      Matter.World.add(this.engine.world, letter.body);
+    const texts = [
+      'YOU MAKE ME',
+      'LOUGH, BUT IT\'S',
+      'NOT FUNNY.'
+    ];
+    const lineHeight = 150;
+    const offsetY = (this.canvasResizer.canvasHeight - texts.length * 150) / 2;
 
-      letter.view.fill = 'black';
-      letter.view.noStroke();
-
-      // Draw bounding box for debug purposes
-      // const rect = this.two.makeRectangle(0, 0, letter.pathWidth, letter.pathHeight);
-      // rect.fill = 'rgba(0, 0, 0, 0)';
-      // rect.stroke = 'rgba(0, 255, 0, 0.5)';
-      // rect.linewidth = 1;
-      // letter.view.add(rect);
-
-      this.letters.push(letter);
-
-      left += letter.pathWidth + 10;
+    this.lines = texts.map((text, i) => {
+      const line = new Line(font, text);
+      line.init(this.two, { x: 0, y: offsetY + lineHeight * i, width: this.canvasResizer.canvasWidth, height: lineHeight });
+      line.letters.forEach(letter => Matter.World.add(this.engine.world, letter.body));
+      return line;
     });
 
-    const ground = Matter.Bodies.rectangle(
-      this.canvasResizer.canvasWidth / 2, 
-      this.canvasResizer.canvasHeight + 24, 
-      this.canvasResizer.canvasWidth, 
-      50, 
-      { isStatic: true }
-    );
-    Matter.World.add(this.engine.world, ground);
+    this.initWalls();
+    this.initMouseControls();
 
     this.two.update();
-
     return super.init();
+  }
+
+
+  initWalls() {
+    const [ w, h ] = [
+      this.canvasResizer.canvasWidth,
+      this.canvasResizer.canvasHeight
+    ];
+    const groundLeft = Matter.Bodies.rectangle(-25, h / 2, 50, h, { isStatic: true });
+    const groundRight = Matter.Bodies.rectangle(w + 25, h / 2, 50, h, { isStatic: true });
+    const groundBottom = Matter.Bodies.rectangle(w / 2, h + 24, w, 50, { isStatic: true });
+    Matter.World.add(this.engine.world, [groundLeft, groundBottom, groundRight]);
+  }
+
+
+  initMouseControls() {
+    const mouse = Matter.Mouse.create((this.two as any).renderer.domElement);
+    const mouseConstraint = Matter.MouseConstraint.create(this.engine, {
+      mouse: mouse,
+      constraint: {
+        angularStiffness: 0
+      }
+    });
+    Matter.World.add(this.engine.world, mouseConstraint);
   }
 
 
   requestAnimationFrame() {
     Matter.Engine.update(this.engine, 1000 / 60);
     // Matter.Render.run(this.render);
-
-    this.letters.forEach(x => x.update());
+    this.lines.forEach(line => line.update());
     this.two.update();
   }
 }
@@ -96,4 +106,3 @@ function loadFont(path): Promise<opentype.Font> {
     });
   });
 }
-
