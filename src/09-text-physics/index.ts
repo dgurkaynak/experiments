@@ -43,7 +43,9 @@ export default class TextPhysics extends ExperimentTwoJs {
 
     let left = 0;
     ('HAPPY?').split('').forEach((char) => {
-      const letter = new Letter(font, this.two, char, 144, 100 + left, 200);;
+      const letter = new Letter(font, char, 144);
+      letter.init(this.two, 100 + left, 200);
+      
       Matter.World.add(this.engine.world, letter.body);
 
       letter.view.fill = 'black';

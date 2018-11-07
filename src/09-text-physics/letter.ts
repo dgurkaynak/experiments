@@ -92,34 +92,39 @@ const LETTER_VIEW_CORRECTIONS = {
 
 export default class Letter {
   char: string;
+  path: opentype.Path;
   pathWidth: number;
   pathHeight: number;
   body: Matter.Body;
   view: Two.Group;
 
 
-  constructor(font: opentype.Font, two: Two, char: string, size: number, x: number, y: number) {
+  constructor(font: opentype.Font, char: string, size: number) {
     let viewChar = char;
     if (char == `'`) viewChar = ',';
 
     this.char = char;
-    const path = font.getPath(viewChar, 0, 0, size);
-    const pathStr = path.toSVG(2);
-    const pathBB = path.getBoundingBox();
+    this.path = font.getPath(viewChar, 0, 0, size);
+    const pathBB = this.path.getBoundingBox();
     const letterBodyCorrection = LETTER_BODY_CORRECTIONS[char] || {};
 
     this.pathWidth = Math.abs(pathBB.x1 - pathBB.x2) + (letterBodyCorrection.w || 0);
     this.pathHeight = Math.abs(pathBB.y1 - pathBB.y2);
+  }
 
+
+  init(two: Two, x: number, y: number) {
+    const pathStr = this.path.toSVG(2);
     const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svgEl.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:xlink', 'http://www.w3.org/1999/xlink');
     svgEl.innerHTML = pathStr;
 
     const vertexSets = [];
-    const sampleLength = LETTER_SAMPLE_LENGTHS[char] || 40;
+    const sampleLength = LETTER_SAMPLE_LENGTHS[this.char] || 40;
     const points = Matter.Svg.pathToVertices(svgEl.getElementsByTagName('path')[0], sampleLength);
     vertexSets.push(points);
 
+    const letterBodyCorrection = LETTER_BODY_CORRECTIONS[this.char] || {};
     const newX = x + (this.pathWidth / 2) + (letterBodyCorrection.x || 0);
     const newY = y + (this.pathHeight / 2) + (letterBodyCorrection.y || 0);
     this.body = Matter.Bodies.fromVertices(newX, newY, vertexSets);
