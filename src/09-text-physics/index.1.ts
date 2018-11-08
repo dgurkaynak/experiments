@@ -9,6 +9,9 @@ import CanvasResizer from '../utils/canvas-resizer';
 import * as opentype from 'opentype.js';
 import Letter from './letter';
 import Line from './line';
+import sample from 'lodash/sample';
+import sampleSize from 'lodash/sampleSize';
+import colors from 'nice-color-palettes';
 
 import fontPath from './ModernSans-Light.otf';
 
@@ -37,10 +40,19 @@ const TEXT = [
   'NOT FUNNY.'
 ];
 const LINE_HEIGHT = 150;
-const COLORS = {
-  BG: '#000000',
-  FONT: '#ffffff'
-};
+// const PALETTE = sampleSize(sample(colors), 3);
+// const COLORS = {
+//   BG: PALETTE[0],
+//   FONT_UP: PALETTE[1],
+//   FONT_DOWN: PALETTE[2]
+// };
+// console.log(COLORS);
+const COLORS = [
+  {BG: "#000000", FONT_UP: "#ffffff", FONT_DOWN: "#ffffff"},
+  {BG: "#f03c02", FONT_UP: "#a30006", FONT_DOWN: "#6b0103"},
+  {BG: "#1c0113", FONT_UP: "#c21a01", FONT_DOWN: "#a30006"},
+  {BG: "#fff7bd", FONT_UP: "#f2f26f", FONT_DOWN: "#f04155"},
+][0];
 const DROP_INTERVAL = 750;
 
 
@@ -89,10 +101,12 @@ export default class TextPhysics extends ExperimentTwoJs {
     });
 
     lines.forEach((line, i) => {
+      const color = lerpColor(COLORS.FONT_DOWN, COLORS.FONT_UP, i / lines.length);
+
       setTimeout(() => {
         line.letters.forEach((letter) => {
           // Set view
-          letter.view.fill = COLORS.FONT;
+          letter.view.fill = color;
 
           Matter.World.add(this.engine.world, letter.body);
         });
@@ -149,4 +163,31 @@ function loadFont(path): Promise<opentype.Font> {
       resolve(font);
     });
   });
+}
+
+
+/**
+ * https://gist.github.com/rosszurowski/67f04465c424a9bc0dae
+ * A linear interpolator for hexadecimal colors
+ * @param {String} a
+ * @param {String} b
+ * @param {Number} amount
+ * @example
+ * // returns #7F7F7F
+ * lerpColor('#000000', '#ffffff', 0.5)
+ * @returns {String}
+ */
+function lerpColor(a, b, amount) {
+
+  // var ah = parseInt(a.replace(/#/g, ''), 16),
+  var ah = +a.replace('#', '0x'),
+      ar = ah >> 16, ag = ah >> 8 & 0xff, ab = ah & 0xff,
+      // bh = parseInt(b.replace(/#/g, ''), 16),
+      bh = +b.replace('#', '0x'),
+      br = bh >> 16, bg = bh >> 8 & 0xff, bb = bh & 0xff,
+      rr = ar + amount * (br - ar),
+      rg = ag + amount * (bg - ag),
+      rb = ab + amount * (bb - ab);
+
+  return '#' + ((1 << 24) + (rr << 16) + (rg << 8) + rb | 0).toString(16).slice(1);
 }
