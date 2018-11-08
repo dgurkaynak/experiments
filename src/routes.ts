@@ -12,4 +12,6 @@ export default {
   '8.1': import('./08-perlin-line-swing/index.1'),
   '8.2': import('./08-perlin-line-swing/index.2'),
   9: import('./09-text-physics'),
+  '9.1': import('./09-text-physics/index.1'),
+  '9.2': import('./09-text-physics/index.2'),
 };

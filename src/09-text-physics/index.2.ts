@@ -9,6 +9,8 @@ import CanvasResizer from '../utils/canvas-resizer';
 import * as opentype from 'opentype.js';
 import Letter from './letter';
 import Line from './line';
+import sample from 'lodash/sample';
+import times from 'lodash/times';
 
 import fontPath from './ModernSans-Light.otf';
 
@@ -22,6 +24,11 @@ const LINE_HEIGHT = 150;
 const COLORS = {
   BG: '#000000',
   FONT: '#ffffff'
+};
+const CONSTRAINT = {
+  COUNT: 3,
+  LENGTH: 0,
+  STIFFNESS: 0.001
 };
 
 
@@ -73,7 +80,22 @@ export default class TextPhysics extends ExperimentTwoJs {
         // Set view
         letter.view.fill = COLORS.FONT;
 
-        Matter.World.add(this.engine.world, letter.body);
+        // Add constraints
+        const newThings: any[] = [ letter.body ];
+        const vertex = sample(letter.body.vertices);
+        times(CONSTRAINT.COUNT, () => {
+          const vertex = sample(letter.body.vertices);
+          const constraint = Matter.Constraint.create({
+            pointA: { x: vertex.x, y: vertex.y },
+            bodyB: letter.body,
+            pointB: { x: vertex.x - letter.body.position.x, y: vertex.y - letter.body.position.y },
+            length: CONSTRAINT.LENGTH,
+            stiffness: CONSTRAINT.STIFFNESS,
+          });
+          newThings.push(constraint);
+        });
+
+        Matter.World.add(this.engine.world, newThings);
       });
 
       return line;

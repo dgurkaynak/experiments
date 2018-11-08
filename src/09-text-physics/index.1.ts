@@ -16,6 +16,24 @@ import fontPath from './ModernSans-Light.otf';
 const TEXT = [
   'YOU MAKE ME',
   'LAUGH, BUT IT\'S',
+  'NOT FUNNY.',
+  'YOU MAKE ME',
+  'LAUGH, BUT IT\'S',
+  'NOT FUNNY.',
+  'YOU MAKE ME',
+  'LAUGH, BUT IT\'S',
+  'NOT FUNNY.',
+  'YOU MAKE ME',
+  'LAUGH, BUT IT\'S',
+  'NOT FUNNY.',
+  'YOU MAKE ME',
+  'LAUGH, BUT IT\'S',
+  'NOT FUNNY.',
+  'YOU MAKE ME',
+  'LAUGH, BUT IT\'S',
+  'NOT FUNNY.',
+  'YOU MAKE ME',
+  'LAUGH, BUT IT\'S',
   'NOT FUNNY.'
 ];
 const LINE_HEIGHT = 150;
@@ -23,6 +41,7 @@ const COLORS = {
   BG: '#000000',
   FONT: '#ffffff'
 };
+const DROP_INTERVAL = 750;
 
 
 export default class TextPhysics extends ExperimentTwoJs {
@@ -63,20 +82,23 @@ export default class TextPhysics extends ExperimentTwoJs {
     bgRect.fill = COLORS.BG;
 
     // Texts
-    const offsetY = (h - TEXT.length * LINE_HEIGHT) / 2;
-
-    this.lines = TEXT.map((text, i) => {
+    const lines = TEXT.map((text, i) => {
       const line = new Line(font, text);
-      line.init(this.two, { x: 0, y: offsetY + LINE_HEIGHT * i, width: w, height: LINE_HEIGHT });
-
-      line.letters.forEach((letter) => {
-        // Set view
-        letter.view.fill = COLORS.FONT;
-
-        Matter.World.add(this.engine.world, letter.body);
-      });
-
+      line.init(this.two, { x: 0, y: -LINE_HEIGHT, width: w, height: LINE_HEIGHT });
       return line;
+    });
+
+    lines.forEach((line, i) => {
+      setTimeout(() => {
+        line.letters.forEach((letter) => {
+          // Set view
+          letter.view.fill = COLORS.FONT;
+
+          Matter.World.add(this.engine.world, letter.body);
+        });
+
+        this.lines.push(line);
+      }, DROP_INTERVAL * i);
     });
 
     this.initWalls();
