@@ -7,7 +7,6 @@ import Matter from 'matter-js';
 import ExperimentTwoJs from '../experiment-twojs';
 import CanvasResizer from '../utils/canvas-resizer';
 import * as opentype from 'opentype.js';
-import Letter from './letter';
 import Line from './line';
 import sample from 'lodash/sample';
 import times from 'lodash/times';
@@ -16,8 +15,9 @@ import fontPath from './ModernSans-Light.otf';
 
 
 const TEXT = [
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
+  'YOU MAKE',
+  'ME LAUGH,',
+  'BUT IT\'S',
   'NOT FUNNY.'
 ];
 const LINE_HEIGHT = 150;
@@ -39,12 +39,13 @@ export default class TextPhysics extends ExperimentTwoJs {
   two: Two;
   lines: Line[] = [];
 
-  engine = Matter.Engine.create();
+  engine = Matter.Engine.create({
+    enableSleeping: true
+  });
   // render = Matter.Render.create({
   //   element: this.containerEl,
   //   engine: this.engine
   // });
-
 
   constructor() {
     super();
@@ -68,6 +69,7 @@ export default class TextPhysics extends ExperimentTwoJs {
     // Background
     const bgRect = this.two.makeRectangle(w/2, h/2, w, h);
     bgRect.fill = COLORS.BG;
+    bgRect.noStroke();
 
     // Texts
     const offsetY = (h - TEXT.length * LINE_HEIGHT) / 2;
@@ -131,7 +133,6 @@ export default class TextPhysics extends ExperimentTwoJs {
     });
     Matter.World.add(this.engine.world, mouseConstraint);
   }
-
 
   requestAnimationFrame() {
     Matter.Engine.update(this.engine, 1000 / 60);
