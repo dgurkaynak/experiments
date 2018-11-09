@@ -7,7 +7,6 @@ import Matter from 'matter-js';
 import ExperimentTwoJs from '../experiment-twojs';
 import CanvasResizer from '../utils/canvas-resizer';
 import * as opentype from 'opentype.js';
-import Letter from './letter';
 import Line from './line';
 import sample from 'lodash/sample';
 import sampleSize from 'lodash/sampleSize';
@@ -17,27 +16,25 @@ import fontPath from './ModernSans-Light.otf';
 
 
 const TEXT = [
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.',
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.',
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.',
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.',
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.',
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.',
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.'
+  'I CAN ONLY',
+  'NOTE THAT',
+  'THE PAST IS',
+  'BEAUTIFUL',
+  'BECAUSE',
+  'ONE NEVER',
+  'REALIZES',
+  'AN EMOTION',
+  'AT THE TIME,',
+  'IT EXPANDS',
+  'LATER,',
+  'AND THUS',
+  'WE DON\'T',
+  'HAVE COMPLETE',
+  'EMOTIONS',
+  'ABOUT',
+  'THE PRESENT,',
+  'ONLY ABOUT',
+  'THE PAST.'
 ];
 const LINE_HEIGHT = 150;
 // const PALETTE = sampleSize(sample(colors), 3);
@@ -48,6 +45,7 @@ const LINE_HEIGHT = 150;
 // };
 // console.log(COLORS);
 const COLORS = [
+  {BG: "#F9F6F1", FONT_UP: "#000000", FONT_DOWN: "#000000"},
   {BG: "#000000", FONT_UP: "#ffffff", FONT_DOWN: "#ffffff"},
   {BG: "#f03c02", FONT_UP: "#a30006", FONT_DOWN: "#6b0103"},
   {BG: "#1c0113", FONT_UP: "#c21a01", FONT_DOWN: "#a30006"},
@@ -63,7 +61,9 @@ export default class TextPhysics extends ExperimentTwoJs {
   two: Two;
   lines: Line[] = [];
 
-  engine = Matter.Engine.create();
+  engine = Matter.Engine.create({
+    enableSleeping: true
+  });
   // render = Matter.Render.create({
   //   element: this.containerEl,
   //   engine: this.engine
@@ -92,6 +92,7 @@ export default class TextPhysics extends ExperimentTwoJs {
     // Background
     const bgRect = this.two.makeRectangle(w/2, h/2, w, h);
     bgRect.fill = COLORS.BG;
+    bgRect.noStroke();
 
     // Texts
     const lines = TEXT.map((text, i) => {
@@ -100,26 +101,38 @@ export default class TextPhysics extends ExperimentTwoJs {
       return line;
     });
 
-    lines.forEach((line, i) => {
-      const color = lerpColor(COLORS.FONT_DOWN, COLORS.FONT_UP, i / lines.length);
-
-      setTimeout(() => {
-        line.letters.forEach((letter) => {
-          // Set view
-          letter.view.fill = color;
-
-          Matter.World.add(this.engine.world, letter.body);
-        });
-
-        this.lines.push(line);
-      }, DROP_INTERVAL * i);
-    });
+    this.addFirstLine(lines, 0, lines.length);
 
     this.initWalls();
     this.initMouseControls();
 
     this.two.update();
     return super.init();
+  }
+
+
+  addFirstLine(lines: Line[], i: number, totalLineCount: number) {
+    if (lines.length == 0) return;
+    const [ line, ...linesRest ] = lines;
+    const color = lerpColor(COLORS.FONT_DOWN, COLORS.FONT_UP, i / totalLineCount);
+
+    line.letters.forEach((letter) => {
+      letter.view.fill = color;
+      Matter.World.add(this.engine.world, letter.body);
+    });
+
+    this.lines.push(line);
+    setTimeout(() => {
+      this.addFirstLine(linesRest, i + 1, totalLineCount);
+    }, DROP_INTERVAL);
+
+    // Make them static after 5 drop_intervals
+    // This prevents glitches
+    setTimeout(() => {
+      line.letters.forEach((letter) => {
+        Matter.Body.setStatic(letter.body, true);
+      });
+    }, DROP_INTERVAL * 5);
   }
 
 
