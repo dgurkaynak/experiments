@@ -14,4 +14,5 @@ export default {
   9: import('./09-text-physics'),
   '9.1': import('./09-text-physics/index.1'),
   '9.2': import('./09-text-physics/index.2'),
+  '9.3': import('./09-text-physics/index.3'),
 };
