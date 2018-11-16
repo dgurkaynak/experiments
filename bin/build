@@ -1,0 +1,3 @@
+#!/bin/bash
+rm -rf dist-prod/$1
+NODE_ENV=production npx parcel build src/$1/index.html --public-url . --out-dir dist-prod/$1

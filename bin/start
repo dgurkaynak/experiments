@@ -1,0 +1,2 @@
+#!/bin/bash
+npx parcel serve src/$1/index.html --out-dir dist
