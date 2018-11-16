@@ -17,4 +17,4 @@ const experiments = fs.readdirSync('./src').filter((name) => {
 const newId = parseInt(experiments[experiments.length - 1], 10) + 1;
 const newIdString = (`000${newId}`).slice(-3);
 
-child_process.execSync(`cp -r ${bpDirPath} ./src/${newIdString}`)
+child_process.execSync(`cp -av ${bpDirPath} ./src/${newIdString}`);
