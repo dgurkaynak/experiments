@@ -29,7 +29,7 @@ const animator = new Animator(animate);
 const stats = new Stats();
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, resizer.width / resizer.height, 0.1, 1000);
-const orbitControls = new OrbitControls(camera);
+const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
 
 
 /**
