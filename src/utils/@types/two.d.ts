@@ -89,7 +89,9 @@ declare module Two {
   }
 
   class Group extends LogicalShape {
-    children: Array<any>
+    children: Array<any>;
+
+    noStroke();
   }
 
   interface Collection extends Array<any> { }

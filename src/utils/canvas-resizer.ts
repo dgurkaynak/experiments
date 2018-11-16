@@ -21,15 +21,18 @@ export default class CanvasResizer {
   padding = 50;
   resize = (width: number, height: number) => {};
 
-  canvasWidth: number;
-  canvasHeight: number;
-  canvasStyleWidth: number;
-  canvasStyleHeight: number;
+  width: number;
+  height: number;
+  styleWidth: number;
+  styleHeight: number;
+  aspectRatio: number;
 
   private _onWindowResizeHandler: any;
 
 
-  constructor(options?: CanvasResizerOptions) {
+  constructor(canvas: HTMLCanvasElement, options?: CanvasResizerOptions) {
+    this.canvas = canvas;
+
     if (options) {
       if (options.dimension) this.dimension = options.dimension;
       if (options.dimensionScaleFactor) this.dimensionScaleFactor = options.dimensionScaleFactor;
@@ -48,28 +51,30 @@ export default class CanvasResizer {
 
   calculateDimensions() {
     if (this.dimension == 'fullscreen') {
-      this.canvasWidth = window.innerWidth * this.dimensionScaleFactor;
-      this.canvasHeight = window.innerHeight * this.dimensionScaleFactor;
-      this.canvasStyleWidth = window.innerWidth;
-      this.canvasStyleHeight = window.innerHeight;
+      this.width = window.innerWidth * this.dimensionScaleFactor;
+      this.height = window.innerHeight * this.dimensionScaleFactor;
+      this.styleWidth = window.innerWidth;
+      this.styleHeight = window.innerHeight;
+      this.aspectRatio = this.width / this.height;
       return;
     }
 
     if (Array.isArray(this.dimension)) {
-      this.canvasWidth = this.dimension[0] * this.dimensionScaleFactor;
-      this.canvasHeight = this.dimension[1] * this.dimensionScaleFactor;
+      this.width = this.dimension[0] * this.dimensionScaleFactor;
+      this.height = this.dimension[1] * this.dimensionScaleFactor;
+      this.aspectRatio = this.width / this.height;
 
       const containerWidth = window.innerWidth - (2 * this.padding);
       const containerHeight = window.innerHeight - (2 * this.padding);
       const containerAspectRatio = containerWidth / containerHeight;
-      const canvasAspectRatio = this.canvasWidth / this.canvasHeight;
+      const canvasAspectRatio = this.width / this.height;
 
       if (canvasAspectRatio > containerAspectRatio) {
-        this.canvasStyleWidth = containerWidth;
-        this.canvasStyleHeight = this.canvasStyleWidth / canvasAspectRatio;
+        this.styleWidth = containerWidth;
+        this.styleHeight = this.styleWidth / canvasAspectRatio;
       } else {
-        this.canvasStyleHeight = containerHeight;
-        this.canvasStyleWidth = this.canvasStyleHeight * canvasAspectRatio;
+        this.styleHeight = containerHeight;
+        this.styleWidth = this.styleHeight * canvasAspectRatio;
       }
 
       return;
@@ -79,13 +84,11 @@ export default class CanvasResizer {
   }
 
 
-  init(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-
+  init() {
     this.addStyles();
 
-    this.canvas.style.width = `${this.canvasStyleWidth}px`;
-    this.canvas.style.height = `${this.canvasStyleHeight}px`;
+    this.canvas.style.width = `${this.styleWidth}px`;
+    this.canvas.style.height = `${this.styleHeight}px`;
 
     window.addEventListener('resize', this._onWindowResizeHandler, false);
   }
@@ -129,21 +132,21 @@ export default class CanvasResizer {
 
   onWindowResize() {
     const previous = {
-      canvasWidth: this.canvasWidth,
-      canvasHeight: this.canvasHeight,
-      canvasStyleWidth: this.canvasStyleWidth,
-      canvasStyleHeight: this.canvasStyleHeight
+      canvasWidth: this.width,
+      canvasHeight: this.height,
+      canvasStyleWidth: this.styleWidth,
+      canvasStyleHeight: this.styleHeight
     };
 
     this.calculateDimensions();
 
-    if (this.canvasWidth != previous.canvasWidth || this.canvasHeight != previous.canvasHeight) {
-      this.resize(this.canvasWidth, this.canvasHeight);
+    if (this.width != previous.canvasWidth || this.height != previous.canvasHeight) {
+      this.resize(this.width, this.height);
     }
 
-    if (this.canvasStyleWidth != previous.canvasStyleWidth || this.canvasStyleHeight != previous.canvasStyleHeight) {
-      this.canvas.style.width = `${this.canvasStyleWidth}px`;
-      this.canvas.style.height = `${this.canvasStyleHeight}px`;
+    if (this.styleWidth != previous.canvasStyleWidth || this.styleHeight != previous.canvasStyleHeight) {
+      this.canvas.style.width = `${this.styleWidth}px`;
+      this.canvas.style.height = `${this.styleHeight}px`;
     }
   }
 
@@ -154,4 +157,3 @@ export default class CanvasResizer {
     this.canvas = null;
   }
 }
-
