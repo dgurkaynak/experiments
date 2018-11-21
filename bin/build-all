@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+const fs = require('fs');
+const child_process = require('child_process');
+const colors = require('colors');
+
+const experiments = fs.readdirSync('./src').filter((name) => {
+  const stat = fs.statSync(`./src/${name}`);
+  if (!stat.isDirectory()) return false;
+  return !isNaN(Number(name));
+});
+
+for (const experiment of experiments) {
+
+  console.log(`==> Building ${experiment}`.bgWhite.black.bold);
+  try {
+    const stdout = child_process.execSync(`./bin/build ${experiment}`);
+    console.log(stdout.toString());
+  } catch (err) {
+    console.error(err.stdout.toString());
+    process.exit(1);
+  }
+  console.log('');
+}
