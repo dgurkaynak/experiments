@@ -4,13 +4,13 @@ import OrbitControlsFactory from 'three-orbit-controls';
 const OrbitControls = OrbitControlsFactory(THREE);
 import CanvasResizer from '../utils/canvas-resizer';
 import Animator from '../utils/animator';
-import Wave2dCanvas from './wave2d-canvas';
+import GeometrySpringModifier from './spring-modifier';
 
 require('../utils/three/ctm/ctm-loader');
 import headCtmPath from './assets/LeePerry.ctm';
 import colorMapTexturePath from './assets/Map-COL.jpg';
+import specularMapTexturePath from './assets/Map-SPEC.jpg';
 import normalMapTexturePath from './assets/Infinite-Level_02_Tangent_SmoothUV.jpg';
-import { major } from 'semver';
 
 
 /**
@@ -18,6 +18,9 @@ import { major } from 'semver';
  */
 const ENABLE_STATS = true;
 const ENABLE_ORBIT_CONTROLS = true;
+const SPRING_DISPLACE_MAGNITUDE = 0.00005;
+const SPRING_STRENGTH = 0.0005;
+const DAMPEN = 0.9999;
 
 
 /**
@@ -45,7 +48,7 @@ const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
 const rayCaster = new THREE.Raycaster();
 const mousePosition = new THREE.Vector2();
 let mesh: THREE.Mesh;
-const wave2dCanvas = new Wave2dCanvas(64, 16);
+let springModifier: GeometrySpringModifier;
 const ctmLoader = new THREE.CTMLoader();
 const textureLoader = new THREE.TextureLoader();
 
@@ -77,33 +80,24 @@ async function main() {
   pointLight.position.set(0, 1, 2);
   scene.add(pointLight);
 
-  wave2dCanvas.dampeningFactor = 0.95;
-  wave2dCanvas.pullStrength = 0.01;
-  wave2dCanvas.draw();
-
-  // wave2dCanvas.canvas.id = 'head-displacement-map';
-  // wave2dCanvas.canvas.style = 'position: absolute; top: 0; left: 0; width: 1024px; height: 1024px; zoom: 0.25;';
-  // document.body.appendChild(wave2dCanvas.canvas);
-
   const [
-    geometry,
+    geometry_,
     map,
-    normalMap
+    normalMap,
+    specularMap
   ] = await Promise.all([
     loadCTM(headCtmPath),
     loadTexture(colorMapTexturePath),
     loadTexture(normalMapTexturePath),
+    loadTexture(specularMapTexturePath),
   ]);
 
-  const material = new THREE.MeshStandardMaterial({
+  const geometry = new THREE.Geometry().fromBufferGeometry(geometry_);
+  const material = new THREE.MeshPhongMaterial({
     map,
     normalMap,
     normalScale: new THREE.Vector2(0.8, 0.8),
-    metalness: 0.1,
-    roughness: 0.5,
-    displacementMap: new THREE.CanvasTexture(wave2dCanvas.canvas),
-    displacementScale: 0.05,
-    displacementBias: -0.025,
+    specularMap,
   });
 
   mesh = new THREE.Mesh(geometry, material);
@@ -114,25 +108,32 @@ async function main() {
   mesh.receiveShadow = true;
   scene.add(mesh);
 
-  renderer.domElement.addEventListener('click', onClick, false);
+  springModifier = new GeometrySpringModifier(geometry);
+  springModifier.SPRING_STRENGTH = SPRING_STRENGTH;
+  springModifier.DAMPEN = DAMPEN;
+
+  renderer.domElement.addEventListener('mousemove', onMouseMove, false);
 
   animator.start();
 }
 
 
-function onClick(e: MouseEvent) {
-  mousePosition.x = (e.clientX / (resizer.width / resizer.dimensionScaleFactor)) * 2 - 1;
-  mousePosition.y = - (e.clientY / (resizer.height / resizer.dimensionScaleFactor)) * 2 + 1;
+function onMouseMove(e: MouseEvent) {
+  const mouseX = e.offsetX || e.clientX;
+  const mouseY = e.offsetY || e.clientY;
 
-  rayCaster.setFromCamera(mousePosition, camera);
-  const intersects = rayCaster.intersectObject(mesh, true);
+  const vector = new THREE.Vector3(
+    (mouseX / window.innerWidth) * 2 - 1,
+    -(mouseY / window.innerHeight) * 2 + 1,
+    0.5
+  );
 
-  if (intersects[0]) {
-    const intersect: any = intersects[0];
-    const x = Math.floor(intersect.uv.x * 1024);
-    const y = Math.floor((1 - intersect.uv.y) * 1024);
-    console.log('Applying force...', x, y);
-    wave2dCanvas.applyForce(x, y, -2);
+  vector.unproject(camera);
+  rayCaster.set(camera.position, vector.sub(camera.position).normalize());
+  const intersects = rayCaster.intersectObject(mesh);
+
+  if(intersects.length) {
+    springModifier.displaceFace(intersects[0].face, SPRING_DISPLACE_MAGNITUDE);
   }
 }
 
@@ -144,9 +145,13 @@ function animate() {
   if (ENABLE_STATS) stats.begin();
   if (ENABLE_ORBIT_CONTROLS) orbitControls.update();
 
-  wave2dCanvas.draw();
-  wave2dCanvas.iterate();
-  if (mesh) (<any>mesh.material).displacementMap.needsUpdate = true;
+  if (mesh) {
+    springModifier.updateVertexSprings();
+    (<any>mesh.geometry).verticesNeedUpdate = true;
+    (<any>mesh.geometry).normalsNeedUpdate = true;
+    (<any>mesh.geometry).computeFaceNormals();
+    mesh.geometry.computeVertexNormals();
+  }
   renderer.render(scene, camera);
 
   if (ENABLE_STATS) stats.end();
@@ -182,7 +187,7 @@ function dispose() {
   animator.dispose();
   resizer.destroy();
   orbitControls && orbitControls.dispose();
-  renderer.domElement.removeEventListener('click', onClick, false);
+  renderer.domElement.removeEventListener('mousemove', onMouseMove, false);
   renderer.dispose();
   mesh.geometry.dispose();
   (<any>mesh.material).dispose();

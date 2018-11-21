@@ -1,4 +1,4 @@
-import noise from '../utils/noise';
+import noise from './noise';
 
 export default class PerlinCanvas {
   canvas = document.createElement('canvas');

@@ -1,11 +1,13 @@
-import * as THREE from 'three';
-
 // Derived from:
 // https://www.creativebloq.com/javascript/create-interactive-liquid-metal-ball-webgl-4126370
+
+import * as THREE from 'three';
+
+
 export default class GeometrySpringModifier {
-  // DISPLACEMENT = 0.00005;
   SPRING_STRENGTH = 0.0005;
   DAMPEN = 0.999;
+
 
   constructor(private geometry: THREE.Geometry) {
     geometry.faces.forEach((face) => {
@@ -15,9 +17,10 @@ export default class GeometrySpringModifier {
     });
   }
 
+
   createSpring(start, end) {
-    const startVertex = this.geometry.vertices[start];
-    const endVertex = this.geometry.vertices[end];
+    const startVertex: any = this.geometry.vertices[start];
+    const endVertex: any = this.geometry.vertices[end];
 
     if (!startVertex.springs) {
       startVertex.springs = [];
@@ -51,10 +54,10 @@ export default class GeometrySpringModifier {
   }
 
 
-  displaceVertex(vertex, magnitude) {
-    this.geometry.vertices[vertex].velocity.add(
-      this.geometry.vertices[vertex].normal.clone().multiplyScalar(magnitude)
-    );
+  displaceVertex(vertexIndex, magnitude) {
+    const vertex: any = this.geometry.vertices[vertexIndex];
+    const velocityDelta = vertex.normal.clone().multiplyScalar(magnitude);
+    vertex.velocity.add(velocityDelta);
   }
 
 
@@ -65,7 +68,7 @@ export default class GeometrySpringModifier {
 
     while(vertexCount--) {
 
-      const vertex = this.geometry.vertices[vertexCount];
+      const vertex: any = this.geometry.vertices[vertexCount];
       const vertexSprings = vertex.springs;
 
       if (!vertexSprings) {

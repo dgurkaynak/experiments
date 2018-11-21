@@ -1,18 +1,17 @@
 // https://github.com/spite/looper/blob/master/modules/points-sphere.js
-
 import * as THREE from 'three';
 
-export default function pointsOnSphere(n) {
-  const pts = [];
+export default function pointsOnSphere(n: number) {
+  const pts: THREE.Vector3[] = [];
   const inc = Math.PI * (3 - Math.sqrt(5));
   const off = 2.0 / n;
   let r;
-  var phi;
+  let phi;
   let dmin = 10000;
   const prev = new THREE.Vector3();
   const cur = new THREE.Vector3();
 
-  for (var k = 0; k < n; k++){
+  for (let k = 0; k < n; k++){
     cur.y = k * off - 1 + (off /2);
     r = Math.sqrt(1 - cur.y * cur.y);
     phi = k * inc;

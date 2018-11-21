@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import randomColor from 'randomcolor';
-require('../utils/three/GLTFLoader');
+import GLTFLoader from 'three-gltf-loader';
 
 
 import eyesGltfPath from './assets/eyes.gltf';
@@ -12,7 +12,7 @@ import eyeColorMapPath from './assets/sclera_color.png';
 
 
 class EyeMeshFactory {
-  gltfLoader = new THREE.GLTFLoader();
+  gltfLoader = new GLTFLoader();
   textureLoader = new THREE.TextureLoader();
   group: THREE.Group;
 

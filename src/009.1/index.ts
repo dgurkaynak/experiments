@@ -1,5 +1,5 @@
 // Needed for Matter.Bodies.fromVertices() function
-(<any>global).decomp = require('poly-decomp');
+global.decomp = require('poly-decomp');
 require('pathseg');
 
 import Two from 'two.js';
@@ -8,10 +8,22 @@ import CanvasResizer from '../utils/canvas-resizer';
 import Animator from '../utils/animator';
 import Matter from 'matter-js';
 import * as opentype from 'opentype.js';
-import Letter from './letter';
-import Line from './line';
+import Line from '../009/line';
+// import sample from 'lodash/sample';
+// import sampleSize from 'lodash/sampleSize';
+// import colors from 'nice-color-palettes';
+import * as colorHelper from '../utils/color-helper';
 
 import fontPath from './ModernSans-Light.otf';
+
+
+// const PALETTE = sampleSize(sample(colors), 3);
+// const COLORS = {
+//   BG: PALETTE[0],
+//   FONT_UP: PALETTE[1],
+//   FONT_DOWN: PALETTE[2]
+// };
+// console.log(COLORS);
 
 
 /**
@@ -19,15 +31,35 @@ import fontPath from './ModernSans-Light.otf';
  */
 const ENABLE_STATS = true;
 const TEXT = [
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.'
+  'I CAN ONLY',
+  'NOTE THAT',
+  'THE PAST IS',
+  'BEAUTIFUL',
+  'BECAUSE',
+  'ONE NEVER',
+  'REALIZES',
+  'AN EMOTION',
+  'AT THE TIME,',
+  'IT EXPANDS',
+  'LATER,',
+  'AND THUS',
+  'WE DON\'T',
+  'HAVE COMPLETE',
+  'EMOTIONS',
+  'ABOUT',
+  'THE PRESENT,',
+  'ONLY ABOUT',
+  'THE PAST.'
 ];
 const LINE_HEIGHT = 150;
-const COLORS = {
-  BG: '#000000',
-  FONT: '#ffffff'
-};
+const COLORS = [ // Selected colors
+  {BG: "#F9F6F1", FONT_UP: "#000000", FONT_DOWN: "#000000"},
+  {BG: "#000000", FONT_UP: "#ffffff", FONT_DOWN: "#ffffff"},
+  {BG: "#f03c02", FONT_UP: "#a30006", FONT_DOWN: "#6b0103"},
+  {BG: "#1c0113", FONT_UP: "#c21a01", FONT_DOWN: "#a30006"},
+  {BG: "#fff7bd", FONT_UP: "#f2f26f", FONT_DOWN: "#f04155"},
+][0];
+const DROP_INTERVAL = 750;
 
 
 /**
@@ -52,7 +84,7 @@ const animator = new Animator(animate);
  * Experiment variables
  */
 const lines: Line[] = [];
-const engine = Matter.Engine.create();
+const engine = Matter.Engine.create({ enableSleeping: true });
 // const render = Matter.Render.create({ engine, element: elements.container });
 
 
@@ -77,23 +109,16 @@ async function main() {
   // Background
   const bgRect = two.makeRectangle(w/2, h/2, w, h);
   bgRect.fill = COLORS.BG;
+  bgRect.noStroke();
 
   // Texts
-  const offsetY = (h - TEXT.length * LINE_HEIGHT) / 2;
-
-  TEXT.forEach((text, i) => {
+  const lines = TEXT.map((text, i) => {
     const line = new Line(font, text);
-    line.init(two, { x: 0, y: offsetY + LINE_HEIGHT * i, width: w, height: LINE_HEIGHT });
-
-    line.letters.forEach((letter) => {
-      // Set view
-      (<any>letter.view).fill = COLORS.FONT;
-
-      Matter.World.add(engine.world, letter.body);
-    });
-
-    lines.push(line);
+    line.init(two, { x: 0, y: -LINE_HEIGHT, width: w, height: LINE_HEIGHT });
+    return line;
   });
+
+  addFirstLine(lines, 0, lines.length);
 
   initWalls();
   initMouseControls();
@@ -101,6 +126,31 @@ async function main() {
   two.update();
 
   animator.start();
+}
+
+
+function addFirstLine(lines_: Line[], i: number, totalLineCount: number) {
+  if (lines_.length == 0) return;
+  const [ line, ...linesRest ] = lines_;
+  const color = colorHelper.lerp(COLORS.FONT_DOWN, COLORS.FONT_UP, i / totalLineCount);
+
+  line.letters.forEach((letter) => {
+    (<any>letter.view).fill = color;
+    Matter.World.add(engine.world, letter.body);
+  });
+
+  lines.push(line);
+  setTimeout(() => {
+    addFirstLine(linesRest, i + 1, totalLineCount);
+  }, DROP_INTERVAL);
+
+  // Make them static after 5 drop_intervals
+  // This prevents glitches
+  setTimeout(() => {
+    line.letters.forEach((letter) => {
+      Matter.Body.setStatic(letter.body, true);
+    });
+  }, DROP_INTERVAL * 5);
 }
 
 
@@ -117,7 +167,6 @@ function animate() {
 
   if (ENABLE_STATS) stats.end();
 }
-
 
 function initWalls() {
   const [ w, h ] = [ resizer.width, resizer.height ];
@@ -146,6 +195,7 @@ function loadFont(path): Promise<opentype.Font> {
     });
   });
 }
+
 
 
 /**

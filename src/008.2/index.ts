@@ -2,9 +2,9 @@ import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
 import CanvasResizer from '../utils/canvas-resizer';
 import times from 'lodash/times';
-// import sample from 'lodash/sample';
 import Clock from '../utils/clock';
 // import colors from 'nice-color-palettes';
+// import sample from 'lodash/sample';
 
 
 // Random color selection
@@ -21,22 +21,30 @@ import Clock from '../utils/clock';
  * Constants
  */
 const ENABLE_STATS = true;
-const COLORS = [ // Some pre-selected colors
-  {BG: "#f1edd0", UP: "#f38a8a", DOWN: "#55443d"},
-  {BG: "#151101", UP: "#b3204d", DOWN: "#edf6ee"},
-  {BG: "#edf6ee", UP: "#b3204d", DOWN: "#151101"},
-  {BG: "#3b2d38", UP: "#f02475", DOWN: "#f27435"},
-  {BG: "#f7e4be", UP: "#b38184", DOWN: "#f0b49e"},
-][3];
-const PADDING_RATIO = { TOP: 0.15, RIGHT: 0.15, BOTTOM: 0.15, LEFT: 0.15 };
-const LINE_COUNT = 50;
-const HORIZONTAL_SAMPLE_COUNT = 30;
+const COLORS = [ // Some selected colors
+  {BG: "#000000", UP: "#ffffff", DOWN: "#ffffff"},
+  {BG: "#8b7a5e", UP: "#d0ecea", DOWN: "#fffee4"},
+  {BG: "#f8fcc1", UP: "#e6781e", DOWN: "#1693a7"},
+  {BG: "#363636", UP: "#474747", DOWN: "#e8175d"},
+  {BG: "#f1efa5", UP: "#60b99a", DOWN: "#f77825"},
+  {BG: "#fdf1cc", UP: "#987f69", DOWN: "#fcd036"},
+  {BG: "#f8b195", UP: "#355c7d", DOWN: "#f67280"},
+  {BG: "#031634", UP: "#036564", DOWN: "#cdb380"},
+  {BG: "#f4ead5", UP: "#d68189", DOWN: "#c6e5d9"},
+  {BG: "#e8d5b7", UP: "#0e2430", DOWN: "#fc3a51"},
+  {BG: "#fdf1cc", UP: "#e3ad40", DOWN: "#c6d6b8"},
+  {BG: "#615375", UP: "#f9bf76", DOWN: "#e5625c"},
+  {BG: "#f03c02", UP: "#6b0103", DOWN: "#a30006"},
+  {BG: "#f0f0d8", UP: "#604848", DOWN: "#c0d860"},
+][12];
+const RADIUS = 400;
+const Y_FACTOR = 0.1;
 const LINE_WIDTH = 3;
-const NOISE_X_STEP = 0.20;
-const NOISE_X_CLOCK_FACTOR = 0.4;
-const NOISE_Y_STEP = 0.125;
-const NOISE_Y_INFLUENCE = 17;
-const LEFT_RIGHT_DAMPING_FACTOR = 3;
+const CIRCLE_DRAW_SAMPLE_ANGLE = Math.PI / 10;
+const NOISE_X_CLOCK_FACTOR = 0.4; // 0.2
+const NOISE_X_STEP = 2.5;
+const Y_STEP = 10; // 5
+const Y_NEGATIVE_OFFSET = 50;
 
 
 /**
@@ -53,6 +61,7 @@ const resizer = new CanvasResizer(null, {
 });
 const stats = new Stats();
 const clock = new Clock();
+let i = 0;
 
 
 
@@ -83,7 +92,8 @@ function setup() {
   resizer.init();
 
   p.pixelDensity(1);
-  p.frameRate(30);
+  // p.frameRate(30);
+  p.background(COLORS.BG);
 }
 
 
@@ -93,50 +103,45 @@ function setup() {
 function draw() {
   if (ENABLE_STATS) stats.begin();
 
-  p.background(COLORS.BG);
   p.noFill();
   p.strokeWeight(LINE_WIDTH);
-  p.stroke(255, 255, 255);
 
-  const padding = {
-    top: resizer.height * PADDING_RATIO.TOP,
-    right: resizer.width * PADDING_RATIO.RIGHT,
-    bottom: resizer.height * PADDING_RATIO.BOTTOM,
-    left: resizer.width * PADDING_RATIO.LEFT
-  };
+  const color = p.lerpColor(
+    p.color(COLORS.UP),
+    p.color(COLORS.DOWN),
+    i / resizer.height
+  );
+  // p.stroke(255, 255, 255);
+  p.stroke(color);
+
+  if (i > resizer.height + (2 * Y_NEGATIVE_OFFSET)) {
+    console.log('end');
+    p.noLoop();
+    return;
+  }
+
   const baseX = clock.getElapsedTime() * NOISE_X_CLOCK_FACTOR;
-  const lineVerticalMargin = (resizer.height - padding.top - padding.bottom) / (LINE_COUNT - 1);
-  const horizontalSampleWidth = (resizer.width - padding.left - padding.right) / (HORIZONTAL_SAMPLE_COUNT - 1);
+  const center = {
+    x: resizer.width / 2,
+    y: resizer.height + Y_NEGATIVE_OFFSET - i
+  };
 
-  times(LINE_COUNT, (i) => {
-    p.beginShape();
+  p.beginShape();
 
-    const color = p.lerpColor(
-      p.color(COLORS.UP),
-      p.color(COLORS.DOWN),
-      p.map(i, 0, LINE_COUNT, 0, 1)
-    );
-    p.stroke(color);
+  const sampleCount = 2 * Math.PI / CIRCLE_DRAW_SAMPLE_ANGLE;
+  times(sampleCount + 3, (j) => {
+    const angle = j * CIRCLE_DRAW_SAMPLE_ANGLE;
+    const noise = p.noise(baseX + NOISE_X_STEP * (j % sampleCount));
+    const noiseMapped = p.map(noise, 0, 1, 0, 2);
+    const x = center.x + RADIUS * Math.cos(angle) * noiseMapped;
+    const y = center.y + RADIUS * Math.sin(angle) * noiseMapped * Y_FACTOR;
 
-    const baseY = padding.top + (lineVerticalMargin * i);
-    times(HORIZONTAL_SAMPLE_COUNT, (j) => {
-      const x = padding.left + (horizontalSampleWidth * j);
-
-      const noise = p.noise(
-        baseX + NOISE_X_STEP * j,
-        NOISE_Y_STEP * i
-      );
-      const offsetY = (noise - 0.5) * lineVerticalMargin * NOISE_Y_INFLUENCE;
-
-      const dampingFactorLeft = 1 - (1 / Math.pow(Math.E, j / HORIZONTAL_SAMPLE_COUNT * LEFT_RIGHT_DAMPING_FACTOR));
-      const dampingFactorRight = 1 - (1 / Math.pow(Math.E, (1 - (j / HORIZONTAL_SAMPLE_COUNT)) * LEFT_RIGHT_DAMPING_FACTOR));
-
-      const y = baseY + offsetY * dampingFactorLeft * dampingFactorRight;
-      p.curveVertex(x, y);
-    });
-
-    p.endShape();
+    p.curveVertex(x, y);
   });
+
+  p.endShape();
+
+  i += Y_STEP;
 
   if (ENABLE_STATS) stats.end();
 }

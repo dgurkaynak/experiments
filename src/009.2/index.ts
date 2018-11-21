@@ -1,6 +1,7 @@
 // Needed for Matter.Bodies.fromVertices() function
-(<any>global).decomp = require('poly-decomp');
+global.decomp = require('poly-decomp');
 require('pathseg');
+
 
 import Two from 'two.js';
 import Stats from 'stats.js';
@@ -8,8 +9,9 @@ import CanvasResizer from '../utils/canvas-resizer';
 import Animator from '../utils/animator';
 import Matter from 'matter-js';
 import * as opentype from 'opentype.js';
-import Letter from './letter';
-import Line from './line';
+import Line from '../009/line';
+import sample from 'lodash/sample';
+import times from 'lodash/times';
 
 import fontPath from './ModernSans-Light.otf';
 
@@ -19,14 +21,20 @@ import fontPath from './ModernSans-Light.otf';
  */
 const ENABLE_STATS = true;
 const TEXT = [
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
+  'YOU MAKE',
+  'ME LAUGH,',
+  'BUT IT\'S',
   'NOT FUNNY.'
 ];
 const LINE_HEIGHT = 150;
 const COLORS = {
   BG: '#000000',
   FONT: '#ffffff'
+};
+const CONSTRAINT = {
+  COUNT: 3,
+  LENGTH: 0,
+  STIFFNESS: 0.001
 };
 
 
@@ -77,6 +85,7 @@ async function main() {
   // Background
   const bgRect = two.makeRectangle(w/2, h/2, w, h);
   bgRect.fill = COLORS.BG;
+  bgRect.noStroke();
 
   // Texts
   const offsetY = (h - TEXT.length * LINE_HEIGHT) / 2;
@@ -89,7 +98,22 @@ async function main() {
       // Set view
       (<any>letter.view).fill = COLORS.FONT;
 
-      Matter.World.add(engine.world, letter.body);
+      // Add constraints
+      const newThings: any[] = [ letter.body ];
+      const vertex = sample(letter.body.vertices);
+      times(CONSTRAINT.COUNT, () => {
+        const vertex = sample(letter.body.vertices);
+        const constraint = Matter.Constraint.create({
+          pointA: { x: vertex.x, y: vertex.y },
+          bodyB: letter.body,
+          pointB: { x: vertex.x - letter.body.position.x, y: vertex.y - letter.body.position.y },
+          length: CONSTRAINT.LENGTH,
+          stiffness: CONSTRAINT.STIFFNESS,
+        });
+        newThings.push(constraint);
+      });
+
+      Matter.World.add(engine.world, newThings);
     });
 
     lines.push(line);

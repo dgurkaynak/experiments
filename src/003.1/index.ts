@@ -12,6 +12,15 @@ import Animator from '../utils/animator';
 const ENABLE_STATS = true;
 const ENABLE_ORBIT_CONTROLS = true;
 
+const DISTANCE = 50;
+const NUMBER_OF_BOXES_X = 10;
+const NUMBER_OF_BOXES_Y = 10;
+const COLORS = {
+  BG: 0xffffff,
+  FACE: 0xffffff,
+  LINE: 0x000000,
+};
+
 
 /**
  * Setup environment
@@ -28,16 +37,16 @@ const resizer = new CanvasResizer(renderer.domElement, {
 const animator = new Animator(animate);
 const stats = new Stats();
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, resizer.width / resizer.height, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(150, resizer.width / resizer.height, 0.1, 1000);
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
 
 
 /**
  * Experiment variables
  */
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-const cube = new THREE.Mesh(geometry, material);
+const geometry = new THREE.BoxBufferGeometry(25, 25, 25);
+const material = new THREE.MeshBasicMaterial({ color: COLORS.FACE, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+const boxes: THREE.Mesh[][] = [];
 
 
 
@@ -56,8 +65,33 @@ async function main() {
   }
 
   // Start experiment
-  camera.position.z = 5;
-  scene.add(cube);
+  camera.position.set(0, 0, 100);
+  renderer.setClearColor(COLORS.BG);
+
+  for (let i = 0; i < NUMBER_OF_BOXES_X; i++) {
+    const line: THREE.Mesh[] = [];
+
+    for (let j = 0; j < NUMBER_OF_BOXES_Y; j++) {
+      const mesh = new THREE.Mesh(geometry, material);
+      const geo = new THREE.EdgesGeometry(geometry);
+      const mat = new THREE.LineBasicMaterial({ color: COLORS.LINE, linewidth: 1 });
+      const wireframe = new THREE.LineSegments(geo, mat);
+      mesh.add(wireframe);
+
+      const offsetX = (NUMBER_OF_BOXES_X - 1) / 2;
+      const offsetY = (NUMBER_OF_BOXES_Y - 1) / 2;
+      mesh.position.x = DISTANCE * -offsetX + (DISTANCE * i);
+      mesh.position.y = DISTANCE * -offsetY + (DISTANCE * j);
+
+      mesh.rotateZ(Math.PI / 18 * j);
+      mesh.rotateX(Math.PI / 18 * i);
+
+      scene.add(mesh);
+      line.push(mesh);
+    }
+
+    boxes.push(line);
+  }
 
   animator.start();
 }
@@ -70,7 +104,12 @@ function animate() {
   if (ENABLE_STATS) stats.begin();
   if (ENABLE_ORBIT_CONTROLS) orbitControls.update();
 
-  cube.rotation.y += 0.01;
+  for (let i = 0; i < NUMBER_OF_BOXES_X; i++) {
+    for (let j = 0; j < NUMBER_OF_BOXES_Y; j++) {
+      const box = boxes[i][j];
+      box.rotateY(0.01 * (i / 9 + 1));
+    }
+  }
   renderer.render(scene, camera);
 
   if (ENABLE_STATS) stats.end();

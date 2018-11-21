@@ -2,193 +2,186 @@
 // http://bigblueboo.tumblr.com/post/174117883078/bigblueboo-eyeball#notes
 
 import * as THREE from 'three';
-import * as TWEEN from '@tweenjs/tween.js';
-import EyeMeshFactory from './eye-factory';
-import pointsOnSphere from './points-on-sphere';
-import ExperimentThreeJs from '../experiment-threejs';
+import Stats from 'stats.js';
+import OrbitControlsFactory from 'three-orbit-controls';
+const OrbitControls = OrbitControlsFactory(THREE);
 import CanvasResizer from '../utils/canvas-resizer';
+import Animator from '../utils/animator';
+import TWEEN from '@tweenjs/tween.js';
+import EyeMeshFactory from './eye-factory';
+import pointsOnSphere from '../utils/three/points-on-sphere';
+import { tweenX, tweenY, tweenZ, tweenToCamera } from './tweens';
 
 
-const EYE_FACTORY = new EyeMeshFactory();
+
+/**
+ * Constants
+ */
+const ENABLE_STATS = true;
+const ENABLE_ORBIT_CONTROLS = false;
 
 
-export default class Eyes extends ExperimentThreeJs {
-  canvasResizer = new CanvasResizer({
-    dimension: 'fullscreen',
-    dimensionScaleFactor: window.devicePixelRatio
-  });
+/**
+ * Setup environment
+ */
+const elements = {
+  container: document.getElementById('container'),
+  stats: document.getElementById('stats'),
+};
+const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+const resizer = new CanvasResizer(renderer.domElement, {
+  dimension: 'fullscreen',
+  dimensionScaleFactor: window.devicePixelRatio
+});
+const animator = new Animator(animate);
+const stats = new Stats();
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, resizer.width / resizer.height, 0.1, 1000);
+const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
+const clock = new THREE.Clock();
 
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(50, this.canvasResizer.canvasWidth / this.canvasResizer.canvasHeight, 0.1, 1000);
-  renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
-  enableOrbitControls = false;
 
-  eyes = [];
+/**
+ * Experiment variables
+ */
+const eyeFactory = new EyeMeshFactory();
+const eyes: THREE.Group[] = [];
 
 
-  constructor() {
-    super();
 
-    this.camera.position.set(0, 0, 50);
-    this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+/**
+ * Main/Setup function, initialize stuff...
+ */
+async function main() {
+  renderer.setSize(resizer.width, resizer.height);
+  elements.container.appendChild(renderer.domElement);
+  resizer.resize = onWindowResize;
+  resizer.init();
 
-    this.renderer.setClearColor(0x000000);
-    this.renderer.setSize(this.canvasResizer.canvasWidth, this.canvasResizer.canvasHeight);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    this.scene.add(ambientLight);
-
-    const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-    pointLight.position.set(0, 0, 0);
-    this.scene.add(pointLight);
+  if (ENABLE_STATS) {
+    stats.showPanel(0);
+    elements.stats.appendChild(stats.dom);
   }
 
+  // Start experiment
+  renderer.setClearColor(0x000000);
+  camera.position.set(0, 0, 50);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-  async init() {
-    await EYE_FACTORY.init();
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
 
-    pointsOnSphere(150).forEach((pos) => {
-      const eye = EYE_FACTORY.create();
+  const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+  pointLight.position.set(0, 0, 0);
+  scene.add(pointLight);
 
-      const scale = 10.5;
-      eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale * 5);
-      this.scene.add(eye);
+  await eyeFactory.init();
 
-      // Cache rotation to camera
-      eye.lookAt(this.camera.position);
-      eye._rotationToCamera = {
-        x: eye.rotation.x,
-        y: eye.rotation.y,
-        z: eye.rotation.z
-      };
+  pointsOnSphere(150).forEach((pos) => {
+    const eye = eyeFactory.create();
 
-      // Randomize rotation
-      eye.rotation.set(
-        (Math.random() - 0.5) * 1.0,
-        (Math.random() - 0.5) * 1.0,
-        (Math.random() - 0.5) * 1.0
-      );
+    const scale = 10.5;
+    eye.position.set(pos.x * scale, pos.y * scale, pos.z * scale * 5);
+    scene.add(eye);
 
-      this.eyes.push(eye);
+    // Cache rotation to camera
+    eye.lookAt(camera.position);
+    (eye as any)._rotationToCamera = { x: eye.rotation.x, y: eye.rotation.y, z: eye.rotation.z };
+
+    // Randomize rotation
+    eye.rotation.set(
+      (Math.random() - 0.5) * 1.0,
+      (Math.random() - 0.5) * 1.0,
+      (Math.random() - 0.5) * 1.0
+    );
+
+    eyes.push(eye);
+  });
+
+  // Fine-tune positions
+  eyes[10].position.x -= 1;
+  eyes[22].position.x += 1;
+  eyes[35].position.x += 0.5; eyes[35].position.y -= 0.5;
+  eyes[37].position.x += 1; eyes[37].position.z -= 2;
+  eyes[103].position.y -= 1; eyes[103].position.z -= 1; eyes[103].position.x -= 0.5;
+
+  startAnimation();
+
+  animator.start();
+}
+
+
+/**
+ * Animate stuff...
+ */
+function animate() {
+  if (ENABLE_STATS) stats.begin();
+  if (ENABLE_ORBIT_CONTROLS) orbitControls.update();
+
+  TWEEN.update(clock.getElapsedTime() * 1000);
+  renderer.render(scene, camera);
+
+  if (ENABLE_STATS) stats.end();
+}
+
+
+function startAnimation() {
+  eyes.forEach((eye: any) => {
+    tweenX(eye);
+    tweenY(eye);
+    tweenZ(eye);
+
+    eye._tweenToCameraInterval = setInterval(() => {
+      eye._tweenToCameraTimeout = setTimeout(() => tweenToCamera(eye), Math.random() * 150);
+    }, 10000);
+  });
+}
+
+
+function stopAnimation() {
+  eyes.forEach((eye: any) => {
+    if (eye._tweenX) eye._tweenX.stop();
+    if (eye._tweenY) eye._tweenY.stop();
+    if (eye._tweenZ) eye._tweenZ.stop();
+    clearTimeout(eye._tweenToCameraTimeout);
+    clearInterval(eye._tweenToCameraInterval);
+  });
+}
+
+
+/**
+ * On window resized
+ */
+function onWindowResize(width: number, height: number) {
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+}
+
+
+/**
+ * Clean your shit
+ */
+function dispose() {
+  animator.dispose();
+  resizer.destroy();
+  renderer.dispose();
+  orbitControls && orbitControls.dispose();
+
+  stopAnimation();
+  eyes.forEach((eye) => {
+    eye.children[0].children.forEach((child: any) => {
+      child.geometry.dispose();
+      child.material.dispose();
     });
+  });
 
-    // Fine-tune positions
-    this.eyes[10].position.x -= 1;
-    this.eyes[22].position.x += 1;
-    this.eyes[35].position.x += 0.5; this.eyes[35].position.y -= 0.5;
-    this.eyes[37].position.x += 1; this.eyes[37].position.z -= 2;
-    this.eyes[103].position.y -= 1; this.eyes[103].position.z -= 1; this.eyes[103].position.x -= 0.5;
-
-    this.start();
-
-    super.init();
-  }
-
-
-  async destroy() {
-    this.stop();
-    this.eyes.forEach((eye) => {
-      eye.children[0].children.forEach((child) => {
-        child.geometry.dispose();
-        child.material.dispose();
-      });
-    });
-
-    super.destroy();
-  }
-
-
-  async start() {
-    this.eyes.forEach((eye) => {
-      tweenX(eye);
-      tweenY(eye);
-      tweenZ(eye);
-
-      eye._tweenToCameraInterval = setInterval(() => {
-        eye._tweenToCameraTimeout = setTimeout(() => tweenToCamera(eye), Math.random() * 150);
-      }, 10000);
-    });
-  }
-
-
-  async stop() {
-    this.eyes.forEach((eye) => {
-      if (eye._tweenX) eye._tweenX.stop();
-      if (eye._tweenY) eye._tweenY.stop();
-      if (eye._tweenZ) eye._tweenZ.stop();
-      clearTimeout(eye._tweenToCameraTimeout);
-      clearInterval(eye._tweenToCameraInterval);
-    });
-  }
-
-
-  requestAnimationFrame() {
-    super.requestAnimationFrame();
-    TWEEN.default.update();
-    this.renderer.render(this.scene, this.camera);
-  }
+  Object.keys(elements).forEach((key) => {
+    const element = elements[key];
+    while (element.firstChild) { element.removeChild(element.firstChild); }
+  });
 }
 
 
-function tweenX(eye) {
-  if (eye._tweenX) eye._tweenX.stop();
-  eye._tweenX = new TWEEN.Tween({ x: eye.rotation.x }).to({ x: (Math.random() - 0.5) * 1.75 }, 3000 + (Math.random() - 0.5) * 2500);
-  eye._tweenX.onUpdate((data) => {
-    eye.rotation.x = data.x;
-  });
-  // eye._tweenX.easing(TWEEN.Easing.Elastic.InOut);
-  eye._tweenX.onComplete(() => tweenX(eye));
-  eye._tweenX.start();
-}
-
-
-function tweenY(eye) {
-  if (eye._tweenY) eye._tweenY.stop();
-  eye._tweenY = new TWEEN.Tween({ y: eye.rotation.y }).to({ y: (Math.random() - 0.5) * 1.75 }, 3000 + (Math.random() - 0.5) * 2500);
-  eye._tweenY.onUpdate((data) => {
-    eye.rotation.y = data.y;
-  });
-  // eye._tweenY.easing(TWEEN.Easing.Elastic.InOut);
-  eye._tweenY.onComplete(() => tweenY(eye));
-  eye._tweenY.start();
-}
-
-
-function tweenZ(eye) {
-  if (eye._tweenZ) eye._tweenZ.stop();
-  eye._tweenZ = new TWEEN.Tween({ z: eye.rotation.z }).to({ z: (Math.random() - 0.5) * 0.5 }, 1000 + (Math.random() - 0.5) * 500);
-  eye._tweenZ.onUpdate((data) => {
-    eye.rotation.z = data.z;
-  });
-  eye._tweenZ.easing(TWEEN.Easing.Elastic.InOut);
-  eye._tweenZ.onComplete(() => tweenZ(eye));
-  eye._tweenZ.start();
-}
-
-
-function tweenToCamera(eye) {
-  if (eye._tweenX) eye._tweenX.stop();
-  if (eye._tweenY) eye._tweenY.stop();
-  if (eye._tweenZ) eye._tweenZ.stop();
-
-  eye._tweenToCamera = new TWEEN.Tween({
-    x: eye.rotation.x,
-    y: eye.rotation.y,
-    z: eye.rotation.z
-  }).to(eye._rotationToCamera, 500);
-
-  eye._tweenToCamera.easing(TWEEN.Easing.Elastic.Out);
-  eye._tweenToCamera.onUpdate((data) => {
-    eye.rotation.x = data.x;
-    eye.rotation.y = data.y;
-    eye.rotation.z = data.z;
-  });
-  eye._tweenToCamera.onComplete(() => {
-    setTimeout(() => {
-      tweenX(eye);
-      tweenY(eye);
-      tweenZ(eye);
-    }, 1000);
-  });
-  eye._tweenToCamera.start();
-}
+main().catch(err => console.error(err));
+(module as any).hot && (module as any).hot.dispose(dispose);
