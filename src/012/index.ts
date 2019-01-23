@@ -8,10 +8,10 @@ import fontPath from './talldark.ttf';
  * Constants
  */
 const TEXTS = ['AYNEN', 'AYNEN'];
+const BG_COLORS = ['#000', '#0B24FB'];
 const TEXT_SIZE = window.innerHeight * 0.95;
 const TEXT_SPLIT_COUNT = 10;
 const TEXT_COLOR = '#fff';
-const BG_COLOR = '#000';
 const EASING = 'easeInOutQuart'; // https://easings.net/
 const DURATION = 3000;
 const DELAY = 50;
@@ -36,12 +36,13 @@ const iterator = (arr) => {
   return { next };
 };
 const textsIterator = iterator(TEXTS);
+const bgColorsIterator = iterator(BG_COLORS);
 
 /**
  * Main/Setup function, initialize stuff...
  */
 async function main() {
-  document.body.style.backgroundColor = BG_COLOR;
+  document.body.style.backgroundColor = BG_COLORS[0];
 
   const fontFace = await font.load();
   document.fonts.add(fontFace);
@@ -50,7 +51,7 @@ async function main() {
 }
 
 
-function go() {
+async function go() {
   const textContainer = document.createElement('div');
   textContainer.style.position = 'absolute';
   textContainer.style.top = '0';
@@ -76,34 +77,45 @@ function go() {
 
   elements.container.appendChild(textContainer);
 
-  // Entry animation
-  anime({
+
+  // Entry text animation
+  const entryTextAnimation = anime({
     targets: texts,
     easing: EASING,
     translateX: '0',
     duration: DURATION,
-    delay: (el, i) => i * DELAY,
-    complete: () => {
-      go();
-
-      // Outro animation
-      anime({
-        targets: texts,
-        easing: EASING,
-        translateX: '-100%',
-        duration: DURATION,
-        delay: (el, i) => i * DELAY,
-        complete: () => {
-          // Clean up
-          if (elements.container.firstChild == textContainer) {
-            elements.container.removeChild(textContainer);
-          }
-
-          // go();
-        }
-      });
-    }
+    delay: (el, i) => i * DELAY
   });
+
+  // Background animation
+  anime({
+    targets: document.body,
+    easing: EASING,
+    backgroundColor: bgColorsIterator.next(),
+    duration: DURATION
+  });
+
+  // Wait for the text animation
+  await entryTextAnimation.finished;
+
+  // Start next one
+  go();
+
+  // Outro text animation
+  const outroTextAnimation = anime({
+    targets: texts,
+    easing: EASING,
+    translateX: '-100%',
+    duration: DURATION,
+    delay: (el, i) => i * DELAY
+  });
+  await outroTextAnimation.finished;
+
+  // Clean up
+  if (elements.container.firstChild == textContainer) {
+    elements.container.removeChild(textContainer);
+  }
+
 }
 
 
@@ -123,14 +135,6 @@ function createText() {
   outerElement.appendChild(innerElement);
 
   return outerElement;
-}
-
-
-/**
- * On window resized
- */
-function onWindowResize(width: number, height: number) {
-  console.log('window resize', width, height);
 }
 
 
