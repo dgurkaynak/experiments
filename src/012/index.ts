@@ -1,20 +1,22 @@
 import times from 'lodash/times';
 import anime from 'animejs';
 import fontPath from './talldark.ttf';
+import { wait } from '../utils/promise-helper';
 
 
 
 /**
  * Constants
  */
-const TEXTS = ['AYNEN', 'AYNEN'];
+const TEXTS = ['AYNEN', 'KANKA'];
 const BG_COLORS = ['#000', '#0B24FB'];
 const TEXT_SIZE = window.innerHeight * 0.95;
 const TEXT_SPLIT_COUNT = 10;
 const TEXT_COLOR = '#fff';
 const EASING = 'easeInOutQuart'; // https://easings.net/
-const DURATION = 3000;
-const DELAY = 50;
+const DURATION = 2000;
+const DELAY = 33;
+const WAIT_DURATION = 250;
 
 
 /**
@@ -97,6 +99,7 @@ async function go() {
 
   // Wait for the text animation
   await entryTextAnimation.finished;
+  await wait(WAIT_DURATION);
 
   // Start next one
   go();
