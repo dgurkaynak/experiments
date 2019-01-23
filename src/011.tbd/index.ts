@@ -106,7 +106,7 @@ function draw() {
 
   } else {
     p.background('#ffffff');
-    p.text('Click to start!', resizer.width / 2, resizer.height / 2);
+    p.text('Click to start!', resizer.styleWidth / 2, resizer.styleHeight / 2);
   }
 
 
@@ -126,7 +126,7 @@ function draw2() {
 
   p.noStroke();
   p.fill(beatSwitch1 ? 'red' : 'yellow');
-  p.rect(0, 0, resizer.width / 2, resizer.height);
+  p.rect(0, 0, resizer.styleWidth / 2, resizer.styleHeight);
 
   if (beatTimes2F[0] <= audio.currentTime) {
     beatSwitch2 = !beatSwitch2;
@@ -135,7 +135,7 @@ function draw2() {
 
   p.noStroke();
   p.fill(beatSwitch2 ? 'pink' : 'white');
-  p.rect(resizer.width / 2, 0, resizer.width, resizer.height);
+  p.rect(resizer.styleWidth / 2, 0, resizer.styleWidth, resizer.styleHeight);
 }
 
 
