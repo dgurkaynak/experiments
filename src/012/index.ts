@@ -7,7 +7,7 @@ import fontPath from './talldark.ttf';
 /**
  * Constants
  */
-const TEXT = 'AYNEN';
+const TEXTS = ['AYNEN', 'AYNEN'];
 const TEXT_SIZE = window.innerHeight * 0.95;
 const TEXT_SPLIT_COUNT = 10;
 const TEXT_COLOR = '#fff';
@@ -26,9 +26,16 @@ const elements = {
 };
 const font = new FontFace('TallDark', `url(${fontPath})`);
 const itemHeight = TEXT_SIZE / TEXT_SPLIT_COUNT;
-let currentTextIndex = 0;
-
-
+const iterator = (arr) => {
+  let i = 0;
+  const next = () => {
+    const rv = arr[i];
+    i = (i + 1) % arr.length;
+    return rv;
+  };
+  return { next };
+};
+const textsIterator = iterator(TEXTS);
 
 /**
  * Main/Setup function, initialize stuff...
@@ -55,12 +62,13 @@ function go() {
   textContainer.style.justifyContent = 'center';
   textContainer.style.flexDirection = 'column';
 
+  const text = textsIterator.next();
   const texts = times(TEXT_SPLIT_COUNT, (i) => {
     const element = createText();
     element.style.width = `100%`;
     element.style.height = `${itemHeight}px`;
     element.style.transform = `translateX(100%)`;
-    element.firstChild.textContent = TEXT;
+    element.firstChild.textContent = text;
     element.firstChild.style.top = `${-i * itemHeight}px`;
     textContainer.appendChild(element);
     return element;
