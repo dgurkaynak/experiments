@@ -44,7 +44,12 @@ const bgColorsIterator = iterator(BG_COLORS);
  * Main/Setup function, initialize stuff...
  */
 async function main() {
-  document.body.style.backgroundColor = BG_COLORS[0];
+  elements.container.style.backgroundColor = BG_COLORS[0];
+  elements.container.style.position = 'relative';
+  elements.container.style.overflow = 'none';
+  elements.container.style.height = '100%';
+  // elements.container.style.width = '1080px';
+  // elements.container.style.height = '1080px';
 
   const fontFace = await font.load();
   document.fonts.add(fontFace);
@@ -91,7 +96,7 @@ async function go() {
 
   // Background animation
   anime({
-    targets: document.body,
+    targets: elements.container,
     easing: EASING,
     backgroundColor: bgColorsIterator.next(),
     duration: DURATION
