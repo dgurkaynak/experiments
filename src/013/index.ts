@@ -72,11 +72,8 @@ function setup() {
   lights = times(LIGHT_COUNT, (i) => {
     const x = Math.random() * resizer.width;
     const y = Math.random() * resizer.height;
-    const direction = {
-      x: Math.random() - 0.5,
-      y: Math.random() - 0.5
-    };
-    return { x, y, direction, hitCount: 0, color: LIGHT_COLORS[i] };
+    const angle = Math.random() * 2 * Math.PI;
+    return { x, y, angle, hitCount: 0, color: LIGHT_COLORS[i] };
   });
 
   wallLineSegments = [
@@ -100,13 +97,9 @@ function draw() {
   lights.forEach((point) => {
     // Next point, far enough to cover all the viewport
     const rayEndPoint = {
-      x: point.x + point.direction.x * 1000000,
-      y: point.y + point.direction.y * 1000000
+      x: point.x + Math.cos(point.angle) * 100000,
+      y: point.y + Math.sin(-point.angle) * 100000
     };
-    // if (frameCount % 60 == 0) {
-    //   rayEndPoint.x = point.x + (p.mouseX - point.x) * 1000000;
-    //   rayEndPoint.y = point.y + (p.mouseY - point.y) * 1000000;
-    // }
 
     // Check all the line segments for intersection
     const allIntersections = [];
@@ -135,26 +128,27 @@ function draw() {
     p.strokeWeight(LIGHT_WEIGHT);
     p.line(point.x, point.y, intersectionPoint.x, intersectionPoint.y);
 
+    // Update angle
+    intersections.forEach((i) => {
+      let lineAngle = Math.atan2(
+        -1 * (i.lineSegment[0].y - i.lineSegment[1].y),
+        i.lineSegment[0].x - i.lineSegment[1].x,
+      );
+      lineAngle = lineAngle < 0 ? Math.PI + lineAngle : lineAngle;
+      let lineNormalAngle = lineAngle - Math.PI / 2;
+      lineNormalAngle = lineNormalAngle < 0 ? Math.PI + lineNormalAngle : lineNormalAngle;
+      let rayAngle = Math.atan2(
+        -1 * (i.point.y - point.y),
+        i.point.x - point.x
+      );
+
+      point.angle = lineNormalAngle - (Math.PI - lineNormalAngle + rayAngle);
+    });
+
     // Update point
     point.x = intersectionPoint.x;
     point.y = intersectionPoint.y;
     point.hitCount++;
-
-    // Update direction
-    intersections.forEach((i) => {
-      const lineAngle = Math.atan2(
-        i.lineSegment[0].y - i.lineSegment[1].y,
-        i.lineSegment[0].x - i.lineSegment[1].x,
-      );
-
-      if (lineAngle == 0 || lineAngle == Math.PI) { // horizontal
-        point.direction.y *= -1;
-      }
-
-      if (lineAngle == Math.PI / 2 || lineAngle == -Math.PI / 2) { // vertical
-        point.direction.x *= -1;
-      }
-    });
   });
 
   frameCount++;
