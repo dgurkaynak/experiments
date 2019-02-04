@@ -3,8 +3,8 @@ import Stats from 'stats.js';
 import CanvasResizer from '../utils/canvas-resizer';
 import times from 'lodash/times';
 import { hex2rgb } from '../utils/color-helper';
-import randomColor from 'randomColor';
 import * as dat from 'dat.gui';
+import * as TWEEN from '@tweenjs/tween.js';
 
 
 
@@ -13,14 +13,15 @@ import * as dat from 'dat.gui';
  */
 interface Point { x: number, y: number };
 const ENABLE_STATS = true;
-const GUISettings = function() {
-  this.LIGHT_HIT_COUNT_LIMIT = 10;
-  this.LIGHT_RAY_COUNT = 360 * 10;
-  this.LIGHT_ALPHA = 5;
-  this.LIGHT_WEIGHT = 1;
-  this.LIGHT_COLOR = '#f00';
+const GUISettings = function () {
+  this.reflectionLimit = 10;
+  this.rayCount = 360 * 10;
+  this.rayAlpha = 5;
+  this.rayWeight = 1;
+  this.lightColor1 = '#f00';
+  this.lightColor2 = '#00f';
 
-  this.clear = function() {
+  this.clear = function () {
     p.clear();
     p.background('#000');
   };
@@ -45,9 +46,10 @@ const resizer = new CanvasResizer(null, {
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
+let frameCount = 0;
 
-let lights: Point[];
-let wallLineSegments: Point[][];
+let rays: Point[];
+let lineSegments: Point[][];
 
 
 
@@ -61,11 +63,12 @@ async function main() {
     p.draw = draw;
   }, elements.container);
 
-  gui.add(settings, 'LIGHT_HIT_COUNT_LIMIT', 1, 10);
-  gui.add(settings, 'LIGHT_RAY_COUNT', 1, 36000);
-  gui.add(settings, 'LIGHT_ALPHA', 1, 255);
-  gui.add(settings, 'LIGHT_WEIGHT', 1, 50);
-  gui.addColor(settings, 'LIGHT_COLOR');
+  gui.add(settings, 'reflectionLimit', 1, 10);
+  gui.add(settings, 'rayCount', 1, 36000);
+  gui.add(settings, 'rayAlpha', 1, 255);
+  gui.add(settings, 'rayWeight', 1, 50);
+  gui.addColor(settings, 'lightColor1');
+  gui.addColor(settings, 'lightColor2');
   gui.add(settings, 'clear');
   gui.close();
 
@@ -85,15 +88,15 @@ function setup() {
   resizer.resize = onWindowResize;
   resizer.init();
 
-  resizer.canvas.addEventListener('click', () => mouseClicked(), false);
+  // resizer.canvas.addEventListener('click', () => onMouseClick(), false);
 
-  lights = [];
+  rays = [];
 
-  const triangleWeight = 700;
+  const triangleWeight = resizer.height / 2.5;
   const centerX = resizer.width / 2;
   const centerY = resizer.height / 2 + triangleWeight / 5;
 
-  wallLineSegments = [
+  lineSegments = [
     // frame
     [{ x: 0, y: 0 }, { x: resizer.width, y: 0 }],
     [{ x: resizer.width, y: 0 }, { x: resizer.width, y: resizer.height }],
@@ -119,31 +122,70 @@ function setup() {
 }
 
 
-function mouseClicked() {
-  times(settings.LIGHT_RAY_COUNT, (i) => {
-    const angle = i * (2 * Math.PI / settings.LIGHT_RAY_COUNT);
+function setupLightAnimation() {
+  const onUpdate = ({ blueX, blueY, redX, redY }) => {
+    rays = [];
+    addLight(redX, redY, settings.lightColor1);
+    addLight(blueX, blueY, settings.lightColor2);
+  };
+  const duration = 3000;
+
+  const coordinates = { blueX: 5, blueY: 5, redX: resizer.width - 5, redY: resizer.height - 5 };
+
+  const tween1 = new TWEEN.Tween(coordinates);
+  tween1.to({ blueX: resizer.width - 5, blueY: 5, redX: 5, redY: resizer.height - 5 }, duration);
+  tween1.easing(TWEEN.Easing.Quintic.InOut);
+  tween1.onUpdate(onUpdate);
+
+  const tween2 = new TWEEN.Tween(coordinates);
+  tween2.to({ blueX: resizer.width - 5, blueY: resizer.height - 5, redX: 5, redY: 5 }, duration);
+  tween2.easing(TWEEN.Easing.Quintic.InOut);
+  tween2.onUpdate(onUpdate);
+
+  const tween3 = new TWEEN.Tween(coordinates);
+  tween3.to({ blueX: 5, blueY: resizer.height - 5, redX: resizer.width - 5, redY: 5 }, duration);
+  tween3.easing(TWEEN.Easing.Quintic.InOut);
+  tween3.onUpdate(onUpdate);
+
+  const tween4 = new TWEEN.Tween(coordinates);
+  tween4.to({ blueX: 5, blueY: 5, redX: resizer.width - 5, redY: resizer.height - 5 }, duration);
+  tween4.easing(TWEEN.Easing.Quintic.InOut);
+  tween4.onUpdate(onUpdate);
+
+  tween1.chain(tween2);
+  tween2.chain(tween3);
+  tween3.chain(tween4);
+  tween4.chain(tween1);
+
+  tween1.start();
+}
+
+
+// function onMouseClick() {
+//   addLight(p.mouseX, p.mouseY, settings.LIGHT_COLOR);
+// }
+
+
+function addLight(x: number, y: number, color: string, rayCount = settings.rayCount) {
+  times(rayCount, (i) => {
+    const angle = i * (2 * Math.PI / rayCount);
     // Ignore horizontal and vertical rays, because they're ugly
     // if (angle % (Math.PI / 2) == 0) return;
-    lights.push({
-      x: p.mouseX + (Math.random() - 0.5) * 5,
-      y: p.mouseY + (Math.random() - 0.5) * 5,
+    rays.push({
       angle,
-      hitCount: 0,
-      color: settings.LIGHT_COLOR
+      color,
+      x: x + (Math.random() - 0.5) * 5,
+      y: y + (Math.random() - 0.5) * 5,
+      hitCount: 0
     });
   });
 }
 
 
-/**
- * Animate stuff...
- */
-function draw() {
-  if (ENABLE_STATS) stats.begin();
-
+function castRays() {
   const lightIndexesToBeDeleted = [];
 
-  lights.forEach((point, i) => {
+  rays.forEach((point, i) => {
     // Next point, far enough to cover all the viewport
     const rayEndPoint = {
       x: point.x + Math.cos(point.angle) * 100000,
@@ -152,8 +194,8 @@ function draw() {
 
     // Check all the line segments for intersection
     const allIntersections = [];
-    wallLineSegments.forEach((lineSegment) => {
-      const intersectionPoint = getIntersection([ point, rayEndPoint ], lineSegment);
+    lineSegments.forEach((lineSegment) => {
+      const intersectionPoint = getIntersection([point, rayEndPoint], lineSegment);
       if (!intersectionPoint) return;
       const distance = getDistance(point, intersectionPoint);
       if (distance < 1) return; // ignore already intersected ones
@@ -174,9 +216,9 @@ function draw() {
     // Draw the line
     const intersectionPoint = intersections[0].point;
     const color = hex2rgb(point.color);
-    const alpha = settings.LIGHT_ALPHA - point.hitCount * (settings.LIGHT_ALPHA / settings.LIGHT_HIT_COUNT_LIMIT);
-    p.stroke(color.r, color.g, color.b, settings.LIGHT_ALPHA);
-    p.strokeWeight(settings.LIGHT_WEIGHT);
+    const alpha = settings.rayAlpha - point.hitCount * (settings.rayAlpha / settings.reflectionLimit);
+    p.stroke(color.r, color.g, color.b, settings.rayAlpha);
+    p.strokeWeight(settings.rayWeight);
     p.line(point.x, point.y, intersectionPoint.x, intersectionPoint.y);
 
     // Update angle
@@ -202,11 +244,38 @@ function draw() {
     point.hitCount++;
   });
 
-  lights = lights.filter((light, i) => {
-    return light.hitCount < settings.LIGHT_HIT_COUNT_LIMIT &&
+  rays = rays.filter((light, i) => {
+    return light.hitCount < settings.reflectionLimit &&
       lightIndexesToBeDeleted.indexOf(i) == -1;
   });
+}
 
+
+/**
+ * Animate stuff...
+ */
+function draw() {
+  if (ENABLE_STATS) stats.begin();
+
+  // One point light attached to mouse coordinates
+  // p.background('#000');
+  // addLight(p.mouseX, p.mouseY, settings.LIGHT_COLOR);
+  // while (rays.length > 0) {
+  //   castRays();
+  // }
+
+  // Cast ray just one-hit
+  // castRays();
+
+  // Two light source rotating
+  p.background('#000');
+  if (frameCount == 0) setupLightAnimation();
+  TWEEN.default.update(frameCount * 1000 / 30);
+  while (rays.length > 0) {
+    castRays();
+  }
+
+  frameCount++;
   if (ENABLE_STATS) stats.end();
 }
 
@@ -223,7 +292,7 @@ function onWindowResize(width: number, height: number) {
  * Clean your shit
  */
 function dispose() {
-  gui.destroy();
+  // gui.destroy();
   resizer.destroy();
   p.remove();
   p = null;
