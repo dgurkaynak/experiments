@@ -11,15 +11,10 @@ import randomColor from 'randomColor';
  */
 interface Point { x: number, y: number };
 const ENABLE_STATS = true;
-const FRAME_COUNT_LIMIT = 25;
-const LIGHT_COUNT = 50;
-const LIGHT_COLORS = randomColor({
-  luminosity: 'light',
-  count: LIGHT_COUNT,
-  hue: 'red'
-});
-const LIGHT_ALPHA = 75;
-const LIGHT_WEIGHT = 3;
+const LIGHT_HIT_COUNT_LIMIT = 3;
+const LIGHT_RAY_COUNT = 360;
+const LIGHT_ALPHA = 10;
+const LIGHT_WEIGHT = 1;
 
 
 
@@ -51,6 +46,8 @@ async function main() {
     p = p_;
     p.setup = setup;
     p.draw = draw;
+    p.mouseClicked = mouseClicked;
+    p.mouseDragged = mouseClicked;
   }, elements.container);
 
   if (ENABLE_STATS) {
@@ -69,16 +66,11 @@ function setup() {
   resizer.resize = onWindowResize;
   resizer.init();
 
-  lights = times(LIGHT_COUNT, (i) => {
-    const x = Math.random() * resizer.width;
-    const y = Math.random() * resizer.height;
-    const angle = Math.random() * 2 * Math.PI;
-    return { x, y, angle, hitCount: 0, color: LIGHT_COLORS[i] };
-  });
+  lights = [];
 
+  const triangleWeight = 500;
   const centerX = resizer.width / 2;
-  const centerY = resizer.height / 2;
-  const triangleWeight = 250;
+  const centerY = resizer.height / 2 + triangleWeight / 5;
 
   wallLineSegments = [
     // frame
@@ -106,13 +98,36 @@ function setup() {
 }
 
 
+function mouseClicked() {
+  const color = randomColor({
+    // luminosity: 'light',
+    hue: 'red'
+  });
+
+  times(LIGHT_RAY_COUNT, (i) => {
+    const angle = i * (2 * Math.PI / LIGHT_RAY_COUNT);
+    // Ignore horizontal and vertical rays, because they're ugly
+    if (angle % (Math.PI / 2) == 0) return;
+    lights.push({
+      x: p.mouseX,
+      y: p.mouseY,
+      angle,
+      hitCount: 0,
+      color
+    });
+  });
+}
+
+
 /**
  * Animate stuff...
  */
 function draw() {
   if (ENABLE_STATS) stats.begin();
 
-  lights.forEach((point) => {
+  const lightIndexesToBeDeleted = [];
+
+  lights.forEach((point, i) => {
     // Next point, far enough to cover all the viewport
     const rayEndPoint = {
       x: point.x + Math.cos(point.angle) * 100000,
@@ -130,7 +145,8 @@ function draw() {
     });
 
     if (allIntersections.length == 0) {
-      console.log('no intersection');
+      // console.log('no intersection');
+      lightIndexesToBeDeleted.push(i);
       return;
     }
 
@@ -142,6 +158,7 @@ function draw() {
     // Draw the line
     const intersectionPoint = intersections[0].point;
     const color = hex2rgb(point.color);
+    const alpha = LIGHT_ALPHA - point.hitCount * (LIGHT_ALPHA / LIGHT_HIT_COUNT_LIMIT);
     p.stroke(color.r, color.g, color.b, LIGHT_ALPHA);
     p.strokeWeight(LIGHT_WEIGHT);
     p.line(point.x, point.y, intersectionPoint.x, intersectionPoint.y);
@@ -169,11 +186,10 @@ function draw() {
     point.hitCount++;
   });
 
-  frameCount++;
-  if (frameCount == FRAME_COUNT_LIMIT) {
-    console.log('Done');
-    p.noLoop();
-  }
+  lights = lights.filter((light, i) => {
+    return light.hitCount < LIGHT_HIT_COUNT_LIMIT &&
+      lightIndexesToBeDeleted.indexOf(i) == -1;
+  });
 
   if (ENABLE_STATS) stats.end();
 }
