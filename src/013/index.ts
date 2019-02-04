@@ -76,11 +76,29 @@ function setup() {
     return { x, y, angle, hitCount: 0, color: LIGHT_COLORS[i] };
   });
 
+  const centerX = resizer.width / 2;
+  const centerY = resizer.height / 2;
+  const triangleWeight = 250;
+
   wallLineSegments = [
+    // frame
     [{ x: 0, y: 0 }, { x: resizer.width, y: 0 }],
     [{ x: resizer.width, y: 0 }, { x: resizer.width, y: resizer.height }],
     [{ x: resizer.width, y: resizer.height }, { x: 0, y: resizer.height }],
-    [{ x: 0, y: resizer.height }, { x: 0, y: 0 }]
+    [{ x: 0, y: resizer.height }, { x: 0, y: 0 }],
+    // triangle
+    [
+      { x: centerX, y: centerY - triangleWeight },
+      { x: centerX + (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) }
+    ],
+    [
+      { x: centerX + (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) },
+      { x: centerX - (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) }
+    ],
+    [
+      { x: centerX - (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) },
+      { x: centerX, y: centerY - triangleWeight }
+    ],
   ];
 
   // p.pixelDensity(1);
