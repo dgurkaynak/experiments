@@ -4,6 +4,8 @@ import CanvasResizer from '../utils/canvas-resizer';
 import times from 'lodash/times';
 import { hex2rgb } from '../utils/color-helper';
 import randomColor from 'randomColor';
+import * as dat from 'dat.gui';
+
 
 
 /**
@@ -11,10 +13,19 @@ import randomColor from 'randomColor';
  */
 interface Point { x: number, y: number };
 const ENABLE_STATS = true;
-const LIGHT_HIT_COUNT_LIMIT = 3;
-const LIGHT_RAY_COUNT = 360;
-const LIGHT_ALPHA = 10;
-const LIGHT_WEIGHT = 1;
+const GUISettings = function() {
+  this.LIGHT_HIT_COUNT_LIMIT = 10;
+  this.LIGHT_RAY_COUNT = 360 * 10;
+  this.LIGHT_ALPHA = 5;
+  this.LIGHT_WEIGHT = 1;
+  this.LIGHT_COLOR = '#f00';
+
+  this.clear = function() {
+    p.clear();
+    p.background('#000');
+  };
+};
+
 
 
 
@@ -27,14 +38,16 @@ const elements = {
 };
 let p: p5;
 const resizer = new CanvasResizer(null, {
-  dimension: 'fullscreen',
+  dimension: [1080, 1080],
+  // dimension: 'fullscreen',
   dimensionScaleFactor: window.devicePixelRatio
 });
 const stats = new Stats();
+const settings = new GUISettings();
+const gui = new dat.GUI();
 
 let lights: Point[];
 let wallLineSegments: Point[][];
-let frameCount = 0;
 
 
 
@@ -46,9 +59,15 @@ async function main() {
     p = p_;
     p.setup = setup;
     p.draw = draw;
-    p.mouseClicked = mouseClicked;
-    p.mouseDragged = mouseClicked;
   }, elements.container);
+
+  gui.add(settings, 'LIGHT_HIT_COUNT_LIMIT', 1, 10);
+  gui.add(settings, 'LIGHT_RAY_COUNT', 1, 36000);
+  gui.add(settings, 'LIGHT_ALPHA', 1, 255);
+  gui.add(settings, 'LIGHT_WEIGHT', 1, 50);
+  gui.addColor(settings, 'LIGHT_COLOR');
+  gui.add(settings, 'clear');
+  gui.close();
 
   if (ENABLE_STATS) {
     stats.showPanel(0);
@@ -66,9 +85,11 @@ function setup() {
   resizer.resize = onWindowResize;
   resizer.init();
 
+  resizer.canvas.addEventListener('click', () => mouseClicked(), false);
+
   lights = [];
 
-  const triangleWeight = 500;
+  const triangleWeight = 700;
   const centerX = resizer.width / 2;
   const centerY = resizer.height / 2 + triangleWeight / 5;
 
@@ -99,21 +120,16 @@ function setup() {
 
 
 function mouseClicked() {
-  const color = randomColor({
-    // luminosity: 'light',
-    hue: 'red'
-  });
-
-  times(LIGHT_RAY_COUNT, (i) => {
-    const angle = i * (2 * Math.PI / LIGHT_RAY_COUNT);
+  times(settings.LIGHT_RAY_COUNT, (i) => {
+    const angle = i * (2 * Math.PI / settings.LIGHT_RAY_COUNT);
     // Ignore horizontal and vertical rays, because they're ugly
-    if (angle % (Math.PI / 2) == 0) return;
+    // if (angle % (Math.PI / 2) == 0) return;
     lights.push({
-      x: p.mouseX,
-      y: p.mouseY,
+      x: p.mouseX + (Math.random() - 0.5) * 5,
+      y: p.mouseY + (Math.random() - 0.5) * 5,
       angle,
       hitCount: 0,
-      color
+      color: settings.LIGHT_COLOR
     });
   });
 }
@@ -158,9 +174,9 @@ function draw() {
     // Draw the line
     const intersectionPoint = intersections[0].point;
     const color = hex2rgb(point.color);
-    const alpha = LIGHT_ALPHA - point.hitCount * (LIGHT_ALPHA / LIGHT_HIT_COUNT_LIMIT);
-    p.stroke(color.r, color.g, color.b, LIGHT_ALPHA);
-    p.strokeWeight(LIGHT_WEIGHT);
+    const alpha = settings.LIGHT_ALPHA - point.hitCount * (settings.LIGHT_ALPHA / settings.LIGHT_HIT_COUNT_LIMIT);
+    p.stroke(color.r, color.g, color.b, settings.LIGHT_ALPHA);
+    p.strokeWeight(settings.LIGHT_WEIGHT);
     p.line(point.x, point.y, intersectionPoint.x, intersectionPoint.y);
 
     // Update angle
@@ -187,7 +203,7 @@ function draw() {
   });
 
   lights = lights.filter((light, i) => {
-    return light.hitCount < LIGHT_HIT_COUNT_LIMIT &&
+    return light.hitCount < settings.LIGHT_HIT_COUNT_LIMIT &&
       lightIndexesToBeDeleted.indexOf(i) == -1;
   });
 
@@ -207,6 +223,7 @@ function onWindowResize(width: number, height: number) {
  * Clean your shit
  */
 function dispose() {
+  gui.destroy();
   resizer.destroy();
   p.remove();
   p = null;
