@@ -133,9 +133,10 @@ function setup() {
   // p.pixelDensity(1);
   p.background('#000');
 
-  // const textPoints = font.textToPoints('X', 340, 1950, 2160);
-  // const textPoints = font.textToPoints('S', 500, 1950, 2160);
-  const textPoints = font.textToPoints('W', 50, 1950, 2160);
+  const dpr = window.devicePixelRatio;
+  // const textPoints = font.textToPoints('X', 170 * dpr, 975 * dpr, 1080 * dpr);
+  // const textPoints = font.textToPoints('S', 250 * dpr, 975 * dpr, 1080 * dpr);
+  const textPoints = font.textToPoints('W', 25 * dpr, 975 * dpr, 1080 * dpr);
   textPoints.forEach((point, i, arr) => {
     let nextPoint = arr[i + 1];
     if (!nextPoint) nextPoint = arr[0];
