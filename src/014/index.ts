@@ -3,6 +3,7 @@ import Stats from 'stats.js';
 import CanvasResizer from '../utils/canvas-resizer';
 import * as faceapi from 'face-api.js/dist/face-api.min';
 import { wait } from '../utils/promise-helper';
+import { loadImage } from '../utils/image-helper';
 
 import imagePath from './assets/friends.jpg';
 
@@ -97,45 +98,6 @@ function draw() {
 
   if (ENABLE_STATS) stats.end();
 }
-
-
-
-
-
-
-function readImage(src) {
-  const image = new Image();
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-
-  return new Promise((resolve, reject) => {
-    image.onload = () => {
-      canvas.width = image.width;
-      canvas.height = image.height;
-      context.drawImage(image, 0, 0);
-      resolve(context.getImageData(0, 0, image.width, image.height));
-    };
-
-    image.onerror = reject;
-    image.src = src;
-  });
-}
-
-function loadImage(src) {
-  const image = new Image();
-
-  return new Promise((resolve, reject) => {
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = src;
-  });
-}
-
-
-
-
-
-
 
 
 
