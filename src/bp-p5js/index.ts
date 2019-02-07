@@ -51,7 +51,7 @@ function setup() {
   resizer.resize = onWindowResize;
   resizer.init();
 
-  p.pixelDensity(1);
+  // p.pixelDensity(1);
 }
 
 
