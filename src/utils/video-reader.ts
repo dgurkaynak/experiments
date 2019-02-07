@@ -1,3 +1,6 @@
+import { waitEvent } from './promise-helper';
+
+
 export default class VideoReader {
   readonly video = document.createElement('video');
   readonly canvas = document.createElement('canvas');
@@ -40,11 +43,4 @@ export default class VideoReader {
   private draw() {
     this.canvasContext.drawImage(this.video, 0, 0);
   }
-}
-
-
-function waitEvent(element: HTMLElement, eventName: string) {
-  return new Promise((resolve) => {
-    element.addEventListener(eventName, resolve, { once: true });
-  });
 }
