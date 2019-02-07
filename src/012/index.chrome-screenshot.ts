@@ -1,7 +1,7 @@
 import times from 'lodash/times';
 import anime from 'animejs';
 import fontPath from './talldark.ttf';
-import { wait } from '../utils/promise-helper';
+import { sleep } from '../utils/promise-helper';
 import AnimeStepAnimator from '../utils/anime-step-animator';
 
 
@@ -124,7 +124,7 @@ async function go() {
 
   // Wait for the text animation
   await entryTextAnimation.finished;
-  await wait(WAIT_DURATION);
+  await sleep(WAIT_DURATION);
 
   // Start next one
   go();

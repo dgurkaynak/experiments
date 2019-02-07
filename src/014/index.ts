@@ -2,7 +2,7 @@ import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
 import CanvasResizer from '../utils/canvas-resizer';
 import * as faceapi from 'face-api.js/dist/face-api.min';
-import { wait } from '../utils/promise-helper';
+import { sleep } from '../utils/promise-helper';
 import { loadImage } from '../utils/image-helper';
 
 import imagePath from './assets/friends.jpg';
@@ -53,7 +53,7 @@ async function main() {
     elements.stats.appendChild(stats.dom);
   }
 
-  await wait(500)
+  await sleep(500);
 
   const image = await loadImage(imagePath);
   resizer.canvas.getContext('2d').drawImage(image, 0, 0, resizer.width, resizer.height);

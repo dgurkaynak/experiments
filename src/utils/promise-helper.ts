@@ -5,6 +5,6 @@ export function waitEvent(element: HTMLElement, eventName: string) {
 }
 
 
-export function wait(ms: number) {
+export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
