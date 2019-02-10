@@ -9,11 +9,13 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 
-export function readImageData(image: HTMLImageElement) {
+export function readImageData(image: HTMLImageElement, offsetX = 0, offsetY = 0, width, height) {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
   canvas.width = image.width;
   canvas.height = image.height;
+  width = width || image.width;
+  height = height || image.height;
   context.drawImage(image, 0, 0);
-  context.getImageData(0, 0, image.width, image.height);
+  return context.getImageData(offsetX, offsetY, width, height);
 }
