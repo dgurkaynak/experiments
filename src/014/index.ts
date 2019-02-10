@@ -3,9 +3,12 @@ import Stats from 'stats.js';
 import CanvasResizer from '../utils/canvas-resizer';
 import * as faceapi from 'face-api.js/dist/face-api.min';
 import { sleep } from '../utils/promise-helper';
-import { loadImage } from '../utils/image-helper';
+import { loadImage, readImageData } from '../utils/image-helper';
+import FaceDeformer from './face-deformer';
+import MaskCreator from './mask-creator';
 
 import imagePath from './assets/friends.jpg';
+import faceImagePath from './assets/portrait-photography.jpg';
 
 import tinyFaceDetectorManifest from './faceapi_weights/tiny_face_detector_model-weights_manifest.json';
 import tinyFaceDetectorModelPath from './faceapi_weights/tiny_face_detector_model-shard1.weights';
@@ -56,6 +59,7 @@ async function main() {
   await sleep(500);
 
   const image = await loadImage(imagePath);
+  // resizer.canvas.getContext('2d').drawImage(image, 0, 0, image.width, image.height);
   resizer.canvas.getContext('2d').drawImage(image, 0, 0, resizer.width, resizer.height);
 
   const tinyFaceDetectorWeightMap = await faceapi.tf.io.loadWeights(tinyFaceDetectorManifest, './');
@@ -66,10 +70,94 @@ async function main() {
 
   const detections = await faceapi.detectAllFaces(image, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
   console.log(detections);
+  // faceapi.drawLandmarks(resizer.canvas, detections.map(x => x.landmarks), { drawLines: true })
   const detectionsForSize = faceapi.resizeResults(detections, { width: resizer.width, height: resizer.height })
-  faceapi.drawLandmarks(resizer.canvas, detectionsForSize.map(x => x.landmarks), { drawLines: true })
+  // faceapi.drawLandmarks(resizer.canvas, detectionsForSize.map(x => x.landmarks), { drawLines: true })
+  // debugger;
   // faceapi.drawDetection(resizer.canvas, detectionsForSize.map(x => x.detection), { withScore: true })
+
+
+  const faceImage = await loadImage(faceImagePath);
+  const faceDetections = await faceapi.detectAllFaces(faceImage, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+  const landmarkPoints = faceDetections[0].landmarks.positions.map(({ _x, _y }) => [_x, _y]);
+  const landmarkBoundingBox = getBoundingBox(landmarkPoints);
+  const landmarkPointsCropped = landmarkPoints.map(([x, y]) => [x - landmarkBoundingBox.x, y - landmarkBoundingBox.y]);
+  const croppedImageData = readImageData(faceImage, landmarkBoundingBox.x, landmarkBoundingBox.y, landmarkBoundingBox.width, landmarkBoundingBox.height);
+
+  const maskCreator = new MaskCreator(resizer.width, resizer.height);
+  const maskIncludePaths = [];
+  const maskExcludePaths = [];
+
+  const faceDeformer = new FaceDeformer(croppedImageData, landmarkPointsCropped, resizer.width, resizer.height);
+  detectionsForSize.forEach((d) => {
+    const paths = faceLandmarks2path(d.landmarks.positions);
+    maskIncludePaths.push(paths.include);
+    maskExcludePaths.push(paths.exclude);
+    faceDeformer.deform(d.landmarks.positions.map(({ _x, _y }) => [_x, _y]));
+  });
+
+  maskCreator.create(maskIncludePaths, maskExcludePaths);
+
+
+  faceDeformer.canvas.style.position = 'absolute';
+  faceDeformer.canvas.style.top = '0';
+  faceDeformer.canvas.style.left = '0';
+  elements.container.appendChild(faceDeformer.canvas);
+
+
+  // maskCreator.canvas.style.position = 'absolute';
+  // maskCreator.canvas.style.top = '0';
+  // maskCreator.canvas.style.left = '0';
+  // elements.container.appendChild(maskCreator.canvas);
 }
+
+
+
+function faceLandmarks2path(points: { _x: number, _y: number }[]) {
+  const includePath = [].concat(
+    points.slice(0, 17).map(({ _x, _y }) => [_x, _y]),
+    [
+      points[26],
+      points[25],
+      points[24],
+      points[23],
+      points[20],
+      points[19],
+      points[18],
+      points[17]
+    ].map(({ _x, _y }) => [_x, _y])
+  );
+  const excludePath = points.slice(60, 68).map(({ _x, _y }) => [_x, _y]);
+  return {
+    include: includePath,
+    exclude: excludePath
+  }
+}
+
+
+
+function getBoundingBox(points: number[][]) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+
+  points.forEach(([x, y]) => {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  });
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  };
+}
+
 
 
 /**
