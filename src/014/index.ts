@@ -12,12 +12,16 @@ import imagePath from './assets/friends.jpg';
 import faceImagePath from './assets/barack-obama-smiling.jpg';
 // import faceImagePath from './assets/DSCF2449.JPG';
 
-import tinyFaceDetectorManifest from './faceapi_weights/tiny_face_detector_model-weights_manifest.json';
-import tinyFaceDetectorModelPath from './faceapi_weights/tiny_face_detector_model-shard1.weights';
+import ssdMobileNetV1Manifest from './faceapi_weights/ssd_mobilenetv1_model-weights_manifest.json';
+import ssdMobileNetV1ModelPath1 from './faceapi_weights/ssd_mobilenetv1_model-shard1.weights';
+import ssdMobileNetV1ModelPath2 from './faceapi_weights/ssd_mobilenetv1_model-shard2.weights';
 import faceLandmark68Manifest from './faceapi_weights/face_landmark_68_model-weights_manifest.json';
 import faceLandmark68ModelPath from './faceapi_weights/face_landmark_68_model-shard1.weights';
 // Hack for loading models with custom weights url path
-tinyFaceDetectorManifest[0].paths = [tinyFaceDetectorModelPath.replace('/', '')];
+ssdMobileNetV1Manifest[0].paths = [
+  ssdMobileNetV1ModelPath1.replace('/', ''),
+  ssdMobileNetV1ModelPath2.replace('/', ''),
+];
 faceLandmark68Manifest[0].paths = [faceLandmark68ModelPath.replace('/', '')];
 
 
@@ -64,13 +68,13 @@ async function main() {
   // resizer.canvas.getContext('2d').drawImage(image, 0, 0, image.width, image.height);
   resizer.canvas.getContext('2d').drawImage(image, 0, 0, resizer.width, resizer.height);
 
-  const tinyFaceDetectorWeightMap = await faceapi.tf.io.loadWeights(tinyFaceDetectorManifest, './');
-  await faceapi.nets.tinyFaceDetector.loadFromWeightMap(tinyFaceDetectorWeightMap)
+  const ssdMobileNetV1WeightMap = await faceapi.tf.io.loadWeights(ssdMobileNetV1Manifest, './');
+  await faceapi.nets.ssdMobilenetv1.loadFromWeightMap(ssdMobileNetV1WeightMap)
 
   const faceLandmark68WeightMap = await faceapi.tf.io.loadWeights(faceLandmark68Manifest, './');
   await faceapi.nets.faceLandmark68Net.loadFromWeightMap(faceLandmark68WeightMap)
 
-  const detections = await faceapi.detectAllFaces(image, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+  const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
   console.log(detections);
   // faceapi.drawLandmarks(resizer.canvas, detections.map(x => x.landmarks), { drawLines: true })
   const detectionsForSize = faceapi.resizeResults(detections, { width: resizer.width, height: resizer.height })
@@ -80,7 +84,7 @@ async function main() {
 
 
   const faceImage = await loadImage(faceImagePath);
-  const faceDetections = await faceapi.detectAllFaces(faceImage, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+  const faceDetections = await faceapi.detectAllFaces(faceImage, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
   console.log(faceDetections);
   const landmarkPoints = faceDetections[0].landmarks.positions.map(({ _x, _y }) => [_x, _y]);
   const landmarkBoundingBox = getBoundingBox(landmarkPoints);
