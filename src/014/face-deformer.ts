@@ -149,6 +149,7 @@ export default class FaceDeformer {
   canvas = document.createElement('canvas');
   gl: WebGLRenderingContext;
   program: WebGLProgram;
+  imageDataCanvas: HTMLCanvasElement;
 
 
   // Expects cropped face
@@ -243,6 +244,19 @@ export default class FaceDeformer {
 
   clear() {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+  }
+
+
+  getImageData() {
+    if (!this.imageDataCanvas) {
+      this.imageDataCanvas = document.createElement('canvas');
+      this.imageDataCanvas.width = this.canvas.width;
+      this.imageDataCanvas.height = this.canvas.height;
+    }
+
+    const cc = this.imageDataCanvas.getContext('2d');
+    cc.drawImage(this.canvas, 0, 0);
+    return cc.getImageData(0, 0, this.canvas.width, this.canvas.height);
   }
 }
 

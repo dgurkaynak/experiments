@@ -6,9 +6,11 @@ import { sleep } from '../utils/promise-helper';
 import { loadImage, readImageData } from '../utils/image-helper';
 import FaceDeformer from './face-deformer';
 import MaskCreator from './mask-creator';
+import PoissonBlender from './poisson-blender';
 
 import imagePath from './assets/friends.jpg';
-import faceImagePath from './assets/portrait-photography.jpg';
+import faceImagePath from './assets/barack-obama-smiling.jpg';
+// import faceImagePath from './assets/DSCF2449.JPG';
 
 import tinyFaceDetectorManifest from './faceapi_weights/tiny_face_detector_model-weights_manifest.json';
 import tinyFaceDetectorModelPath from './faceapi_weights/tiny_face_detector_model-shard1.weights';
@@ -79,6 +81,7 @@ async function main() {
 
   const faceImage = await loadImage(faceImagePath);
   const faceDetections = await faceapi.detectAllFaces(faceImage, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+  console.log(faceDetections);
   const landmarkPoints = faceDetections[0].landmarks.positions.map(({ _x, _y }) => [_x, _y]);
   const landmarkBoundingBox = getBoundingBox(landmarkPoints);
   const landmarkPointsCropped = landmarkPoints.map(([x, y]) => [x - landmarkBoundingBox.x, y - landmarkBoundingBox.y]);
@@ -98,17 +101,29 @@ async function main() {
 
   maskCreator.create(maskIncludePaths, maskExcludePaths);
 
-
-  faceDeformer.canvas.style.position = 'absolute';
-  faceDeformer.canvas.style.top = '0';
-  faceDeformer.canvas.style.left = '0';
-  elements.container.appendChild(faceDeformer.canvas);
-
+  // faceDeformer.canvas.style.position = 'absolute';
+  // faceDeformer.canvas.style.top = '0';
+  // faceDeformer.canvas.style.left = '0';
+  // elements.container.appendChild(faceDeformer.canvas);
 
   // maskCreator.canvas.style.position = 'absolute';
   // maskCreator.canvas.style.top = '0';
   // maskCreator.canvas.style.left = '0';
   // elements.container.appendChild(maskCreator.canvas);
+
+  const poissonBlender = new PoissonBlender();
+  poissonBlender.blend(
+    faceDeformer.getImageData(),
+    // readImageData(image),
+    resizer.canvas.getContext('2d').getImageData(0, 0, resizer.width, resizer.height),
+    maskCreator.context.getImageData(0, 0, maskCreator.canvas.width, maskCreator.canvas.height),
+    30
+  );
+
+  poissonBlender.canvas.style.position = 'absolute';
+  poissonBlender.canvas.style.top = '0';
+  poissonBlender.canvas.style.left = '0';
+  elements.container.appendChild(poissonBlender.canvas);
 }
 
 

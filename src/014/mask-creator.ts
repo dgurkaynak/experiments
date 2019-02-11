@@ -2,14 +2,12 @@ export default class MaskCreator {
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
 
-
   constructor(width: number, height: number) {
     this.canvas = document.createElement('canvas');
     this.context = this.canvas.getContext('2d');
     this.canvas.width = width;
     this.canvas.height = height;
   }
-
 
   create(includePaths: number[][][], excludePaths: number[][][] = []) {
     const cc = this.context;
