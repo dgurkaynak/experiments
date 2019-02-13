@@ -4,13 +4,16 @@ import CanvasResizer from '../utils/canvas-resizer';
 import * as faceapi from 'face-api.js/dist/face-api.min';
 import { sleep } from '../utils/promise-helper';
 import { loadImage, readImageData } from '../utils/image-helper';
-import FaceDeformer from './face-deformer';
-import MaskCreator from './mask-creator';
-import PoissonBlender from './poisson-blender';
+import { getBoundingBox } from '../utils/geometry-helper';
+import FaceLandmarks68 from './face-landmarks68';
+import FaceFitter from './face-fitter';
+
 
 import imagePath from './assets/friends.jpg';
-import faceImagePath from './assets/barack-obama-smiling.jpg';
-// import faceImagePath from './assets/DSCF2449.JPG';
+// import imagePath from './assets/himym.jpeg';
+import faceImagePath from './assets/IMG_0637.JPG';
+// import faceImagePath from './assets/barack-obama-smiling.jpg';
+// import faceImagePath from './assets/portrait-photography.jpg';
 
 import ssdMobileNetV1Manifest from './faceapi_weights/ssd_mobilenetv1_model-weights_manifest.json';
 import ssdMobileNetV1ModelPath1 from './faceapi_weights/ssd_mobilenetv1_model-shard1.weights';
@@ -41,7 +44,7 @@ const elements = {
 let p: p5;
 const resizer = new CanvasResizer(null, {
   dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: 1
 });
 const stats = new Stats();
 
@@ -62,17 +65,25 @@ async function main() {
     elements.stats.appendChild(stats.dom);
   }
 
+  // Load tensorflow weights
+  const [ssdMobileNetV1WeightMap, faceLandmark68WeightMap] = await Promise.all([
+    faceapi.tf.io.loadWeights(ssdMobileNetV1Manifest, './'),
+    faceapi.tf.io.loadWeights(faceLandmark68Manifest, './')
+  ]);
+  await Promise.all([
+    faceapi.nets.ssdMobilenetv1.loadFromWeightMap(ssdMobileNetV1WeightMap),
+    faceapi.nets.faceLandmark68Net.loadFromWeightMap(faceLandmark68WeightMap)
+  ]);
+
   await sleep(500);
+
+  const face = await prepareFace();
 
   const image = await loadImage(imagePath);
   // resizer.canvas.getContext('2d').drawImage(image, 0, 0, image.width, image.height);
   resizer.canvas.getContext('2d').drawImage(image, 0, 0, resizer.width, resizer.height);
 
-  const ssdMobileNetV1WeightMap = await faceapi.tf.io.loadWeights(ssdMobileNetV1Manifest, './');
-  await faceapi.nets.ssdMobilenetv1.loadFromWeightMap(ssdMobileNetV1WeightMap)
 
-  const faceLandmark68WeightMap = await faceapi.tf.io.loadWeights(faceLandmark68Manifest, './');
-  await faceapi.nets.faceLandmark68Net.loadFromWeightMap(faceLandmark68WeightMap)
 
   const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
   console.log(detections);
@@ -82,99 +93,15 @@ async function main() {
   // debugger;
   // faceapi.drawDetection(resizer.canvas, detectionsForSize.map(x => x.detection), { withScore: true })
 
+  const targetFaceLandmarks = detectionsForSize.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
 
-  const faceImage = await loadImage(faceImagePath);
-  const faceDetections = await faceapi.detectAllFaces(faceImage, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
-  console.log(faceDetections);
-  const landmarkPoints = faceDetections[0].landmarks.positions.map(({ _x, _y }) => [_x, _y]);
-  const landmarkBoundingBox = getBoundingBox(landmarkPoints);
-  const landmarkPointsCropped = landmarkPoints.map(([x, y]) => [x - landmarkBoundingBox.x, y - landmarkBoundingBox.y]);
-  const croppedImageData = readImageData(faceImage, landmarkBoundingBox.x, landmarkBoundingBox.y, landmarkBoundingBox.width, landmarkBoundingBox.height);
+  const fitter = new FaceFitter(resizer.width, resizer.height);
+  fitter.fit(face.image, face.landmarks, targetFaceLandmarks, 0.85, 10);
 
-  const maskCreator = new MaskCreator(resizer.width, resizer.height);
-  const maskIncludePaths = [];
-  const maskExcludePaths = [];
-
-  const faceDeformer = new FaceDeformer(croppedImageData, landmarkPointsCropped, resizer.width, resizer.height);
-  detectionsForSize.forEach((d) => {
-    const paths = faceLandmarks2path(d.landmarks.positions);
-    maskIncludePaths.push(paths.include);
-    maskExcludePaths.push(paths.exclude);
-    faceDeformer.deform(d.landmarks.positions.map(({ _x, _y }) => [_x, _y]));
-  });
-
-  maskCreator.create(maskIncludePaths, maskExcludePaths);
-
-  // faceDeformer.canvas.style.position = 'absolute';
-  // faceDeformer.canvas.style.top = '0';
-  // faceDeformer.canvas.style.left = '0';
-  // elements.container.appendChild(faceDeformer.canvas);
-
-  // maskCreator.canvas.style.position = 'absolute';
-  // maskCreator.canvas.style.top = '0';
-  // maskCreator.canvas.style.left = '0';
-  // elements.container.appendChild(maskCreator.canvas);
-
-  const poissonBlender = new PoissonBlender();
-  poissonBlender.blend(
-    faceDeformer.getImageData(),
-    // readImageData(image),
-    resizer.canvas.getContext('2d').getImageData(0, 0, resizer.width, resizer.height),
-    maskCreator.context.getImageData(0, 0, maskCreator.canvas.width, maskCreator.canvas.height),
-    30
-  );
-
-  poissonBlender.canvas.style.position = 'absolute';
-  poissonBlender.canvas.style.top = '0';
-  poissonBlender.canvas.style.left = '0';
-  elements.container.appendChild(poissonBlender.canvas);
-}
-
-
-
-function faceLandmarks2path(points: { _x: number, _y: number }[]) {
-  const includePath = [].concat(
-    points.slice(0, 17).map(({ _x, _y }) => [_x, _y]),
-    [
-      points[26],
-      points[25],
-      points[24],
-      points[23],
-      points[20],
-      points[19],
-      points[18],
-      points[17]
-    ].map(({ _x, _y }) => [_x, _y])
-  );
-  const excludePath = points.slice(60, 68).map(({ _x, _y }) => [_x, _y]);
-  return {
-    include: includePath,
-    exclude: excludePath
-  }
-}
-
-
-
-function getBoundingBox(points: number[][]) {
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-
-
-  points.forEach(([x, y]) => {
-    if (x < minX) minX = x;
-    if (x > maxX) maxX = x;
-    if (y < minY) minY = y;
-    if (y > maxY) maxY = y;
-  });
-
-  return {
-    x: minX,
-    y: minY,
-    width: maxX - minX,
-    height: maxY - minY
-  };
+  fitter.canvas.style.position = 'absolute';
+  fitter.canvas.style.top = '0';
+  fitter.canvas.style.left = '0';
+  elements.container.appendChild(fitter.canvas);
 }
 
 
@@ -189,8 +116,6 @@ function setup() {
   resizer.init();
 
   // p.pixelDensity(1);
-
-
 }
 
 
@@ -204,6 +129,20 @@ function draw() {
   // p.ellipse(resizer.width / 2, resizer.height / 2, 100, 100);
 
   if (ENABLE_STATS) stats.end();
+}
+
+
+async function prepareFace() {
+  const image = await loadImage(faceImagePath);
+  const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
+  if (detections.length == 0) {
+    throw new Error('No face detected in Deniz photo');
+  }
+  const landmarks = FaceLandmarks68.createFromObjectArray(detections[0].landmarks.positions);
+  // const boundingBox = getBoundingBox(faceLandmarks.points);
+  // const landmarkPointsCropped = faceLandmarks.points.map(([x, y]) => [x - boundingBox.x, y - boundingBox.y]);
+  // const croppedImageData = readImageData(faceImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+  return { image, detections, landmarks };
 }
 
 
