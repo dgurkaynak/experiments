@@ -1,10 +1,6 @@
-import p5 from 'p5/lib/p5.min';
-import Stats from 'stats.js';
-import CanvasResizer from '../utils/canvas-resizer';
 import * as faceapi from 'face-api.js/dist/face-api.min';
 import { sleep } from '../utils/promise-helper';
-import { loadImage, readImageData } from '../utils/image-helper';
-import { getBoundingBox } from '../utils/geometry-helper';
+import { loadImage } from '../utils/image-helper';
 import FaceLandmarks68 from './face-landmarks68';
 import FaceFitter from './face-fitter';
 
@@ -29,24 +25,12 @@ faceLandmark68Manifest[0].paths = [faceLandmark68ModelPath.replace('/', '')];
 
 
 /**
- * Constants
- */
-const ENABLE_STATS = true;
-
-
-/**
  * Setup environment
  */
 const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-let p: p5;
-const resizer = new CanvasResizer(null, {
-  dimension: 'fullscreen',
-  dimensionScaleFactor: 1
-});
-const stats = new Stats();
 
 
 
@@ -54,17 +38,6 @@ const stats = new Stats();
  * Main/Setup function, initialize stuff...
  */
 async function main() {
-  new p5((p_) => {
-    p = p_;
-    p.setup = setup;
-    p.draw = draw;
-  }, elements.container);
-
-  if (ENABLE_STATS) {
-    stats.showPanel(0);
-    elements.stats.appendChild(stats.dom);
-  }
-
   // Load tensorflow weights
   const [ssdMobileNetV1WeightMap, faceLandmark68WeightMap] = await Promise.all([
     faceapi.tf.io.loadWeights(ssdMobileNetV1Manifest, './'),
@@ -77,25 +50,15 @@ async function main() {
 
   await sleep(500);
 
-  const face = await prepareFace();
-
+  const face = await prepareFace(faceImagePath);
   const image = await loadImage(imagePath);
-  // resizer.canvas.getContext('2d').drawImage(image, 0, 0, image.width, image.height);
-  resizer.canvas.getContext('2d').drawImage(image, 0, 0, resizer.width, resizer.height);
-
-
+  elements.container.appendChild(image);
 
   const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
+  const targetFaceLandmarks = detections.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
   console.log(detections);
-  // faceapi.drawLandmarks(resizer.canvas, detections.map(x => x.landmarks), { drawLines: true })
-  const detectionsForSize = faceapi.resizeResults(detections, { width: resizer.width, height: resizer.height })
-  // faceapi.drawLandmarks(resizer.canvas, detectionsForSize.map(x => x.landmarks), { drawLines: true })
-  // debugger;
-  // faceapi.drawDetection(resizer.canvas, detectionsForSize.map(x => x.detection), { withScore: true })
 
-  const targetFaceLandmarks = detectionsForSize.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
-
-  const fitter = new FaceFitter(resizer.width, resizer.height);
+  const fitter = new FaceFitter(image.width, image.height);
   fitter.fit(face.image, face.landmarks, targetFaceLandmarks, 0.85, 10);
 
   fitter.canvas.style.position = 'absolute';
@@ -105,34 +68,7 @@ async function main() {
 }
 
 
-
-/**
- * p5's setup function
- */
-function setup() {
-  const renderer: any = p.createCanvas(resizer.width, resizer.height);
-  resizer.canvas = renderer.canvas;
-  resizer.resize = onWindowResize;
-  resizer.init();
-
-  // p.pixelDensity(1);
-}
-
-
-/**
- * Animate stuff...
- */
-function draw() {
-  if (ENABLE_STATS) stats.begin();
-
-  // p.background('#ffffff');
-  // p.ellipse(resizer.width / 2, resizer.height / 2, 100, 100);
-
-  if (ENABLE_STATS) stats.end();
-}
-
-
-async function prepareFace() {
+async function prepareFace(faceImagePath) {
   const image = await loadImage(faceImagePath);
   const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
   if (detections.length == 0) {
@@ -148,21 +84,9 @@ async function prepareFace() {
 
 
 /**
- * On window resized
- */
-function onWindowResize(width: number, height: number) {
-  p.resizeCanvas(width, height);
-}
-
-
-/**
  * Clean your shit
  */
 function dispose() {
-  resizer.destroy();
-  p.remove();
-  p = null;
-
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
     while (element.firstChild) { element.removeChild(element.firstChild); }
