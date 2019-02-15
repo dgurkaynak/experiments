@@ -76,4 +76,40 @@ export default class FaceFitter {
       cc.drawImage(this.tempCanvases[i], 0, 0);
     });
   }
+
+
+  createMask(targetFaceLandmarks: FaceLandmarks68[], maskResizeFactor = 0.85, maskBlur = 10) {
+    const canvas = document.createElement('canvas');
+    canvas.width = this.canvas.width;
+    canvas.height = this.canvas.height;
+    const cc = canvas.getContext('2d');
+
+    targetFaceLandmarks.forEach((targetFaceLandmark, i) => {
+      // Create and draw mask
+      cc.save();
+      const outerPath = targetFaceLandmark.toPath().include;
+      const resizedPath = resizePoints(outerPath, maskResizeFactor);
+      const boundingBox = getBoundingBox(resizedPath);
+      const offsetX = boundingBox.x + boundingBox.width;
+
+      // draw outside of the canvas, we just want its shadow
+      cc.beginPath();
+      resizedPath.forEach(([x, y], i) => {
+        if (i == 0) {
+          cc.moveTo(x - offsetX, y);
+        } else {
+          cc.lineTo(x - offsetX, y);
+        }
+      });
+      cc.closePath();
+      cc.shadowColor = '#fff';
+      cc.shadowBlur = maskBlur;
+      cc.shadowOffsetX = offsetX;
+      cc.fillStyle = '#fff';
+      cc.fill();
+      cc.restore();
+    });
+
+    return canvas;
+  }
 }

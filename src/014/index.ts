@@ -1,8 +1,9 @@
 import * as faceapi from 'face-api.js/dist/face-api.min';
 import { sleep } from '../utils/promise-helper';
-import { loadImage } from '../utils/image-helper';
+import { loadImage, readImageData } from '../utils/image-helper';
 import FaceLandmarks68 from './face-landmarks68';
 import FaceFitter from './face-fitter';
+import FaceDeformer from './face-deformer';
 
 
 import imagePath from './assets/friends.jpg';
@@ -58,13 +59,45 @@ async function main() {
   const targetFaceLandmarks = detections.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
   console.log(detections);
 
+
+
+  // #1
   const fitter = new FaceFitter(image.width, image.height);
   fitter.fit(face.image, face.landmarks, targetFaceLandmarks, 0.85, 10);
 
   fitter.canvas.style.position = 'absolute';
   fitter.canvas.style.top = '0';
   fitter.canvas.style.left = '0';
+  fitter.canvas.style.opacity = '0';
   elements.container.appendChild(fitter.canvas);
+
+
+
+  // #2
+  const deformer = new FaceDeformer(readImageData(face.image), face.landmarks.points, image.width, image.height);
+  targetFaceLandmarks.forEach(({ points }) => deformer.deform(points));
+
+  deformer.canvas.style.position = 'absolute';
+  deformer.canvas.style.top = '0';
+  deformer.canvas.style.left = '0';
+  deformer.canvas.style.opacity = '0';
+  elements.container.appendChild(deformer.canvas);
+
+
+  // #3
+  const deformerFeatherCanvas = fitter.createMask(targetFaceLandmarks, 0.85, 10);
+  const deformerFeatherContext = deformerFeatherCanvas.getContext('2d');
+
+  deformerFeatherContext.save();
+  deformerFeatherContext.globalCompositeOperation = 'source-atop';
+  deformerFeatherContext.drawImage(deformer.canvas, 0, 0);
+  deformerFeatherContext.restore();
+
+  deformerFeatherCanvas.style.position = 'absolute';
+  deformerFeatherCanvas.style.top = '0';
+  deformerFeatherCanvas.style.left = '0';
+  deformerFeatherCanvas.style.opacity = '1';
+  elements.container.appendChild(deformerFeatherCanvas);
 }
 
 
