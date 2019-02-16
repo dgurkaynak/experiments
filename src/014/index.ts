@@ -2,15 +2,14 @@ import * as faceapi from 'face-api.js/dist/face-api.min';
 import { sleep } from '../utils/promise-helper';
 import { loadImage, readImageData } from '../utils/image-helper';
 import FaceLandmarks68 from './face-landmarks68';
-import FaceFitter from './face-fitter';
+import { resizePoints, getBoundingBox } from '../utils/geometry-helper';
 import FaceDeformer from './face-deformer';
+import PoissonBlender from './poisson-blender';
 
 
 import imagePath from './assets/friends.jpg';
 // import imagePath from './assets/himym.jpeg';
 import faceImagePath from './assets/IMG_0637.JPG';
-// import faceImagePath from './assets/barack-obama-smiling.jpg';
-// import faceImagePath from './assets/portrait-photography.jpg';
 
 import ssdMobileNetV1Manifest from './faceapi_weights/ssd_mobilenetv1_model-weights_manifest.json';
 import ssdMobileNetV1ModelPath1 from './faceapi_weights/ssd_mobilenetv1_model-shard1.weights';
@@ -32,6 +31,9 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
+const poissonBlendMaskCanvas = document.createElement('canvas');
+const finalAlphaMaskCanvas = document.createElement('canvas');
+const poissonBlender = new PoissonBlender();
 
 
 
@@ -51,58 +53,50 @@ async function main() {
 
   await sleep(500);
 
-  const face = await prepareFace(faceImagePath);
-  const image = await loadImage(imagePath);
-  elements.container.appendChild(image);
+  // Source face
+  const face = await getSourceFace(faceImagePath);
+  const deformer = new FaceDeformer(
+    readImageData(face.image),
+    face.landmarks.points,
+    3000, // Maximum input width
+    3000 // Maximum input height
+  );
 
-  const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
-  const targetFaceLandmarks = detections.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
-  console.log(detections);
+  const imagePaths = [imagePath];
+  for (const imagePath of imagePaths) {
+    const { inputImage } = await swapFaces(imagePath, deformer);
 
+    const imageContainer = document.createElement('div');
+    imageContainer.style.width = `${inputImage.width}px`;
+    imageContainer.style.height = `${inputImage.height}px`;
+    imageContainer.style.position = 'relative';
+    elements.container.appendChild(imageContainer);
 
+    inputImage.style.position = 'absolute';
+    imageContainer.appendChild(inputImage);
 
-  // #1
-  const fitter = new FaceFitter(image.width, image.height);
-  fitter.fit(face.image, face.landmarks, targetFaceLandmarks, 0.85, 10);
+    const deformerImage = new Image();
+    deformerImage.src = canvasToURL(deformer.imageDataCanvas);
+    deformerImage.style.position = 'absolute';
+    deformerImage.style.opacity = '0';
+    imageContainer.appendChild(deformerImage);
 
-  fitter.canvas.style.position = 'absolute';
-  fitter.canvas.style.top = '0';
-  fitter.canvas.style.left = '0';
-  fitter.canvas.style.opacity = '0';
-  elements.container.appendChild(fitter.canvas);
+    const poissonBlendedImage = new Image();
+    poissonBlendedImage.src = canvasToURL(poissonBlender.canvas);
+    poissonBlendedImage.style.position = 'absolute';
+    poissonBlendedImage.style.opacity = '0';
+    imageContainer.appendChild(poissonBlendedImage);
 
-
-
-  // #2
-  const deformer = new FaceDeformer(readImageData(face.image), face.landmarks.points, image.width, image.height);
-  targetFaceLandmarks.forEach(({ points }) => deformer.deform(points));
-
-  deformer.canvas.style.position = 'absolute';
-  deformer.canvas.style.top = '0';
-  deformer.canvas.style.left = '0';
-  deformer.canvas.style.opacity = '0';
-  elements.container.appendChild(deformer.canvas);
-
-
-  // #3
-  const deformerFeatherCanvas = fitter.createMask(targetFaceLandmarks, 0.85, 10);
-  const deformerFeatherContext = deformerFeatherCanvas.getContext('2d');
-
-  deformerFeatherContext.save();
-  deformerFeatherContext.globalCompositeOperation = 'source-atop';
-  deformerFeatherContext.drawImage(deformer.canvas, 0, 0);
-  deformerFeatherContext.restore();
-
-  deformerFeatherCanvas.style.position = 'absolute';
-  deformerFeatherCanvas.style.top = '0';
-  deformerFeatherCanvas.style.left = '0';
-  deformerFeatherCanvas.style.opacity = '1';
-  elements.container.appendChild(deformerFeatherCanvas);
+    const finalAlphaMaskImage = new Image();
+    finalAlphaMaskImage.src = canvasToURL(finalAlphaMaskCanvas);
+    finalAlphaMaskImage.style.position = 'absolute';
+    imageContainer.appendChild(finalAlphaMaskImage);
+  }
 }
 
 
-async function prepareFace(faceImagePath) {
-  const image = await loadImage(faceImagePath);
+async function getSourceFace(imagePath) {
+  const image = await loadImage(imagePath);
   const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
   if (detections.length == 0) {
     throw new Error('No face detected in Deniz photo');
@@ -111,7 +105,117 @@ async function prepareFace(faceImagePath) {
   // const boundingBox = getBoundingBox(faceLandmarks.points);
   // const landmarkPointsCropped = faceLandmarks.points.map(([x, y]) => [x - boundingBox.x, y - boundingBox.y]);
   // const croppedImageData = readImageData(faceImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
-  return { image, detections, landmarks };
+  return { image, landmarks };
+}
+
+
+async function swapFaces(imagePath: string, deformer: FaceDeformer) {
+  const image = await loadImage(imagePath);
+  const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
+  const faces: FaceLandmarks68[] = detections.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
+
+  // Deform source face to all target faces
+  faces.forEach(({ points }) => deformer.deform(points));
+
+  // Poisson blend
+  preparePoissonBlendMask(faces, image.width, image.height);
+  poissonBlender.blend(
+    deformer.getImageData(image.width, image.height),
+    readImageData(image),
+    poissonBlendMaskCanvas.getContext('2d').getImageData(0, 0, image.width, image.height),
+    30
+  );
+
+  // Finally crop blended result with feather selection
+  prepareFinalAlphaMask(faces, image.width, image.height);
+  const finalAlphaMaskContext = finalAlphaMaskCanvas.getContext('2d');
+  finalAlphaMaskContext.save();
+  finalAlphaMaskContext.globalCompositeOperation = 'source-atop';
+  // finalAlphaMaskContext.drawImage(deformer.canvas, 0, 0);
+  finalAlphaMaskContext.drawImage(poissonBlender.canvas, 0, 0);
+  finalAlphaMaskContext.restore();
+
+  return {
+    inputImage: image,
+    faces,
+    detections
+  };
+}
+
+
+function preparePoissonBlendMask(faces: FaceLandmarks68[], width: number, height: number) {
+  poissonBlendMaskCanvas.width = width;
+  poissonBlendMaskCanvas.height = height;
+  const cc = poissonBlendMaskCanvas.getContext('2d');
+
+  cc.fillStyle = '#000000';
+  cc.fillRect(0, 0, width, height);
+
+  faces.forEach((face) => {
+    const path = face.getBoundaryPath();
+    cc.beginPath();
+    path.forEach(([x, y], i) => {
+      if (i == 0) {
+        cc.moveTo(x, y);
+      } else {
+        cc.lineTo(x, y);
+      }
+    });
+    cc.closePath();
+    cc.fillStyle = '#ffffff';
+    cc.fill();
+  });
+}
+
+
+function prepareFinalAlphaMask(faces: FaceLandmarks68[], width: number, height: number, faceResizeFactor = 0.85, featherBlur = 10) {
+  finalAlphaMaskCanvas.width = width;
+  finalAlphaMaskCanvas.height = height;
+  const cc = finalAlphaMaskCanvas.getContext('2d');
+
+  cc.clearRect(0, 0, width, height);
+
+  faces.forEach((face) => {
+    const boundaryPath = face.getBoundaryPath();
+    const resizedPath = resizePoints(boundaryPath, faceResizeFactor);
+    const boundingBox = getBoundingBox(resizedPath);
+    const offsetX = boundingBox.x + boundingBox.width;
+
+    // draw outside of the canvas, we just want its shadow
+    cc.beginPath();
+    resizedPath.forEach(([x, y], i) => {
+      if (i == 0) {
+        cc.moveTo(x - offsetX, y);
+      } else {
+        cc.lineTo(x - offsetX, y);
+      }
+    });
+    cc.closePath();
+    cc.shadowColor = '#fff';
+    cc.shadowBlur = featherBlur;
+    cc.shadowOffsetX = offsetX;
+    cc.fillStyle = '#fff';
+    cc.fill();
+  });
+}
+
+
+function canvasToURL(canvas: HTMLCanvasElement) {
+  const dataString = canvas.toDataURL('image/png');
+  const blob = dataURIToBlob(dataString);
+  return URL.createObjectURL(blob);
+}
+
+
+function dataURIToBlob(dataURI: string) {
+  const binStr = atob(dataURI.split(',')[1]);
+  const arr = new Uint8Array(binStr.length);
+
+  for (let i = 0; i < binStr.length; i++) {
+    arr[i] = binStr.charCodeAt(i);
+  }
+
+  return new Blob([arr]);
 }
 
 

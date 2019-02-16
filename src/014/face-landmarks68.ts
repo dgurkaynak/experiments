@@ -16,17 +16,16 @@ export default class FaceLandmarks68 {
   }
 
 
-  toPath() {
-    // Outer boundary, or convex hull
-    const includePath = [].concat(
+  getBoundaryPath(): number[][] {
+    return [].concat(
       this.points.slice(0, 17),
       this.points.slice(17, 27).reverse()
     );
+  }
 
-    return {
-      include: includePath,
-      exclude: this.points.slice(60, 68) // inner mouth
-    }
+
+  getInnerMouthPath() {
+    return this.points.slice(60, 68);
   }
 
 
