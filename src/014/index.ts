@@ -57,7 +57,7 @@ const imagePaths = [
   imagePath22,
   imagePath23,
   imagePath24,
-].reverse();
+]//.reverse();
 
 import ssdMobileNetV1Manifest from './faceapi_weights/ssd_mobilenetv1_model-weights_manifest.json';
 import ssdMobileNetV1ModelPath1 from './faceapi_weights/ssd_mobilenetv1_model-shard1.weights';
@@ -81,6 +81,7 @@ const elements = {
 };
 const poissonBlendMaskCanvas = document.createElement('canvas');
 const finalAlphaMaskCanvas = document.createElement('canvas');
+const finalImageCanvas = document.createElement('canvas');
 const poissonBlender = new PoissonBlender();
 
 /** Helper time logger */
@@ -133,25 +134,36 @@ async function main() {
     imageContainer.style.position = 'relative';
     elements.container.appendChild(imageContainer);
 
-    inputImage.style.position = 'absolute';
-    imageContainer.appendChild(inputImage);
+    // inputImage.style.position = 'absolute';
+    // imageContainer.appendChild(inputImage);
 
-    const deformerImage = new Image();
-    deformerImage.src = canvasToURL(deformer.imageDataCanvas);
-    deformerImage.style.position = 'absolute';
-    deformerImage.style.opacity = '0';
-    imageContainer.appendChild(deformerImage);
+    // const deformerImage = new Image();
+    // deformerImage.src = canvasToURL(deformer.imageDataCanvas);
+    // deformerImage.style.position = 'absolute';
+    // deformerImage.style.opacity = '0';
+    // imageContainer.appendChild(deformerImage);
 
-    const poissonBlendedImage = new Image();
-    poissonBlendedImage.src = canvasToURL(poissonBlender.canvas);
-    poissonBlendedImage.style.position = 'absolute';
-    poissonBlendedImage.style.opacity = '0';
-    imageContainer.appendChild(poissonBlendedImage);
+    // const poissonBlendedImage = new Image();
+    // poissonBlendedImage.src = canvasToURL(poissonBlender.canvas);
+    // poissonBlendedImage.style.position = 'absolute';
+    // poissonBlendedImage.style.opacity = '0';
+    // imageContainer.appendChild(poissonBlendedImage);
 
-    const finalAlphaMaskImage = new Image();
-    finalAlphaMaskImage.src = canvasToURL(finalAlphaMaskCanvas);
-    finalAlphaMaskImage.style.position = 'absolute';
-    imageContainer.appendChild(finalAlphaMaskImage);
+    // const finalAlphaMaskImage = new Image();
+    // finalAlphaMaskImage.src = canvasToURL(finalAlphaMaskCanvas);
+    // finalAlphaMaskImage.style.position = 'absolute';
+    // imageContainer.appendChild(finalAlphaMaskImage);
+
+    // Final image canvas
+    finalImageCanvas.width = inputImage.width;
+    finalImageCanvas.height = inputImage.height;
+    const finalCC = finalImageCanvas.getContext('2d');
+    finalCC.drawImage(inputImage, 0, 0);
+    finalCC.drawImage(finalAlphaMaskCanvas, 0, 0);
+    const finalImage = new Image();
+    finalImage.src = canvasToURL(finalImageCanvas);
+    finalImage.style.position = 'absolute';
+    imageContainer.appendChild(finalImage);
 
     deformer.clear();
   }
