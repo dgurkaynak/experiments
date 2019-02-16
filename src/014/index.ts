@@ -140,10 +140,16 @@ async function swapFaces(imagePath: string, deformer: FaceDeformer) {
   // Poisson blend
   preparePoissonBlendMask(faces, image.width, image.height);
   log.end(`Image["${imagePath}"] poisson blend mask ready`); log = timeLogger();
+  const boundingBoxes = faces.map(({ points }) => {
+    const { x, y, width, height } = getBoundingBox(points);
+    return [Math.floor(x), Math.floor(y), Math.ceil(width), Math.ceil(height)];
+  });
   poissonBlender.blend(
     deformer.getImageData(image.width, image.height),
     readImageData(image),
     poissonBlendMaskCanvas.getContext('2d').getImageData(0, 0, image.width, image.height),
+    boundingBoxes,
+    // [[0, 0, image.width, image.height]], // old style
     30
   );
   log.end(`Image["${imagePath}"] poisson blending completed`); log = timeLogger();
