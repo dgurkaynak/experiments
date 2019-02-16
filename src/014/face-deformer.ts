@@ -244,16 +244,20 @@ export default class FaceDeformer {
 
   clear() {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    if (this.imageDataCanvas) {
+      const cc = this.imageDataCanvas.getContext('2d');
+      cc.clearRect(0, 0, this.imageDataCanvas.width, this.imageDataCanvas.height);
+    }
   }
 
 
   getImageData(width: number, height: number) {
     if (!this.imageDataCanvas) {
       this.imageDataCanvas = document.createElement('canvas');
-      this.imageDataCanvas.width = width;
-      this.imageDataCanvas.height = height;
     }
 
+    this.imageDataCanvas.width = width;
+    this.imageDataCanvas.height = height;
     const cc = this.imageDataCanvas.getContext('2d');
     cc.drawImage(this.canvas, 0, 0);
     return cc.getImageData(0, 0, width, height);

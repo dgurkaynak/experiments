@@ -104,6 +104,8 @@ async function main() {
     finalAlphaMaskImage.src = canvasToURL(finalAlphaMaskCanvas);
     finalAlphaMaskImage.style.position = 'absolute';
     imageContainer.appendChild(finalAlphaMaskImage);
+
+    deformer.clear();
   }
 }
 
