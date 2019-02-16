@@ -10,13 +10,13 @@ export default class PoissonBlender {
   context = this.canvas.getContext('2d');
 
 
-  blend(blendingImageData: ImageData, baseImageData: ImageData, maskImageData: ImageData, iteration = 10) {
-    this.canvas.width = baseImageData.width;
-    this.canvas.height = baseImageData.height;
-    this.context.putImageData(baseImageData, 0, 0);
-    const resultImageData = this.context.getImageData(0, 0, baseImageData.width, baseImageData.height);
+  blend(sourceImageData: ImageData, destinationImageData: ImageData, maskImageData: ImageData, iteration = 10) {
+    this.canvas.width = destinationImageData.width;
+    this.canvas.height = destinationImageData.height;
+    this.context.putImageData(destinationImageData, 0, 0);
+    const resultImageData = this.context.getImageData(0, 0, destinationImageData.width, destinationImageData.height);
 
-    const { width, height } = baseImageData;
+    const { width, height } = destinationImageData;
     let edge = false;
     let error = 0;
     let sumf = [0, 0, 0];
@@ -34,6 +34,7 @@ export default class PoissonBlender {
     let step: number;
     let l: number;
     let m: number;
+
 
     for (let i = 0; i < iteration; i++) {
       terminate = [true, true, true];
@@ -64,22 +65,24 @@ export default class PoissonBlender {
                 for (let n = 0; n < 4; n++) {
                   for (let c = 0; c < 3; c++) {
                     sumf[c] += resultImageData.data[naddr[n] + m + c];
-                    sumvq[c] += blendingImageData.data[l + c] - blendingImageData.data[naddr[n] + c];
+                    sumvq[c] += sourceImageData.data[l + c] - sourceImageData.data[naddr[n] + c];
                   }
                 }
               }
             } else {
               if (y >= 0 && x >= 0 && y < height && x < width) {
-                fp[0] = baseImageData.data[l + m];
-                fp[1] = baseImageData.data[l + m + 1];
-                fp[2] = baseImageData.data[l + m + 2];
-                gp[0] = blendingImageData.data[l];
-                gp[1] = blendingImageData.data[l + 1];
-                gp[2] = blendingImageData.data[l + 2];
+                fp[0] = destinationImageData.data[l + m];
+                fp[1] = destinationImageData.data[l + m + 1];
+                fp[2] = destinationImageData.data[l + m + 2];
+                gp[0] = sourceImageData.data[l];
+                gp[1] = sourceImageData.data[l + 1];
+                gp[2] = sourceImageData.data[l + 2];
                 for (let n = 0; n < 4; n++) {
                   for (let c = 0; c < 3; c++) {
-                    fq[c] = baseImageData.data[naddr[n] + m + c];
-                    gq[c] = blendingImageData.data[naddr[n] + c];
+                    fq[c] = destinationImageData.data[naddr[n] + m + c];
+                    // modification : we ignore pixels outside face mask, since these cause artifacts
+                    // gq[c] = blendingImageData.data[naddr[n] + c];
+                    gq[c] = sourceImageData.data[l + c];
                     sumfstar[c] += fq[c];
                     subf[c] = fp[c] - fq[c];
                     subf[c] = subf[c] > 0 ? subf[c] : -subf[c];
