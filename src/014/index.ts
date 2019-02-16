@@ -35,6 +35,16 @@ const poissonBlendMaskCanvas = document.createElement('canvas');
 const finalAlphaMaskCanvas = document.createElement('canvas');
 const poissonBlender = new PoissonBlender();
 
+/** Helper time logger */
+function timeLogger() {
+  const startTime = Date.now();
+  return {
+    end(message: string, ...args) {
+      console.log(`${message} - ${Date.now() - startTime} ms`, ...args);
+    }
+  };
+}
+
 
 
 /**
@@ -42,14 +52,17 @@ const poissonBlender = new PoissonBlender();
  */
 async function main() {
   // Load tensorflow weights
+  let log = timeLogger();
   const [ssdMobileNetV1WeightMap, faceLandmark68WeightMap] = await Promise.all([
     faceapi.tf.io.loadWeights(ssdMobileNetV1Manifest, './'),
     faceapi.tf.io.loadWeights(faceLandmark68Manifest, './')
   ]);
+  log.end('Weights loaded'); log = timeLogger();
   await Promise.all([
     faceapi.nets.ssdMobilenetv1.loadFromWeightMap(ssdMobileNetV1WeightMap),
     faceapi.nets.faceLandmark68Net.loadFromWeightMap(faceLandmark68WeightMap)
   ]);
+  log.end('Models ready');
 
   await sleep(500);
 
@@ -96,8 +109,11 @@ async function main() {
 
 
 async function getSourceFace(imagePath) {
+  let log = timeLogger();
   const image = await loadImage(imagePath);
+  log.end('Source image loaded'); log = timeLogger();
   const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
+  log.end('Source face detected', detections);
   if (detections.length == 0) {
     throw new Error('No face detected in Deniz photo');
   }
@@ -110,30 +126,38 @@ async function getSourceFace(imagePath) {
 
 
 async function swapFaces(imagePath: string, deformer: FaceDeformer) {
+  let log = timeLogger();
   const image = await loadImage(imagePath);
+  log.end(`Image["${imagePath}"] loaded`); log = timeLogger();
   const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
+  log.end(`Image["${imagePath}"] detected faces`, detections); log = timeLogger();
   const faces: FaceLandmarks68[] = detections.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
 
   // Deform source face to all target faces
   faces.forEach(({ points }) => deformer.deform(points));
+  log.end(`Image["${imagePath}"] deformed`); log = timeLogger();
 
   // Poisson blend
   preparePoissonBlendMask(faces, image.width, image.height);
+  log.end(`Image["${imagePath}"] poisson blend mask ready`); log = timeLogger();
   poissonBlender.blend(
     deformer.getImageData(image.width, image.height),
     readImageData(image),
     poissonBlendMaskCanvas.getContext('2d').getImageData(0, 0, image.width, image.height),
     30
   );
+  log.end(`Image["${imagePath}"] poisson blending completed`); log = timeLogger();
 
   // Finally crop blended result with feather selection
   prepareFinalAlphaMask(faces, image.width, image.height);
+  log.end(`Image["${imagePath}"] final alpha mask ready`); log = timeLogger();
   const finalAlphaMaskContext = finalAlphaMaskCanvas.getContext('2d');
   finalAlphaMaskContext.save();
   finalAlphaMaskContext.globalCompositeOperation = 'source-atop';
   // finalAlphaMaskContext.drawImage(deformer.canvas, 0, 0);
   finalAlphaMaskContext.drawImage(poissonBlender.canvas, 0, 0);
   finalAlphaMaskContext.restore();
+  log.end(`Image["${imagePath}"] final alpha masking completed`);
 
   return {
     inputImage: image,
