@@ -262,6 +262,19 @@ export default class FaceDeformer {
     cc.drawImage(this.canvas, 0, 0);
     return cc.getImageData(0, 0, width, height);
   }
+
+
+  getPartialImageData(offsetX: number, offsetY: number, width: number, height: number) {
+    if (!this.imageDataCanvas) {
+      this.imageDataCanvas = document.createElement('canvas');
+    }
+
+    this.imageDataCanvas.width = offsetX + width;
+    this.imageDataCanvas.height = offsetY + height;
+    const cc = this.imageDataCanvas.getContext('2d');
+    cc.drawImage(this.canvas, 0, 0);
+    return cc.getImageData(offsetX, offsetY, width, height);
+  }
 }
 
 

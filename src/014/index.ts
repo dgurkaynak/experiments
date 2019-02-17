@@ -5,6 +5,7 @@ import FaceLandmarks68 from './face-landmarks68';
 import { resizePoints, getBoundingBox } from '../utils/geometry-helper';
 import FaceDeformer from './face-deformer';
 import PoissonBlender from './poisson-blender';
+import WorkerReqResPool from './worker-req-res-pool';
 
 
 import sourceImagePath from './assets/IMG_0637.JPG';
@@ -71,6 +72,7 @@ ssdMobileNetV1Manifest[0].paths = [
 ];
 faceLandmark68Manifest[0].paths = [faceLandmark68ModelPath.replace('/', '')];
 
+const USE_WORKERS = true;
 
 /**
  * Setup environment
@@ -83,6 +85,9 @@ const poissonBlendMaskCanvas = document.createElement('canvas');
 const finalAlphaMaskCanvas = document.createElement('canvas');
 const finalImageCanvas = document.createElement('canvas');
 const poissonBlender = new PoissonBlender();
+const workerReqResPool: WorkerReqResPool = USE_WORKERS ?
+  new WorkerReqResPool(() => new Worker('./poisson-blender-worker.ts'), 4) :
+  null;
 
 /** Helper time logger */
 function timeLogger() {
@@ -206,16 +211,50 @@ async function swapFaces(imagePath: string, deformer: FaceDeformer) {
   log.end(`Image["${imagePath}"] poisson blend mask ready`); log = timeLogger();
   const boundingBoxes = faces.map(({ points }) => {
     const { x, y, width, height } = getBoundingBox(points);
-    return [Math.floor(x), Math.floor(y), Math.ceil(width), Math.ceil(height)];
+    return [Math.floor(x), Math.floor(y), Math.ceil(width), Math.ceil(height)]; // Crucial
   });
-  poissonBlender.blend(
-    deformer.getImageData(image.width, image.height),
-    readImageData(image),
-    poissonBlendMaskCanvas.getContext('2d').getImageData(0, 0, image.width, image.height),
-    boundingBoxes,
-    // [[0, 0, image.width, image.height]], // old style
-    30
-  );
+  if (USE_WORKERS) {
+    poissonBlender.canvas.width = image.width;
+    poissonBlender.canvas.height = image.height;
+    const poissonBlenderContext = poissonBlender.canvas.getContext('2d');
+    poissonBlenderContext.drawImage(image, 0, 0);
+    // poissonBlenderContext.putImageData(readImageData(image), 0, 0);
+    const poissonBlendMaskContext = poissonBlendMaskCanvas.getContext('2d');
+    const parallelTasks = boundingBoxes.map(async ([x, y, width, height]) => {
+      const sourceImageData = deformer.getPartialImageData(x, y, width, height);
+      const destinationImageData = readImageData(image, x, y, width, height);
+      const maskImageData = poissonBlendMaskContext.getImageData(x, y, width, height);
+
+      const result = await workerReqResPool.addToMessageQueue({
+        x,
+        y,
+        width,
+        height,
+        iteration: 30,
+        sourceImageDataBuffer: sourceImageData.data.buffer,
+        destinationImageDataBuffer: destinationImageData.data.buffer,
+        maskImageDataBuffer: maskImageData.data.buffer,
+      }, [
+        sourceImageData.data.buffer,
+        destinationImageData.data.buffer,
+        maskImageData.data.buffer
+      ]);
+
+      const resultImageDataBuffer: ArrayBuffer = (result as any).resultImageDataBuffer;
+      const resultImageDataArr = new Uint8ClampedArray(resultImageDataBuffer);
+      poissonBlenderContext.putImageData(new ImageData(resultImageDataArr, width, height), x, y);
+    });
+    await Promise.all(parallelTasks);
+  } else {
+    poissonBlender.blend(
+      deformer.getImageData(image.width, image.height),
+      readImageData(image),
+      poissonBlendMaskCanvas.getContext('2d').getImageData(0, 0, image.width, image.height),
+      boundingBoxes,
+      // [[0, 0, image.width, image.height]], // old style
+      30
+    );
+  }
   log.end(`Image["${imagePath}"] poisson blending completed`); log = timeLogger();
 
   // Finally crop blended result with feather selection
