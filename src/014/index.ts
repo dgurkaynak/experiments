@@ -124,6 +124,7 @@ async function main() {
     3000 // Maximum input height
   );
 
+  log = timeLogger();
   // Swap faces and print results
   for (const imagePath of imagePaths) {
     const { inputImage } = await swapFaces(imagePath, deformer);
@@ -167,6 +168,7 @@ async function main() {
 
     deformer.clear();
   }
+  log.end(`=========== Done - ${imagePaths.length} image(s) =============`);
 }
 
 
