@@ -9,7 +9,7 @@ import WorkerReqResPool from './worker-req-res-pool';
 
 
 import sourceImagePath from './assets/IMG_0637.JPG';
-import { imagePaths, imageFaces } from './images';
+import { imagePaths, selfFace, imageFaces } from './images';
 
 import ssdMobileNetV1Manifest from './faceapi_weights/ssd_mobilenetv1_model-weights_manifest.json';
 import ssdMobileNetV1ModelPath1 from './faceapi_weights/ssd_mobilenetv1_model-shard1.weights';
@@ -146,15 +146,13 @@ async function getSourceFace(imagePath) {
   let log = timeLogger();
   const image = await loadImage(imagePath);
   log.end('Source image loaded'); log = timeLogger();
-  const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
-  log.end('Source face detected', detections);
-  if (detections.length == 0) {
-    throw new Error('No face detected in Deniz photo');
-  }
-  const landmarks = FaceLandmarks68.createFromObjectArray(detections[0].landmarks.positions);
-  // const boundingBox = getBoundingBox(faceLandmarks.points);
-  // const landmarkPointsCropped = faceLandmarks.points.map(([x, y]) => [x - boundingBox.x, y - boundingBox.y]);
-  // const croppedImageData = readImageData(faceImage, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
+  // const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
+  // log.end('Source face detected', detections);
+  // if (detections.length == 0) {
+  //   throw new Error('No face detected in Deniz photo');
+  // }
+  // const landmarks = FaceLandmarks68.createFromObjectArray(detections[0].landmarks.positions);
+  const landmarks = new FaceLandmarks68(selfFace);
   return { image, landmarks };
 }
 

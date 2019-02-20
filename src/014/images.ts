@@ -1,4 +1,4 @@
-import imageFaces from './image-faces-precomputed';
+import faces from './image-faces-precomputed';
 
 import imagePath1 from './assets/friends1.jpg';
 import imagePath2 from './assets/friends2.jpg';
@@ -52,4 +52,7 @@ const imagePaths = [
   imagePath24,
 ]//.reverse();
 
-export { imagePaths, imageFaces };
+const selfFace = faces.self;
+const imageFaces = faces.images;
+
+export { imagePaths, selfFace, imageFaces };
