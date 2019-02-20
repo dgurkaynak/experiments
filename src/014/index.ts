@@ -9,7 +9,7 @@ import WorkerReqResPool from './worker-req-res-pool';
 
 
 import sourceImagePath from './assets/IMG_0637.JPG';
-import { imagePaths } from './images';
+import { imagePaths, imageFaces } from './images';
 
 import ssdMobileNetV1Manifest from './faceapi_weights/ssd_mobilenetv1_model-weights_manifest.json';
 import ssdMobileNetV1ModelPath1 from './faceapi_weights/ssd_mobilenetv1_model-shard1.weights';
@@ -158,9 +158,18 @@ async function swapFaces(imagePath: string, deformer: FaceDeformer) {
   let log = timeLogger();
   const image = await loadImage(imagePath);
   log.end(`Image["${imagePath}"] loaded`); log = timeLogger();
-  const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
-  log.end(`Image["${imagePath}"] detected faces`, detections); log = timeLogger();
-  const faces: FaceLandmarks68[] = detections.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
+
+  let faces: FaceLandmarks68[];
+  // Check if face detection is pre-computed
+  const imageIndex = imagePaths.indexOf(imagePath);
+  if (imageIndex > -1) {
+    faces = imageFaces[imageIndex].map(points => new FaceLandmarks68(points));
+  } else {
+    // Real face detection
+    const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
+    log.end(`Image["${imagePath}"] detected faces`, detections); log = timeLogger();
+    faces = detections.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
+  }
 
   // Deform source face to all target faces
   faces.forEach(({ points }) => deformer.deform(points));
@@ -230,8 +239,7 @@ async function swapFaces(imagePath: string, deformer: FaceDeformer) {
 
   return {
     inputImage: image,
-    faces,
-    detections
+    faces
   };
 }
 
