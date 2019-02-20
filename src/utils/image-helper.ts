@@ -1,4 +1,7 @@
-export function loadImage(src: string): Promise<HTMLImageElement> {
+import { canvasToURL } from './canvas-helper';
+
+
+export async function loadImage(src: string): Promise<HTMLImageElement> {
   const image = new Image();
 
   return new Promise((resolve, reject) => {
@@ -20,4 +23,26 @@ export function readImageData(image: HTMLImageElement, offsetX = 0, offsetY = 0,
   height = height || image.height;
   context.drawImage(image, 0, 0);
   return context.getImageData(offsetX, offsetY, width, height);
+}
+
+
+let resizeImageDataCanvas: HTMLCanvasElement;
+export async function resizeImage(image: HTMLImageElement, width?, height?): Promise<HTMLImageElement> {
+  if (!resizeImageDataCanvas) resizeImageDataCanvas = document.createElement('canvas');
+  const context = resizeImageDataCanvas.getContext('2d');
+  width = width || image.width;
+  height = height || image.height;
+  resizeImageDataCanvas.width = width;
+  resizeImageDataCanvas.height = height;
+  context.clearRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  const newImage = new Image();
+  const url = await canvasToURL(resizeImageDataCanvas);
+
+  return new Promise((resolve, reject) => {
+    newImage.onload = () => resolve(newImage);
+    newImage.onerror = reject;
+    newImage.src = url;
+  });
 }

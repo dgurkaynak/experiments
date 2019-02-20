@@ -1,11 +1,12 @@
 import * as faceapi from 'face-api.js/dist/face-api.min';
 import { sleep } from '../utils/promise-helper';
-import { loadImage, readImageData } from '../utils/image-helper';
+import { loadImage, readImageData, resizeImage } from '../utils/image-helper';
 import FaceLandmarks68 from './face-landmarks68';
 import { resizePoints, getBoundingBox } from '../utils/geometry-helper';
 import FaceDeformer from './face-deformer';
 import PoissonBlender from './poisson-blender';
 import WorkerReqResPool from './worker-req-res-pool';
+import { canvasToURL } from '../utils/canvas-helper';
 
 
 import sourceImagePath from './assets/IMG_0637.JPG';
@@ -111,19 +112,19 @@ async function processAndPrintImage(imagePath: string) {
   // imageContainer.appendChild(inputImage);
 
   // const deformerImage = new Image();
-  // deformerImage.src = canvasToURL(deformer.imageDataCanvas);
+  // deformerImage.src = await canvasToURL(deformer.imageDataCanvas);
   // deformerImage.style.position = 'absolute';
   // deformerImage.style.opacity = '0';
   // imageContainer.appendChild(deformerImage);
 
   // const poissonBlendedImage = new Image();
-  // poissonBlendedImage.src = canvasToURL(poissonBlender.canvas);
+  // poissonBlendedImage.src = await canvasToURL(poissonBlender.canvas);
   // poissonBlendedImage.style.position = 'absolute';
   // poissonBlendedImage.style.opacity = '0';
   // imageContainer.appendChild(poissonBlendedImage);
 
   // const finalAlphaMaskImage = new Image();
-  // finalAlphaMaskImage.src = canvasToURL(finalAlphaMaskCanvas);
+  // finalAlphaMaskImage.src = await canvasToURL(finalAlphaMaskCanvas);
   // finalAlphaMaskImage.style.position = 'absolute';
   // imageContainer.appendChild(finalAlphaMaskImage);
 
@@ -134,7 +135,7 @@ async function processAndPrintImage(imagePath: string) {
   finalCC.drawImage(inputImage, 0, 0);
   finalCC.drawImage(finalAlphaMaskCanvas, 0, 0);
   const finalImage = new Image();
-  finalImage.src = canvasToURL(finalImageCanvas);
+  finalImage.src = await canvasToURL(finalImageCanvas);
   finalImage.style.position = 'absolute';
   imageContainer.appendChild(finalImage);
 
@@ -158,11 +159,14 @@ async function getSourceFace(imagePath) {
 
 
 async function swapFaces(imagePath: string, deformer: FaceDeformer, faces?: FaceLandmarks68[]) {
-  const image = await loadImage(imagePath);
+  let image = await loadImage(imagePath);
 
-  // Check max size
+  // Check max size, if exceeded resize the image
   if (image.width > MAX_IMAGE_SIZE[0] || image.height > MAX_IMAGE_SIZE[1]) {
-    throw new Error(`Image dimensions (${image.width}x${image.height}) are higher than ${MAX_IMAGE_SIZE}`);
+    const scaleX = MAX_IMAGE_SIZE[0] / image.width;
+    const scaleY = MAX_IMAGE_SIZE[1] / image.height;
+    const scale = Math.min(scaleX, scaleY);
+    image = await resizeImage(image, image.width * scale, image.height * scale);
   }
 
   // If faces are not provided, real face detection
@@ -293,25 +297,6 @@ function prepareFinalAlphaMask(faces: FaceLandmarks68[], width: number, height: 
     cc.fillStyle = '#fff';
     cc.fill();
   });
-}
-
-
-function canvasToURL(canvas: HTMLCanvasElement) {
-  const dataString = canvas.toDataURL('image/png');
-  const blob = dataURIToBlob(dataString);
-  return URL.createObjectURL(blob);
-}
-
-
-function dataURIToBlob(dataURI: string) {
-  const binStr = atob(dataURI.split(',')[1]);
-  const arr = new Uint8Array(binStr.length);
-
-  for (let i = 0; i < binStr.length; i++) {
-    arr[i] = binStr.charCodeAt(i);
-  }
-
-  return new Blob([arr]);
 }
 
 
