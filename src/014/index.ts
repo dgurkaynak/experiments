@@ -50,6 +50,8 @@ function timeLogger() {
   };
 }
 
+let face: { image: HTMLImageElement, landmarks: FaceLandmarks68 };
+let deformer: FaceDeformer;
 
 
 /**
@@ -69,11 +71,14 @@ async function main() {
   ]);
   log.end('Models ready');
 
+  document.body.addEventListener('drop', onDrop, false);
+  document.body.addEventListener('dragover', onDragOver, false);
+
   await sleep(500);
 
   // Source face
-  const face = await getSourceFace(sourceImagePath);
-  const deformer = new FaceDeformer(
+  face = await getSourceFace(sourceImagePath);
+  deformer = new FaceDeformer(
     readImageData(face.image),
     face.landmarks.points,
     3000, // Maximum input width
@@ -83,48 +88,52 @@ async function main() {
   log = timeLogger();
   // Swap faces and print results
   for (const imagePath of imagePaths) {
-    const { inputImage } = await swapFaces(imagePath, deformer);
-
-    const imageContainer = document.createElement('div');
-    imageContainer.style.width = `${inputImage.width}px`;
-    imageContainer.style.height = `${inputImage.height}px`;
-    imageContainer.style.position = 'relative';
-    elements.container.appendChild(imageContainer);
-
-    // inputImage.style.position = 'absolute';
-    // imageContainer.appendChild(inputImage);
-
-    // const deformerImage = new Image();
-    // deformerImage.src = canvasToURL(deformer.imageDataCanvas);
-    // deformerImage.style.position = 'absolute';
-    // deformerImage.style.opacity = '0';
-    // imageContainer.appendChild(deformerImage);
-
-    // const poissonBlendedImage = new Image();
-    // poissonBlendedImage.src = canvasToURL(poissonBlender.canvas);
-    // poissonBlendedImage.style.position = 'absolute';
-    // poissonBlendedImage.style.opacity = '0';
-    // imageContainer.appendChild(poissonBlendedImage);
-
-    // const finalAlphaMaskImage = new Image();
-    // finalAlphaMaskImage.src = canvasToURL(finalAlphaMaskCanvas);
-    // finalAlphaMaskImage.style.position = 'absolute';
-    // imageContainer.appendChild(finalAlphaMaskImage);
-
-    // Final image canvas
-    finalImageCanvas.width = inputImage.width;
-    finalImageCanvas.height = inputImage.height;
-    const finalCC = finalImageCanvas.getContext('2d');
-    finalCC.drawImage(inputImage, 0, 0);
-    finalCC.drawImage(finalAlphaMaskCanvas, 0, 0);
-    const finalImage = new Image();
-    finalImage.src = canvasToURL(finalImageCanvas);
-    finalImage.style.position = 'absolute';
-    imageContainer.appendChild(finalImage);
-
-    deformer.clear();
+    await processAndPrintImage(imagePath);
   }
   log.end(`=========== Done - ${imagePaths.length} image(s) =============`);
+}
+
+
+async function processAndPrintImage(imagePath: string) {
+  const { inputImage } = await swapFaces(imagePath, deformer);
+  const imageContainer = document.createElement('div');
+  imageContainer.style.width = `${inputImage.width}px`;
+  imageContainer.style.height = `${inputImage.height}px`;
+  imageContainer.style.position = 'relative';
+  elements.container.appendChild(imageContainer);
+
+  // inputImage.style.position = 'absolute';
+  // imageContainer.appendChild(inputImage);
+
+  // const deformerImage = new Image();
+  // deformerImage.src = canvasToURL(deformer.imageDataCanvas);
+  // deformerImage.style.position = 'absolute';
+  // deformerImage.style.opacity = '0';
+  // imageContainer.appendChild(deformerImage);
+
+  // const poissonBlendedImage = new Image();
+  // poissonBlendedImage.src = canvasToURL(poissonBlender.canvas);
+  // poissonBlendedImage.style.position = 'absolute';
+  // poissonBlendedImage.style.opacity = '0';
+  // imageContainer.appendChild(poissonBlendedImage);
+
+  // const finalAlphaMaskImage = new Image();
+  // finalAlphaMaskImage.src = canvasToURL(finalAlphaMaskCanvas);
+  // finalAlphaMaskImage.style.position = 'absolute';
+  // imageContainer.appendChild(finalAlphaMaskImage);
+
+  // Final image canvas
+  finalImageCanvas.width = inputImage.width;
+  finalImageCanvas.height = inputImage.height;
+  const finalCC = finalImageCanvas.getContext('2d');
+  finalCC.drawImage(inputImage, 0, 0);
+  finalCC.drawImage(finalAlphaMaskCanvas, 0, 0);
+  const finalImage = new Image();
+  finalImage.src = canvasToURL(finalImageCanvas);
+  finalImage.style.position = 'absolute';
+  imageContainer.appendChild(finalImage);
+
+  deformer.clear();
 }
 
 
@@ -303,11 +312,55 @@ function dataURIToBlob(dataURI: string) {
 }
 
 
+const reader = new FileReader();
+function readFileAsDataURL(file: File) {
+  return new Promise((resolve, reject) => {
+    reader.onload = (e) => {
+      resolve(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+
+async function onDrop(e: DragEvent) {
+  e.preventDefault();
+
+  if (e.dataTransfer.items) {
+    // Use DataTransferItemList interface to access the file(s)
+    for (let i = 0; i < e.dataTransfer.items.length; i++) {
+      // If dropped items aren't files, reject them
+      if (e.dataTransfer.items[i].kind === 'file') {
+        const file = e.dataTransfer.items[i].getAsFile();
+        if (!file.type.match(/image.*/)) break;
+        const imagePath = (await readFileAsDataURL(file)) as string;
+        while (elements.container.firstChild) { elements.container.removeChild(elements.container.firstChild); }
+        await processAndPrintImage(imagePath);
+      }
+    }
+  } else {
+    // TODO:
+    // Use DataTransfer interface to access the file(s)
+    // for (var i = 0; i < e.dataTransfer.files.length; i++) {
+    //   console.log('... file[' + i + '].name = ' + e.dataTransfer.files[i].name);
+    // }
+  }
+}
+
+
+function onDragOver(e: DragEvent) {
+  e.preventDefault();
+}
+
+
 
 /**
  * Clean your shit
  */
 function dispose() {
+  document.body.removeEventListener('drop', onDrop, false);
+  document.body.removeEventListener('dragover', onDragOver, false);
+
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
     while (element.firstChild) { element.removeChild(element.firstChild); }
