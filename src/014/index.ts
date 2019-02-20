@@ -24,6 +24,7 @@ ssdMobileNetV1Manifest[0].paths = [
 faceLandmark68Manifest[0].paths = [faceLandmark68ModelPath.replace('/', '')];
 
 const USE_WORKERS = true;
+const MAX_IMAGE_SIZE = [1280, 1280];
 
 /**
  * Setup environment
@@ -81,8 +82,8 @@ async function main() {
   deformer = new FaceDeformer(
     readImageData(face.image),
     face.landmarks.points,
-    3000, // Maximum input width
-    3000 // Maximum input height
+    MAX_IMAGE_SIZE[0], // Maximum input width
+    MAX_IMAGE_SIZE[1] // Maximum input height
   );
 
   log = timeLogger();
@@ -160,6 +161,11 @@ async function getSourceFace(imagePath) {
 
 async function swapFaces(imagePath: string, deformer: FaceDeformer, faces?: FaceLandmarks68[]) {
   const image = await loadImage(imagePath);
+
+  // Check max size
+  if (image.width > MAX_IMAGE_SIZE[0] || image.height > MAX_IMAGE_SIZE[1]) {
+    throw new Error(`Image dimensions (${image.width}x${image.height}) are higher than ${MAX_IMAGE_SIZE}`);
+  }
 
   // If faces are not provided, real face detection
   if (!faces) {
