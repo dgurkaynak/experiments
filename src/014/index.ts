@@ -108,8 +108,8 @@ async function processAndPrintImage(imagePath: string) {
   imageContainer.style.position = 'relative';
   elements.container.appendChild(imageContainer);
 
-  // inputImage.style.position = 'absolute';
-  // imageContainer.appendChild(inputImage);
+  inputImage.style.position = 'absolute';
+  imageContainer.appendChild(inputImage);
 
   // const deformerImage = new Image();
   // deformerImage.src = await canvasToURL(deformer.imageDataCanvas);
@@ -123,21 +123,21 @@ async function processAndPrintImage(imagePath: string) {
   // poissonBlendedImage.style.opacity = '0';
   // imageContainer.appendChild(poissonBlendedImage);
 
-  // const finalAlphaMaskImage = new Image();
-  // finalAlphaMaskImage.src = await canvasToURL(finalAlphaMaskCanvas);
-  // finalAlphaMaskImage.style.position = 'absolute';
-  // imageContainer.appendChild(finalAlphaMaskImage);
+  const finalAlphaMaskImage = new Image();
+  finalAlphaMaskImage.src = await canvasToURL(finalAlphaMaskCanvas);
+  finalAlphaMaskImage.style.position = 'absolute';
+  imageContainer.appendChild(finalAlphaMaskImage);
 
   // Final image canvas
-  finalImageCanvas.width = inputImage.width;
-  finalImageCanvas.height = inputImage.height;
-  const finalCC = finalImageCanvas.getContext('2d');
-  finalCC.drawImage(inputImage, 0, 0);
-  finalCC.drawImage(finalAlphaMaskCanvas, 0, 0);
-  const finalImage = new Image();
-  finalImage.src = await canvasToURL(finalImageCanvas);
-  finalImage.style.position = 'absolute';
-  imageContainer.appendChild(finalImage);
+  // finalImageCanvas.width = inputImage.width;
+  // finalImageCanvas.height = inputImage.height;
+  // const finalCC = finalImageCanvas.getContext('2d');
+  // finalCC.drawImage(inputImage, 0, 0);
+  // finalCC.drawImage(finalAlphaMaskCanvas, 0, 0);
+  // const finalImage = new Image();
+  // finalImage.src = await canvasToURL(finalImageCanvas);
+  // finalImage.style.position = 'absolute';
+  // imageContainer.appendChild(finalImage);
 
   deformer.clear();
 }
