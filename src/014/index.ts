@@ -88,14 +88,18 @@ async function main() {
   log = timeLogger();
   // Swap faces and print results
   for (const imagePath of imagePaths) {
+    const log2 = timeLogger();
     await processAndPrintImage(imagePath);
+    log2.end(`Image ${imagePath} done`);
   }
   log.end(`=========== Done - ${imagePaths.length} image(s) =============`);
 }
 
 
 async function processAndPrintImage(imagePath: string) {
-  const { inputImage } = await swapFaces(imagePath, deformer);
+  const imageIndex = imagePaths.indexOf(imagePath);
+  const precomputedFaces = imageIndex > -1 ? imageFaces[imageIndex].map(points => new FaceLandmarks68(points)) : null;
+  const { inputImage } = await swapFaces(imagePath, deformer, precomputedFaces);
   const imageContainer = document.createElement('div');
   imageContainer.style.width = `${inputImage.width}px`;
   imageContainer.style.height = `${inputImage.height}px`;
@@ -154,30 +158,20 @@ async function getSourceFace(imagePath) {
 }
 
 
-async function swapFaces(imagePath: string, deformer: FaceDeformer) {
-  let log = timeLogger();
+async function swapFaces(imagePath: string, deformer: FaceDeformer, faces?: FaceLandmarks68[]) {
   const image = await loadImage(imagePath);
-  log.end(`Image["${imagePath}"] loaded`); log = timeLogger();
 
-  let faces: FaceLandmarks68[];
-  // Check if face detection is pre-computed
-  const imageIndex = imagePaths.indexOf(imagePath);
-  if (imageIndex > -1) {
-    faces = imageFaces[imageIndex].map(points => new FaceLandmarks68(points));
-  } else {
-    // Real face detection
+  // If faces are not provided, real face detection
+  if (!faces) {
     const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options()).withFaceLandmarks();
-    log.end(`Image["${imagePath}"] detected faces`, detections); log = timeLogger();
     faces = detections.map((d) => FaceLandmarks68.createFromObjectArray(d.landmarks.positions));
   }
 
   // Deform source face to all target faces
   faces.forEach(({ points }) => deformer.deform(points));
-  log.end(`Image["${imagePath}"] deformed`); log = timeLogger();
 
   // Poisson blend
   preparePoissonBlendMask(faces, image.width, image.height);
-  log.end(`Image["${imagePath}"] poisson blend mask ready`); log = timeLogger();
   const boundingBoxes = faces.map(({ points }) => {
     const { x, y, width, height } = getBoundingBox(points);
     return [Math.floor(x), Math.floor(y), Math.ceil(width), Math.ceil(height)]; // Crucial
@@ -204,10 +198,10 @@ async function swapFaces(imagePath: string, deformer: FaceDeformer) {
         destinationImageDataBuffer: destinationImageData.data.buffer,
         maskImageDataBuffer: maskImageData.data.buffer,
       }, [
-        sourceImageData.data.buffer,
-        destinationImageData.data.buffer,
-        maskImageData.data.buffer
-      ]);
+          sourceImageData.data.buffer,
+          destinationImageData.data.buffer,
+          maskImageData.data.buffer
+        ]);
 
       const resultImageDataBuffer: ArrayBuffer = (result as any).resultImageDataBuffer;
       const resultImageDataArr = new Uint8ClampedArray(resultImageDataBuffer);
@@ -224,18 +218,15 @@ async function swapFaces(imagePath: string, deformer: FaceDeformer) {
       30
     );
   }
-  log.end(`Image["${imagePath}"] poisson blending completed`); log = timeLogger();
 
   // Finally crop blended result with feather selection
   prepareFinalAlphaMask(faces, image.width, image.height);
-  log.end(`Image["${imagePath}"] final alpha mask ready`); log = timeLogger();
   const finalAlphaMaskContext = finalAlphaMaskCanvas.getContext('2d');
   finalAlphaMaskContext.save();
   finalAlphaMaskContext.globalCompositeOperation = 'source-atop';
   // finalAlphaMaskContext.drawImage(deformer.canvas, 0, 0);
   finalAlphaMaskContext.drawImage(poissonBlender.canvas, 0, 0);
   finalAlphaMaskContext.restore();
-  log.end(`Image["${imagePath}"] final alpha masking completed`);
 
   return {
     inputImage: image,
@@ -343,7 +334,9 @@ async function onDrop(e: DragEvent) {
         if (!file.type.match(/image.*/)) break;
         const imagePath = (await readFileAsDataURL(file)) as string;
         while (elements.container.firstChild) { elements.container.removeChild(elements.container.firstChild); }
+        const log = timeLogger();
         await processAndPrintImage(imagePath);
+        log.end('Done');
       }
     }
   } else {
