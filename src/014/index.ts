@@ -1,9 +1,9 @@
 import * as faceapi from 'face-api.js/dist/face-api.min';
 import { sleep } from '../utils/promise-helper';
 import { loadImage, readImageData, resizeImage } from '../utils/image-helper';
-import FaceLandmarks68 from './face-landmarks68';
+import FaceLandmarks68 from '../utils/face/face-landmarks68';
 import { resizePoints, getBoundingBox } from '../utils/geometry-helper';
-import FaceDeformer from './face-deformer';
+import FaceDeformer from '../utils/face/face-deformer';
 import PoissonBlender from './poisson-blender';
 import WorkerReqResPool from './worker-req-res-pool';
 import { canvasToURL } from '../utils/canvas-helper';
@@ -12,11 +12,11 @@ import { canvasToURL } from '../utils/canvas-helper';
 import sourceImagePath from './assets/IMG_0637.JPG';
 import { imagePaths, selfFace, imageFaces } from './images';
 
-import ssdMobileNetV1Manifest from './faceapi_weights/ssd_mobilenetv1_model-weights_manifest.json';
-import ssdMobileNetV1ModelPath1 from './faceapi_weights/ssd_mobilenetv1_model-shard1.weights';
-import ssdMobileNetV1ModelPath2 from './faceapi_weights/ssd_mobilenetv1_model-shard2.weights';
-import faceLandmark68Manifest from './faceapi_weights/face_landmark_68_model-weights_manifest.json';
-import faceLandmark68ModelPath from './faceapi_weights/face_landmark_68_model-shard1.weights';
+import ssdMobileNetV1Manifest from '../utils/face/faceapi_weights/ssd_mobilenetv1_model-weights_manifest.json';
+import ssdMobileNetV1ModelPath1 from '../utils/face/faceapi_weights/ssd_mobilenetv1_model-shard1.weights';
+import ssdMobileNetV1ModelPath2 from '../utils/face/faceapi_weights/ssd_mobilenetv1_model-shard2.weights';
+import faceLandmark68Manifest from '../utils/face/faceapi_weights/face_landmark_68_model-weights_manifest.json';
+import faceLandmark68ModelPath from '../utils/face/faceapi_weights/face_landmark_68_model-shard1.weights';
 // Hack for loading models with custom weights url path
 ssdMobileNetV1Manifest[0].paths = [
   ssdMobileNetV1ModelPath1.replace('/', ''),
