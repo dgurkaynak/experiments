@@ -4,6 +4,7 @@ export default class Particle {
   position: Vector = { x: 0, y: 0 };
   velocity: Vector = { x: 0, y: 0 };
   dampingFactor = 0.9;
+  type: 'cocaine' | 'ketamine';
 
 
   update(force: Vector = { x: 0, y: 0 }) {

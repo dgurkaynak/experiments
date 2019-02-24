@@ -6,6 +6,7 @@ import CanvasResizer from '../utils/canvas-resizer';
 import Particle from './particle';
 
 import noseImagePath from './nose.png';
+import sparkleImagePath from './sparkle.png';
 
 
 /**
@@ -18,10 +19,25 @@ const SNIFF_ZONE = [
   { x: 160, width: 20 }
 ];
 const SNIFF_ZONE_HEIGHT = 50;
-const TRACK_OFFSET = 75;
-const LINE_HEIGHT = 5;
 const SNIFF_FORCE = 75 / 60;
 const SNIFF_GRAVITY_FORCE = 30 / 60;
+
+const TRACK_MARGIN = 75;
+
+const COCAINE_LINE_HEIGHT = 5;
+const COCAINE_COLOR = [255, 255, 255, 150];
+const COCAINE_PARTICLE_SIZE = 4;
+const COCAINE_RANDOM_OFFSET_START = 5;
+const COCAINE_RANDOM_OFFSET_RANDOMNESS = 5;
+
+const KETAMINE_LINE_HEIGHT = 5;
+const KETAMINE_COLOR = [209, 226, 255, 90];
+const KETAMINE_PARTICLE_SIZE = 3;
+const KETAMINE_RANDOM_OFFSET_START = 2;
+const KETAMINE_RANDOM_OFFSET_RANDOMNESS = 2;
+const KETAMINE_SPARKLE_RANDOMNESS = 0.0001;
+const KETAMINE_SPARKLE_SIZE = 32;
+
 const SNIFFING_NOSE_ANIMATION_OFFSET = 20;
 const SNIFFING_NOSE_ANIMATION_VELOCITY = 5;
 const SNIFFING_NOSE_ANIMATION_SHAKE = 5;
@@ -44,6 +60,7 @@ const resizer = new CanvasResizer(null, {
 const stats = new Stats();
 
 let noseImage: p5.Image;
+let sparkleImage: p5.Image;
 const particleTracks: Particle[][] = [];
 let isSnorting = false;
 let noseOffset = 0;
@@ -77,6 +94,7 @@ async function main() {
 
 function preload() {
   noseImage = p.loadImage(noseImagePath);
+  sparkleImage = p.loadImage(sparkleImagePath);
 }
 
 
@@ -109,7 +127,6 @@ function draw() {
   distance += gameVelocity;
 
   // Update tracks
-  const PARTICLE_SIZE = 4;
   particleTracks.forEach((tracks, trackIndex) => {
     const y = getTrackY(trackIndex);
     const sniffSuccessY = y - (SNIFF_ZONE_HEIGHT / 2);
@@ -117,9 +134,7 @@ function draw() {
 
     // draw nose and sniff zone
     if (currentTrack == trackIndex) {
-      p.push();
-
-      // nose animation
+      // nose vertical animation
       noseOffset = isSnorting ?
         Math.min(noseOffset + SNIFFING_NOSE_ANIMATION_VELOCITY, SNIFFING_NOSE_ANIMATION_OFFSET) :
         Math.max(noseOffset - SNIFFING_NOSE_ANIMATION_VELOCITY, 0);
@@ -127,17 +142,17 @@ function draw() {
       let imageX = SNIFF_ZONE[0].x - 15;
       let imageY = y - 195 + noseOffset;
 
+      // nose shake animation
       if (isSnorting) {
         imageX += (Math.random() - 0.5) * SNIFFING_NOSE_ANIMATION_SHAKE;
         imageY += (Math.random() - 0.5) * SNIFFING_NOSE_ANIMATION_SHAKE;
       }
 
       const imageWidth = 110;
-      const imageHeight = 164;
-
+      const imageHeight = 1775 / 1191 * imageWidth;
       p.image(noseImage, imageX, imageY, imageWidth, imageHeight);
-      p.pop();
 
+      // draw sniff zone
       // SNIFF_ZONE.forEach((zone) => {
       //   p.noStroke();
       //   p.fill(255, 0, 0, 50);
@@ -180,9 +195,28 @@ function draw() {
       }
 
       // draw particle
-      p.noStroke();
-      p.fill(255, 255, 255, 150);
-      p.ellipse(particle.position.x, particle.position.y, PARTICLE_SIZE, PARTICLE_SIZE);
+      if (particle.type == 'cocaine') {
+        p.noStroke();
+        p.fill(...COCAINE_COLOR);
+        p.ellipse(particle.position.x, particle.position.y, COCAINE_PARTICLE_SIZE, COCAINE_PARTICLE_SIZE);
+      } else if (particle.type == 'ketamine') {
+        p.fill(...KETAMINE_COLOR);
+        p.ellipse(particle.position.x, particle.position.y, KETAMINE_PARTICLE_SIZE, KETAMINE_PARTICLE_SIZE);
+
+        if (Math.random() < KETAMINE_SPARKLE_RANDOMNESS) {
+          p.push();
+          p.tint(255, Math.round(100 + (Math.random() * 50)));
+          const size = KETAMINE_SPARKLE_SIZE + (Math.random() * 64);
+          p.image(
+            sparkleImage,
+            particle.position.x - size / 2,
+            particle.position.y - size / 2,
+            size,
+            size
+          );
+          p.pop();
+        }
+      }
     });
 
     // delete particles from track
@@ -247,9 +281,9 @@ function onKeyUp(e: KeyboardEvent) {
 
 
 function getTrackY(trackIndex: number) {
-  const totalHeight = TRACK_COUNT * LINE_HEIGHT + (TRACK_COUNT - 1) * TRACK_OFFSET;
+  const totalHeight = TRACK_COUNT * COCAINE_LINE_HEIGHT + (TRACK_COUNT - 1) * TRACK_MARGIN;
   const startY = (p.height - totalHeight) / 2;
-  const offsetY = (trackIndex * LINE_HEIGHT) + (trackIndex == 0 ? 0 : trackIndex * TRACK_OFFSET);
+  const offsetY = (trackIndex * COCAINE_LINE_HEIGHT) + (trackIndex == 0 ? 0 : trackIndex * TRACK_MARGIN);
   return startY + offsetY;
 }
 
@@ -268,10 +302,19 @@ function generateRoadIfNecessary(offset = 0) {
       const blankLength = 50 + Math.random() * 650;
       const length = 50 + Math.random() * 250;
 
-      const particles = generateLineParticles(length, (particle) => {
-        particle.position.x += blankLength + startX - distance;
-        particle.position.y += startY;
-      });
+      let particles: Particle[];
+
+      if (Math.random() < 0.9) {
+        particles = generateCocaineLineParticles(length, (particle) => {
+          particle.position.x += blankLength + startX - distance;
+          particle.position.y += startY;
+        });
+      } else {
+        particles = generateKetamineLineParticles(length, (particle) => {
+          particle.position.x += blankLength + startX - distance;
+          particle.position.y += startY;
+        });
+      }
 
       particleTracks[trackIndex].push(...particles);
       startX += blankLength + length;
@@ -284,7 +327,7 @@ function generateRoadIfNecessary(offset = 0) {
 }
 
 
-function generateLineParticles(length: number, iterator = (particle: Particle) => { }) {
+function generateCocaineLineParticles(length: number, iterator = (particle: Particle) => { }) {
   const GENERATION_WINDOW_WIDTH = 20;
   const WINDOW_PARTICLE_COUNT = 20;
 
@@ -297,15 +340,49 @@ function generateLineParticles(length: number, iterator = (particle: Particle) =
 
     for (let j = 0; j < WINDOW_PARTICLE_COUNT; j++) {
       let x = startX + Math.round(Math.random() * GENERATION_WINDOW_WIDTH);
-      let y = startY + Math.round((Math.random() - 0.5) * LINE_HEIGHT);
+      let y = startY + Math.round((Math.random() - 0.5) * COCAINE_LINE_HEIGHT);
 
       if (Math.random() <= 0.1) {
-        const offset = (Math.random() < 0.5 ? 1 : -1) * (5 + (Math.random() * 5));
+        const offset = (Math.random() < 0.5 ? 1 : -1) * (COCAINE_RANDOM_OFFSET_START + (Math.random() * COCAINE_RANDOM_OFFSET_RANDOMNESS));
         x += offset;
         y += offset;
       }
 
       const particle = new Particle();
+      particle.type = 'cocaine';
+      particle.position = { x, y };
+      iterator(particle);
+      particles.push(particle);
+    }
+  }
+
+  return particles;
+}
+
+
+function generateKetamineLineParticles(length: number, iterator = (particle: Particle) => { }) {
+  const GENERATION_WINDOW_WIDTH = 20;
+  const WINDOW_PARTICLE_COUNT = 20;
+
+  const windowCount = Math.round(length / GENERATION_WINDOW_WIDTH);
+  const particles: Particle[] = [];
+
+  for (let i = 0; i <= windowCount; i++) {
+    const startX = i * GENERATION_WINDOW_WIDTH;
+    const startY = 0;
+
+    for (let j = 0; j < WINDOW_PARTICLE_COUNT; j++) {
+      let x = startX + Math.round(Math.random() * GENERATION_WINDOW_WIDTH);
+      let y = startY + Math.round((Math.random() - 0.5) * KETAMINE_LINE_HEIGHT);
+
+      if (Math.random() <= 0.1) {
+        const offset = (Math.random() < 0.5 ? 1 : -1) * (KETAMINE_RANDOM_OFFSET_START + (Math.random() * KETAMINE_RANDOM_OFFSET_RANDOMNESS));
+        x += offset;
+        y += offset;
+      }
+
+      const particle = new Particle();
+      particle.type = 'ketamine';
       particle.position = { x, y };
       iterator(particle);
       particles.push(particle);
