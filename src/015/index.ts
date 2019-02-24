@@ -4,6 +4,7 @@ import times from 'lodash/times';
 import forEachRight from 'lodash/forEachRight';
 import CanvasResizer from '../utils/canvas-resizer';
 import Particle from './particle';
+import ProgressBar from './progress-bar';
 
 import noseImagePath from './nose.png';
 import sparkleImagePath from './sparkle.png';
@@ -21,6 +22,13 @@ const SNIFF_ZONE = [
 const SNIFF_ZONE_HEIGHT = 50;
 const SNIFF_FORCE = 75 / 60;
 const SNIFF_GRAVITY_FORCE = 30 / 60;
+const MAX_LUNG_CAPACITY = 100;
+const SNIFFING_LUNG_COST = 100 / 3 / 60;
+const SNIFFING_LUNG_RECOVER = SNIFFING_LUNG_COST / 2;
+const SNIFFING_LUNG_EXHAUST_TIME = 3000;
+
+const MAX_GAME_VELOCITY = 400 / 60;
+const MIN_GAME_VELOCITY = 100 / 60;
 
 const TRACK_MARGIN = 75;
 
@@ -29,6 +37,7 @@ const COCAINE_COLOR = [255, 255, 255, 150];
 const COCAINE_PARTICLE_SIZE = 4;
 const COCAINE_RANDOM_OFFSET_START = 5;
 const COCAINE_RANDOM_OFFSET_RANDOMNESS = 5;
+const COCAINE_PARTICLE_SNORTING_VELOCITY = 100 / 60 / 4000;
 
 const KETAMINE_LINE_HEIGHT = 5;
 const KETAMINE_COLOR = [209, 226, 255, 90];
@@ -37,6 +46,7 @@ const KETAMINE_RANDOM_OFFSET_START = 2;
 const KETAMINE_RANDOM_OFFSET_RANDOMNESS = 2;
 const KETAMINE_SPARKLE_RANDOMNESS = 0.0001;
 const KETAMINE_SPARKLE_SIZE = 32;
+const KETAMINE_PARTICLE_SNORTING_VELOCITY = 100 / 60 / 200;
 
 const SNIFFING_NOSE_ANIMATION_OFFSET = 20;
 const SNIFFING_NOSE_ANIMATION_VELOCITY = 5;
@@ -68,6 +78,9 @@ let roadEndDistance = 0;
 let gameVelocity = 100 / 60;
 let distance = 0;
 let currentTrack = 0;
+let lungCapacity = MAX_LUNG_CAPACITY;
+let lungExhaustedAt: number;
+let lungCapacityProgressBar: ProgressBar;
 
 
 
@@ -112,6 +125,8 @@ function setup() {
 
   // generateRoadIfNecessary(p.width / 2);
   generateRoadIfNecessary(0);
+
+  lungCapacityProgressBar = new ProgressBar(60, p.height - 32, 190, 15);
 }
 
 
@@ -125,6 +140,39 @@ function draw() {
 
   // Update distance
   distance += gameVelocity;
+
+  // Lung stuff
+  if (lungExhaustedAt && Date.now() - lungExhaustedAt <= SNIFFING_LUNG_EXHAUST_TIME) {
+    lungCapacityProgressBar.fillColor = [255, 0, 0, 255];
+    lungCapacityProgressBar.borderColor = [255, 0, 0, 255];
+    isSnorting = false;
+  }
+
+  // TODO: Eyvahlar olsun
+  if (isSnorting) {
+    lungCapacity -= SNIFFING_LUNG_COST;
+    lungCapacity = Math.max(lungCapacity, 0);
+
+    if (lungCapacity == 0) {
+      isSnorting = false;
+      lungExhaustedAt = Date.now();
+      lungCapacityProgressBar.fillColor = [255, 0, 0, 255];
+      lungCapacityProgressBar.borderColor = [255, 0, 0, 255];
+    }
+  } else {
+    lungCapacity += SNIFFING_LUNG_RECOVER;
+    lungCapacity = Math.min(lungCapacity, MAX_LUNG_CAPACITY);
+
+    if (lungExhaustedAt && Date.now() - lungExhaustedAt > SNIFFING_LUNG_EXHAUST_TIME) {
+      lungExhaustedAt = null;
+      lungCapacityProgressBar.fillColor = [255, 255, 255, 255];
+      lungCapacityProgressBar.borderColor = [255, 255, 255, 255];
+    }
+  }
+  p.stroke(255, 255, 255, 120);
+  p.text(`Ciğer`, 20, p.height - 20);
+  lungCapacityProgressBar.progress = lungCapacity / 100;
+  lungCapacityProgressBar.draw(p);
 
   // Update tracks
   particleTracks.forEach((tracks, trackIndex) => {
@@ -181,6 +229,14 @@ function draw() {
       if (particle.position.y <= sniffSuccessY) {
         // console.log('Afiyets');
         particleIndexesToBeDeleted.push(i);
+
+        if (particle.type == 'cocaine') {
+          gameVelocity += COCAINE_PARTICLE_SNORTING_VELOCITY;
+          gameVelocity = Math.min(gameVelocity, MAX_GAME_VELOCITY);
+        } else if (particle.type == 'ketamine') {
+          gameVelocity -= KETAMINE_PARTICLE_SNORTING_VELOCITY;
+          gameVelocity = Math.max(gameVelocity, MIN_GAME_VELOCITY);
+        }
         return;
       } else if (particle.position.y >= p.height) {
         // console.log('Ziyans');
@@ -200,12 +256,13 @@ function draw() {
         p.fill(...COCAINE_COLOR);
         p.ellipse(particle.position.x, particle.position.y, COCAINE_PARTICLE_SIZE, COCAINE_PARTICLE_SIZE);
       } else if (particle.type == 'ketamine') {
+        p.noStroke();
         p.fill(...KETAMINE_COLOR);
         p.ellipse(particle.position.x, particle.position.y, KETAMINE_PARTICLE_SIZE, KETAMINE_PARTICLE_SIZE);
 
         if (Math.random() < KETAMINE_SPARKLE_RANDOMNESS) {
           p.push();
-          p.tint(255, Math.round(100 + (Math.random() * 50)));
+          p.tint(255, Math.round(100 + (Math.random() * 50))); // random opacity
           const size = KETAMINE_SPARKLE_SIZE + (Math.random() * 64);
           p.image(
             sparkleImage,
@@ -250,7 +307,7 @@ function isParticleInSniffZone(particle: Particle, particleTrackIndex: number, y
 
 
 // setInterval(() => {
-//   console.log(`distance: ${distance}, particleCounts: ${particleTracks.map(x => x.length)}`);
+//   console.log(`distance: ${distance}, game velocity: ${(gameVelocity * 60).toFixed(2)}, particleCounts: ${particleTracks.map(x => x.length)}`);
 // }, 1000);
 
 
@@ -304,16 +361,24 @@ function generateRoadIfNecessary(offset = 0) {
 
       let particles: Particle[];
 
-      if (Math.random() < 0.9) {
+      // TODO: Refactor
+      if (gameVelocity <= 350 / 60) {
         particles = generateCocaineLineParticles(length, (particle) => {
           particle.position.x += blankLength + startX - distance;
           particle.position.y += startY;
         });
       } else {
-        particles = generateKetamineLineParticles(length, (particle) => {
-          particle.position.x += blankLength + startX - distance;
-          particle.position.y += startY;
-        });
+        if (Math.random() < 0.99) {
+          particles = generateCocaineLineParticles(length, (particle) => {
+            particle.position.x += blankLength + startX - distance;
+            particle.position.y += startY;
+          });
+        } else {
+          particles = generateKetamineLineParticles(length, (particle) => {
+            particle.position.x += blankLength + startX - distance;
+            particle.position.y += startY;
+          });
+        }
       }
 
       particleTracks[trackIndex].push(...particles);
