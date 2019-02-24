@@ -21,7 +21,10 @@ const SNIFF_ZONE_HEIGHT = 50;
 const TRACK_OFFSET = 75;
 const LINE_HEIGHT = 5;
 const SNIFF_FORCE = 75 / 60;
-const SNIFF_FALL_FORCE = 30 / 60;
+const SNIFF_GRAVITY_FORCE = 30 / 60;
+const SNIFFING_NOSE_ANIMATION_OFFSET = 20;
+const SNIFFING_NOSE_ANIMATION_VELOCITY = 5;
+const SNIFFING_NOSE_ANIMATION_SHAKE = 5;
 
 
 
@@ -43,6 +46,7 @@ const stats = new Stats();
 let noseImage: p5.Image;
 const particleTracks: Particle[][] = [];
 let isSnorting = false;
+let noseOffset = 0;
 let roadEndDistance = 0;
 let gameVelocity = 100 / 60;
 let distance = 0;
@@ -115,8 +119,19 @@ function draw() {
     if (currentTrack == trackIndex) {
       p.push();
 
-      const imageX = SNIFF_ZONE[0].x - 15;
-      let imageY = y - 195 + (isSnorting ? 20 : 0);
+      // nose animation
+      noseOffset = isSnorting ?
+        Math.min(noseOffset + SNIFFING_NOSE_ANIMATION_VELOCITY, SNIFFING_NOSE_ANIMATION_OFFSET) :
+        Math.max(noseOffset - SNIFFING_NOSE_ANIMATION_VELOCITY, 0);
+
+      let imageX = SNIFF_ZONE[0].x - 15;
+      let imageY = y - 195 + noseOffset;
+
+      if (isSnorting) {
+        imageX += (Math.random() - 0.5) * SNIFFING_NOSE_ANIMATION_SHAKE;
+        imageY += (Math.random() - 0.5) * SNIFFING_NOSE_ANIMATION_SHAKE;
+      }
+
       const imageWidth = 110;
       const imageHeight = 164;
 
@@ -142,7 +157,7 @@ function draw() {
       }
 
       if (particle.dirty && force.y == 0) {
-        force.y = SNIFF_FALL_FORCE;
+        force.y = SNIFF_GRAVITY_FORCE;
       }
 
       particle.update(force);
