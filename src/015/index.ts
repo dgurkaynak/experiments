@@ -5,6 +5,7 @@ import forEachRight from 'lodash/forEachRight';
 import CanvasResizer from '../utils/canvas-resizer';
 import Particle from './particle';
 import ProgressBar from './progress-bar';
+import Clock from '../utils/clock';
 
 import noseImagePath from './nose.png';
 import sparkleImagePath from './sparkle.png';
@@ -20,15 +21,15 @@ const SNIFF_ZONE = [
   { x: 160, width: 20 }
 ];
 const SNIFF_ZONE_HEIGHT = 50;
-const SNIFF_FORCE = 75 / 60;
-const SNIFF_GRAVITY_FORCE = 30 / 60;
+const SNIFF_FORCE = 75;
+const SNIFF_GRAVITY_FORCE = 30;
 const MAX_LUNG_CAPACITY = 100;
-const SNIFFING_LUNG_COST = 100 / 3 / 60;
+const SNIFFING_LUNG_COST = 100 / 3;
 const SNIFFING_LUNG_RECOVER = SNIFFING_LUNG_COST / 2;
 const SNIFFING_LUNG_EXHAUST_TIME = 3000;
 
-const MAX_GAME_VELOCITY = 400 / 60;
-const MIN_GAME_VELOCITY = 100 / 60;
+const MAX_GAME_VELOCITY = 400;
+const MIN_GAME_VELOCITY = 100;
 
 const MAX_WASTE_POINT = 10000;
 
@@ -39,7 +40,7 @@ const COCAINE_COLOR = [255, 255, 255, 150];
 const COCAINE_PARTICLE_SIZE = 4;
 const COCAINE_RANDOM_OFFSET_START = 5;
 const COCAINE_RANDOM_OFFSET_RANDOMNESS = 5;
-const COCAINE_PARTICLE_SNORTING_VELOCITY = 100 / 60 / 4000;
+const COCAINE_PARTICLE_SNORTING_VELOCITY = 100 / 4000;
 const COCAINE_PARTICLE_POINT = 1;
 
 const KETAMINE_LINE_HEIGHT = 5;
@@ -49,7 +50,7 @@ const KETAMINE_RANDOM_OFFSET_START = 2;
 const KETAMINE_RANDOM_OFFSET_RANDOMNESS = 2;
 const KETAMINE_SPARKLE_RANDOMNESS = 0.0001;
 const KETAMINE_SPARKLE_SIZE = 32;
-const KETAMINE_PARTICLE_SNORTING_VELOCITY = 100 / 60 / 200;
+const KETAMINE_PARTICLE_SNORTING_VELOCITY = 100 / 200;
 
 const SNIFFING_NOSE_ANIMATION_OFFSET = 20;
 const SNIFFING_NOSE_ANIMATION_VELOCITY = 5;
@@ -78,7 +79,7 @@ const particleTracks: Particle[][] = [];
 let isSnorting = false;
 let noseOffset = 0;
 let roadEndDistance = 0;
-let gameVelocity = 100 / 60;
+let gameVelocity = 100;
 let distance = 0;
 let currentTrack = 0;
 let lungCapacity = MAX_LUNG_CAPACITY;
@@ -87,6 +88,7 @@ let lungCapacityProgressBar: ProgressBar;
 let wastePoint = 0;
 let wastePointProgressBar: ProgressBar;
 let cocainPoint = 0;
+const clock = new Clock();
 
 
 
@@ -127,6 +129,7 @@ function setup() {
   resizer.init();
 
   // p.pixelDensity(1);
+  // p.frameRate(15);
   p.background('#000000');
 
   generateRoadIfNecessary(p.width / 2);
@@ -144,9 +147,10 @@ function draw() {
   if (ENABLE_STATS) stats.begin();
 
   p.background('#000000');
+  const deltaTime = clock.getDelta();
 
   // Update distance
-  distance += gameVelocity;
+  distance += gameVelocity * deltaTime;
   p.noStroke();
   p.fill(255, 255, 255, 120);
   p.textAlign(p.RIGHT);
@@ -161,7 +165,7 @@ function draw() {
 
   // TODO: Eyvahlar olsun
   if (isSnorting) {
-    lungCapacity -= SNIFFING_LUNG_COST;
+    lungCapacity -= SNIFFING_LUNG_COST * deltaTime;
     lungCapacity = Math.max(lungCapacity, 0);
 
     if (lungCapacity == 0) {
@@ -171,7 +175,7 @@ function draw() {
       lungCapacityProgressBar.borderColor = [255, 0, 0, 255];
     }
   } else {
-    lungCapacity += SNIFFING_LUNG_RECOVER;
+    lungCapacity += SNIFFING_LUNG_RECOVER * deltaTime;
     lungCapacity = Math.min(lungCapacity, MAX_LUNG_CAPACITY);
 
     if (lungExhaustedAt && Date.now() - lungExhaustedAt > SNIFFING_LUNG_EXHAUST_TIME) {
@@ -238,17 +242,17 @@ function draw() {
 
     // For each particle
     tracks.forEach((particle, i) => {
-      particle.velocity.x = -gameVelocity;
+      particle.velocity.x = -gameVelocity * deltaTime;
       const force = { x: 0, y: 0 };
 
       // Update particle if in the sniff zone
       if (isSnorting && isParticleInSniffZone(particle, trackIndex, y)) {
         particle.dirty = true;
-        force.y = -SNIFF_FORCE;
+        force.y = -SNIFF_FORCE * deltaTime;
       }
 
       if (particle.dirty && force.y == 0) {
-        force.y = SNIFF_GRAVITY_FORCE;
+        force.y = SNIFF_GRAVITY_FORCE * deltaTime;
       }
 
       particle.update(force);
@@ -337,7 +341,7 @@ function isParticleInSniffZone(particle: Particle, particleTrackIndex: number, y
 
 
 // setInterval(() => {
-//   console.log(`distance: ${distance}, game velocity: ${(gameVelocity * 60).toFixed(2)}, particleCounts: ${particleTracks.map(x => x.length)}`);
+//   console.log(`distance: ${distance}, game velocity: ${(gameVelocity).toFixed(2)}, particleCounts: ${particleTracks.map(x => x.length)}`);
 // }, 1000);
 
 
@@ -392,7 +396,7 @@ function generateRoadIfNecessary(offset = 0) {
       let particles: Particle[];
 
       // TODO: Refactor
-      if (gameVelocity <= 350 / 60) {
+      if (gameVelocity <= 350) {
         particles = generateCocaineLineParticles(length, (particle) => {
           particle.position.x += blankLength + startX - distance;
           particle.position.y += startY;
