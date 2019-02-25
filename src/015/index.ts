@@ -14,7 +14,7 @@ import sparkleImagePath from './sparkle.png';
  * Constants
  */
 const ENABLE_STATS = true;
-const TRACK_COUNT = 4;
+const TRACK_COUNT = 2;
 const SNIFF_ZONE = [
   { x: 100, width: 20 },
   { x: 160, width: 20 }
@@ -30,6 +30,8 @@ const SNIFFING_LUNG_EXHAUST_TIME = 3000;
 const MAX_GAME_VELOCITY = 400 / 60;
 const MIN_GAME_VELOCITY = 100 / 60;
 
+const MAX_WASTE_POINT = 10000;
+
 const TRACK_MARGIN = 75;
 
 const COCAINE_LINE_HEIGHT = 5;
@@ -38,6 +40,7 @@ const COCAINE_PARTICLE_SIZE = 4;
 const COCAINE_RANDOM_OFFSET_START = 5;
 const COCAINE_RANDOM_OFFSET_RANDOMNESS = 5;
 const COCAINE_PARTICLE_SNORTING_VELOCITY = 100 / 60 / 4000;
+const COCAINE_PARTICLE_POINT = 1;
 
 const KETAMINE_LINE_HEIGHT = 5;
 const KETAMINE_COLOR = [209, 226, 255, 90];
@@ -81,6 +84,9 @@ let currentTrack = 0;
 let lungCapacity = MAX_LUNG_CAPACITY;
 let lungExhaustedAt: number;
 let lungCapacityProgressBar: ProgressBar;
+let wastePoint = 0;
+let wastePointProgressBar: ProgressBar;
+let cocainPoint = 0;
 
 
 
@@ -123,10 +129,11 @@ function setup() {
   // p.pixelDensity(1);
   p.background('#000000');
 
-  // generateRoadIfNecessary(p.width / 2);
-  generateRoadIfNecessary(0);
+  generateRoadIfNecessary(p.width / 2);
+  // generateRoadIfNecessary(0);
 
   lungCapacityProgressBar = new ProgressBar(60, p.height - 32, 190, 15);
+  wastePointProgressBar = new ProgressBar(p.width - 200, p.height - 32, 190, 15);
 }
 
 
@@ -140,6 +147,10 @@ function draw() {
 
   // Update distance
   distance += gameVelocity;
+  p.noStroke();
+  p.fill(255, 255, 255, 120);
+  p.textAlign(p.RIGHT);
+  p.text(`Skor: ${Math.round(cocainPoint)}`, p.width - 10, 20);
 
   // Lung stuff
   if (lungExhaustedAt && Date.now() - lungExhaustedAt <= SNIFFING_LUNG_EXHAUST_TIME) {
@@ -169,10 +180,27 @@ function draw() {
       lungCapacityProgressBar.borderColor = [255, 255, 255, 255];
     }
   }
-  p.stroke(255, 255, 255, 120);
+  p.textAlign(p.LEFT);
+  p.noStroke();
+  p.fill(255, 255, 255, 120);
   p.text(`Ciğer`, 20, p.height - 20);
   lungCapacityProgressBar.progress = lungCapacity / 100;
   lungCapacityProgressBar.draw(p);
+
+  // draw waste point
+  p.textAlign(p.LEFT);
+  p.noStroke();
+  p.fill(255, 255, 255, 120);
+  p.text(`Ziyan`, p.width - 250, p.height - 20);
+  wastePointProgressBar.progress = wastePoint / MAX_WASTE_POINT;
+  if (wastePointProgressBar.progress > 0.75) wastePointProgressBar.fillColor = [255, 127, 52, 255];
+  if (wastePoint >= MAX_WASTE_POINT) {
+    console.log('======== GAME ENDED ===========');
+    wastePointProgressBar.fillColor = [255, 0, 0, 255];
+    wastePointProgressBar.borderColor = [255, 0, 0, 255];
+    p.noLoop();
+  }
+  wastePointProgressBar.draw(p);
 
   // Update tracks
   particleTracks.forEach((tracks, trackIndex) => {
@@ -233,19 +261,21 @@ function draw() {
         if (particle.type == 'cocaine') {
           gameVelocity += COCAINE_PARTICLE_SNORTING_VELOCITY;
           gameVelocity = Math.min(gameVelocity, MAX_GAME_VELOCITY);
+          cocainPoint += COCAINE_PARTICLE_POINT;
         } else if (particle.type == 'ketamine') {
           gameVelocity -= KETAMINE_PARTICLE_SNORTING_VELOCITY;
           gameVelocity = Math.max(gameVelocity, MIN_GAME_VELOCITY);
         }
         return;
       } else if (particle.position.y >= p.height) {
-        // console.log('Ziyans');
+        if (particle.type == 'cocaine') wastePoint += COCAINE_PARTICLE_POINT;
         particleIndexesToBeDeleted.push(i);
         return;
       }
 
       // particle should be removed?
       if (particle.position.x < 0) {
+        if (particle.type == 'cocaine') wastePoint += COCAINE_PARTICLE_POINT;
         particleIndexesToBeDeleted.push(i);
         return;
       }
