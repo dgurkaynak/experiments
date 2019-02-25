@@ -68,7 +68,7 @@ const elements = {
 let p: p5;
 const resizer = new CanvasResizer(null, {
   dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: 1
 });
 const stats = new Stats();
 
