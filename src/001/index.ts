@@ -14,6 +14,10 @@ import { noise } from '../utils/noise';
  */
 const ENABLE_STATS = false;
 const ENABLE_ORBIT_CONTROLS = false;
+const NUMBER_X = 75;
+const NUMBER_Z = 50;
+const SPHERE_DISTANCE = 1;
+
 const GUISettings = class {
   waveType = 'perlin';
 
@@ -27,10 +31,6 @@ const GUISettings = class {
 
   totalScale = 1;
 };
-
-const NUMBER_X = 50;
-const NUMBER_Z = 50;
-const SPHERE_DISTANCE = 1;
 
 
 /**
@@ -87,9 +87,16 @@ async function main() {
   viewSettings.add(settings, 'sphereRadius', 0.01, 0.1).step(0.005).onChange((val) => {
     meshes.forEach(line => line.forEach(mesh => mesh.scale.set(val, val, val)));
   });
-  viewSettings.addColor(settings, 'bgColor').onChange(val => renderer.setClearColor(val));
+  viewSettings.addColor(settings, 'bgColor').onChange((val) => {
+    scene.fog.color.setHex(settings.bgColor as any);
+    renderer.setClearColor(val);
+  });
   viewSettings.addColor(settings, 'sphereColor').onChange(val => material.color = new THREE.Color(val));
 
+  // Scene fog
+  scene.fog = new THREE.Fog(settings.bgColor as any, SPHERE_DISTANCE, SPHERE_DISTANCE * NUMBER_Z);
+
+  // Show FPS
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
