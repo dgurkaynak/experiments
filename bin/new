@@ -2,7 +2,7 @@
 const fs = require('fs');
 const child_process = require('child_process');
 
-const type = process.argv[2];
+const type = process.argv[2] || 'blank';
 const bpDirPath = `./src/bp-${type}`;
 if (!fs.existsSync(bpDirPath)) {
   console.error(`Boilerplate does not exists in ${bpDirPath}`);
