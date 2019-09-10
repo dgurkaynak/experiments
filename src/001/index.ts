@@ -25,13 +25,13 @@ const GUISettings = class {
 
   bgColor = '#000';
   sphereColor = '#fff';
-  sphereRadius = 0.025;
+  sphereRadius = 0.075;
 
-  xFactor = 0.2;
-  zFactor = 0.2;
-  timeFactor = 0.5;
+  xFactor = 0.1;
+  zFactor = 0.16;
+  timeFactor = 0.4;
 
-  totalScale = 1;
+  totalScale = 3;
 
   randomizeColors = () => {
     const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 2);
@@ -52,7 +52,7 @@ const elements = {
 };
 const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 const resizer = new CanvasResizer(renderer.domElement, {
-  dimension: 'fullscreen',
+  dimension: [1024, 1024],
   dimensionScaleFactor: window.devicePixelRatio
 });
 const animator = new Animator(animate);
