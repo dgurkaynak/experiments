@@ -7,6 +7,8 @@ import CanvasResizer from '../utils/canvas-resizer';
 import Animator from '../utils/animator';
 import Clock from '../utils/clock';
 import { noise } from '../utils/noise';
+import colors from 'nice-color-palettes';
+import sampleSize from 'lodash/sampleSize';
 
 
 /**
@@ -30,6 +32,14 @@ const GUISettings = class {
   timeFactor = 0.5;
 
   totalScale = 1;
+
+  randomizeColors = () => {
+    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 2);
+    settings.bgColor = randomTwoColors[0];
+    setBackgroundAndFogColor(settings.bgColor);
+    settings.sphereColor = randomTwoColors[1];
+    setSphereColor(settings.sphereColor);
+  }
 };
 
 
@@ -87,11 +97,9 @@ async function main() {
   viewSettings.add(settings, 'sphereRadius', 0.01, 0.1).step(0.005).onChange((val) => {
     meshes.forEach(line => line.forEach(mesh => mesh.scale.set(val, val, val)));
   });
-  viewSettings.addColor(settings, 'bgColor').onChange((val) => {
-    scene.fog.color.setHex(settings.bgColor as any);
-    renderer.setClearColor(val);
-  });
-  viewSettings.addColor(settings, 'sphereColor').onChange(val => material.color = new THREE.Color(val));
+  viewSettings.addColor(settings, 'bgColor').listen().onChange(setBackgroundAndFogColor);
+  viewSettings.addColor(settings, 'sphereColor').listen().onChange(setSphereColor);
+  viewSettings.add(settings, 'randomizeColors');
 
   // Scene fog
   scene.fog = new THREE.Fog(settings.bgColor as any, SPHERE_DISTANCE, SPHERE_DISTANCE * NUMBER_Z);
@@ -124,6 +132,23 @@ async function main() {
   }
 
   animator.start();
+}
+
+
+/**
+ * Sets background and fog color.
+ */
+function setBackgroundAndFogColor(color: string) {
+  scene.fog.color.set(color as any);
+  renderer.setClearColor(color);
+}
+
+
+/**
+ * Sets sphere material color.
+ */
+function setSphereColor(color: string) {
+  material.color = new THREE.Color(color);
 }
 
 
