@@ -20,11 +20,15 @@ const NUMBER_X = 75;
 const NUMBER_Z = 50;
 const SPHERE_DISTANCE = 1;
 
+// Nice color combos
+// #dce9be - #555152
+// #2a2c31 - #fffedf
+
 const GUISettings = class {
   waveType = 'perlin';
 
-  bgColor = '#000';
-  sphereColor = '#fff';
+  bgColor = '#2a2c31';
+  sphereColor = '#fffedf';
   sphereRadius = 0.075;
 
   xFactor = 0.1;
