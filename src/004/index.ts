@@ -1,5 +1,8 @@
-// http://bigblueboo.tumblr.com/post/171834504103/bigblueboo-eyes-see-you#notes
-// http://bigblueboo.tumblr.com/post/174117883078/bigblueboo-eyeball#notes
+/**
+ * Inspirations:
+ * http://bigblueboo.tumblr.com/post/171834504103/bigblueboo-eyes-see-you#notes
+ * http://bigblueboo.tumblr.com/post/174117883078/bigblueboo-eyeball#notes
+ */
 
 import * as THREE from 'three';
 import Stats from 'stats.js';
@@ -17,7 +20,7 @@ import { tweenX, tweenY, tweenZ, tweenToCamera } from './tweens';
 /**
  * Constants
  */
-const ENABLE_STATS = true;
+const ENABLE_STATS = false;
 const ENABLE_ORBIT_CONTROLS = false;
 
 
@@ -30,13 +33,13 @@ const elements = {
 };
 const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 const resizer = new CanvasResizer(renderer.domElement, {
-  dimension: 'fullscreen',
+  dimension: [1024, 1024],
   dimensionScaleFactor: window.devicePixelRatio
 });
 const animator = new Animator(animate);
 const stats = new Stats();
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, resizer.width / resizer.height, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(60, resizer.width / resizer.height, 0.1, 1000);
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
 
 
@@ -125,12 +128,16 @@ function animate(highResTimestamp: number) {
    * https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame
    */
   TWEEN.update(highResTimestamp);
+
   renderer.render(scene, camera);
 
   if (ENABLE_STATS) stats.end();
 }
 
 
+/**
+ * Starts eye animations
+ */
 function startAnimation() {
   eyes.forEach((eye: any) => {
     tweenX(eye);
@@ -144,6 +151,9 @@ function startAnimation() {
 }
 
 
+/**
+ * Stops all the animations
+ */
 function stopAnimation() {
   eyes.forEach((eye: any) => {
     if (eye._tweenX) eye._tweenX.stop();

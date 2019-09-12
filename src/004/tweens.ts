@@ -1,6 +1,9 @@
-import * as TWEEN from '@tweenjs/tween.js';
+import TWEEN from '@tweenjs/tween.js';
 
 
+/**
+ * Infinite x-axis random animation.
+ */
 export function tweenX(eye) {
   if (eye._tweenX) eye._tweenX.stop();
   eye._tweenX = new TWEEN.Tween({ x: eye.rotation.x }).to({ x: (Math.random() - 0.5) * 1.75 }, 3000 + (Math.random() - 0.5) * 2500);
@@ -13,6 +16,9 @@ export function tweenX(eye) {
 }
 
 
+/**
+ * Inifinite y-axis random animations
+ */
 export function tweenY(eye) {
   if (eye._tweenY) eye._tweenY.stop();
   eye._tweenY = new TWEEN.Tween({ y: eye.rotation.y }).to({ y: (Math.random() - 0.5) * 1.75 }, 3000 + (Math.random() - 0.5) * 2500);
@@ -25,6 +31,9 @@ export function tweenY(eye) {
 }
 
 
+/**
+ * Infinite z-axis random animation
+ */
 export function tweenZ(eye) {
   if (eye._tweenZ) eye._tweenZ.stop();
   eye._tweenZ = new TWEEN.Tween({ z: eye.rotation.z }).to({ z: (Math.random() - 0.5) * 0.5 }, 1000 + (Math.random() - 0.5) * 500);
@@ -37,6 +46,9 @@ export function tweenZ(eye) {
 }
 
 
+/**
+ * Stops all the animations (x,y,z axes) and looks at the camera.
+ */
 export function tweenToCamera(eye) {
   if (eye._tweenX) eye._tweenX.stop();
   if (eye._tweenY) eye._tweenY.stop();
