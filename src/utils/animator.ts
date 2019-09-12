@@ -3,14 +3,14 @@ export default class Animator {
   handler: Function;
 
 
-  constructor(handler: Function) {
+  constructor(handler: (highResTimestamp: number) => void) {
     this.handler = handler;
   }
 
 
   animate() {
-    this.id = requestAnimationFrame(() => {
-      this.handler();
+    this.id = requestAnimationFrame((highResTimestamp) => {
+      this.handler(highResTimestamp);
       this.animate();
     });
   }
