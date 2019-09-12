@@ -33,7 +33,7 @@ const elements = {
 };
 const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 const resizer = new CanvasResizer(renderer.domElement, {
-  dimension: [1024, 1024],
+  dimension: [768, 768],
   dimensionScaleFactor: window.devicePixelRatio
 });
 const animator = new Animator(animate);
