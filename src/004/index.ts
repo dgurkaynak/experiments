@@ -38,7 +38,6 @@ const stats = new Stats();
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, resizer.width / resizer.height, 0.1, 1000);
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
-const clock = new THREE.Clock();
 
 
 /**
@@ -114,11 +113,18 @@ async function main() {
 /**
  * Animate stuff...
  */
-function animate() {
+function animate(highResTimestamp: number) {
   if (ENABLE_STATS) stats.begin();
   if (ENABLE_ORBIT_CONTROLS) orbitControls.update();
 
-  TWEEN.update(clock.getElapsedTime() * 1000);
+  /**
+   * TWEEN.update() method requires high precision timestamp for smooth tweening.
+   * If you calculate time by yourself, there can be some hiccups, glitches.
+   * ALWAYS USE requestAnimationFrame's `highResTimestamp` parameter.
+   *
+   * https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame
+   */
+  TWEEN.update(highResTimestamp);
   renderer.render(scene, camera);
 
   if (ENABLE_STATS) stats.end();
