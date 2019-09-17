@@ -10,14 +10,13 @@ require('../utils/three/ctm/ctm-loader');
 import headCtmPath from './assets/LeePerry.ctm';
 import colorMapTexturePath from './assets/Map-COL.jpg';
 import normalMapTexturePath from './assets/Infinite-Level_02_Tangent_SmoothUV.jpg';
-import { major } from 'semver';
 
 
 /**
  * Constants
  */
-const ENABLE_STATS = true;
-const ENABLE_ORBIT_CONTROLS = true;
+const ENABLE_STATS = false;
+const ENABLE_ORBIT_CONTROLS = false;
 
 
 /**
@@ -26,11 +25,12 @@ const ENABLE_ORBIT_CONTROLS = true;
 const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
+  message: document.getElementById('message'),
 };
 const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 const resizer = new CanvasResizer(renderer.domElement, {
   dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: 1//window.devicePixelRatio
 });
 const animator = new Animator(animate);
 const stats = new Stats();
@@ -65,6 +65,8 @@ async function main() {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
   }
+
+  elements.message.addEventListener('click', onClick, false);
 
   // Start experiment
   camera.position.set(0, 0, 1);
@@ -131,8 +133,9 @@ function onClick(e: MouseEvent) {
     const intersect: any = intersects[0];
     const x = Math.floor(intersect.uv.x * 1024);
     const y = Math.floor((1 - intersect.uv.y) * 1024);
-    console.log('Applying force...', x, y);
     wave2dCanvas.applyForce(x, y, -2);
+
+    elements.message.style.display = 'none';
   }
 }
 

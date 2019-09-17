@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import OrbitControlsFactory from 'three-orbit-controls';
 const OrbitControls = OrbitControlsFactory(THREE);
 import CanvasResizer from '../utils/canvas-resizer';
 import Animator from '../utils/animator';
 import GeometrySpringModifier from './spring-modifier';
+import { disableBodyScroll } from 'body-scroll-lock';
+import detectIt from 'detect-it';
 
 require('../utils/three/ctm/ctm-loader');
 import headCtmPath from './assets/LeePerry.ctm';
@@ -16,11 +19,14 @@ import normalMapTexturePath from './assets/Infinite-Level_02_Tangent_SmoothUV.jp
 /**
  * Constants
  */
-const ENABLE_STATS = true;
-const ENABLE_ORBIT_CONTROLS = true;
-const SPRING_DISPLACE_MAGNITUDE = 0.00005;
-const SPRING_STRENGTH = 0.0005;
-const DAMPEN = 0.9999;
+const ENABLE_STATS = false;
+const ENABLE_ORBIT_CONTROLS = false;
+
+const GUISettings = class {
+  springDisplaceMagnitude = 0.00010;
+  springStrength = 0.0010;
+  dampen = 0.9999;
+};
 
 
 /**
@@ -29,14 +35,17 @@ const DAMPEN = 0.9999;
 const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
+  message: document.getElementById('message'),
 };
 const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 const resizer = new CanvasResizer(renderer.domElement, {
   dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: 1
 });
 const animator = new Animator(animate);
 const stats = new Stats();
+const settings = new GUISettings();
+const gui = new dat.GUI();
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, resizer.width / resizer.height, 0.1, 1000);
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
@@ -64,9 +73,41 @@ async function main() {
   resizer.resize = onWindowResize;
   resizer.init();
 
+  // Disable body scroll
+  disableBodyScroll(document.body);
+
+  // Settings
+  gui.add(settings, 'springDisplaceMagnitude', 0.00001, 0.00025).step(0.00001).listen();
+  gui.add(settings, 'springStrength', 0.0001, 0.0050).step(0.0001).listen().onChange((val) => {
+    springModifier.SPRING_STRENGTH = val;
+  });
+  gui.add(settings, 'dampen', 0.9990, 0.999999).step(0.00001).onChange((val) => {
+    springModifier.DAMPEN = val;
+  });
+  gui.close();
+
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
+  }
+
+  if (detectIt.primaryInput == 'touch') {
+    settings.springDisplaceMagnitude = 0.00020;
+    elements.message.textContent = 'Swipe on me';
+    elements.message.style.left = 'calc(50% - 4.5em)';
+    // elements.message.style.fontSize = '24px';
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      onMouseMove({
+        offsetX: e.changedTouches[0].clientX,
+        offsetY: e.changedTouches[0].clientY
+      } as any);
+    };
+    elements.message.addEventListener('touchmove', onTouchMove, false);
+    renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+  } else {
+    elements.message.addEventListener('mousemove', onMouseMove, false);
+    renderer.domElement.addEventListener('mousemove', onMouseMove, false);
   }
 
   // Start experiment
@@ -92,7 +133,7 @@ async function main() {
     loadTexture(specularMapTexturePath),
   ]);
 
-  const geometry = new THREE.Geometry().fromBufferGeometry(geometry_);
+  const geometry = new THREE.Geometry().fromBufferGeometry(geometry_ as any);
   const material = new THREE.MeshPhongMaterial({
     map,
     normalMap,
@@ -109,16 +150,16 @@ async function main() {
   scene.add(mesh);
 
   springModifier = new GeometrySpringModifier(geometry);
-  springModifier.SPRING_STRENGTH = SPRING_STRENGTH;
-  springModifier.DAMPEN = DAMPEN;
-
-  renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+  springModifier.SPRING_STRENGTH = settings.springStrength;
+  springModifier.DAMPEN = settings.dampen;
 
   animator.start();
 }
 
 
 function onMouseMove(e: MouseEvent) {
+  if (!mesh) return;
+
   const mouseX = e.offsetX || e.clientX;
   const mouseY = e.offsetY || e.clientY;
 
@@ -133,7 +174,8 @@ function onMouseMove(e: MouseEvent) {
   const intersects = rayCaster.intersectObject(mesh);
 
   if(intersects.length) {
-    springModifier.displaceFace(intersects[0].face, SPRING_DISPLACE_MAGNITUDE);
+    springModifier.displaceFace(intersects[0].face, settings.springDisplaceMagnitude);
+    elements.message.style.display = 'none';
   }
 }
 

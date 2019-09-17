@@ -21,9 +21,11 @@
     "@types/tween.js": "^17.2.0",
     "ammo.js": "github:kripken/ammo.js#master",
     "animejs": "^3.1.0",
+    "body-scroll-lock": "^2.6.4",
     "ccapture.js": "github:aceslowman/ccapture.js#npm-fix",
     "cross-env": "^5.2.1",
     "dat.gui": "^0.7.6",
+    "detect-it": "^3.0.5",
     "face-api.js": "^0.20.1",
     "lodash": "^4.17.15",
     "matter-js": "^0.14.2",
@@ -44,6 +46,5 @@
     "three-orbit-controls": "^82.1.0",
     "two.js": "^0.7.0-beta.3",
     "typescript": "^3.6.2"
-  },
-  "dependencies": {}
+  }
 }
