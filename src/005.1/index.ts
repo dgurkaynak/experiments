@@ -23,9 +23,9 @@ const ENABLE_STATS = false;
 const ENABLE_ORBIT_CONTROLS = false;
 
 const GUISettings = class {
-  springDisplaceMagnitude = 0.00010;
-  springStrength = 0.0010;
-  dampen = 0.9999;
+  springDisplaceMagnitude = 0.001;
+  springStrength = 0.001;
+  dampen = 0.999999;
 };
 
 
@@ -77,11 +77,11 @@ async function main() {
   disableBodyScroll(document.body);
 
   // Settings
-  gui.add(settings, 'springDisplaceMagnitude', 0.00001, 0.00025).step(0.00001).listen();
-  gui.add(settings, 'springStrength', 0.0001, 0.0050).step(0.0001).listen().onChange((val) => {
+  gui.add(settings, 'springDisplaceMagnitude', 0.000001, 0.0025).step(0.000001).listen();
+  gui.add(settings, 'springStrength', 0.00001, 0.01).step(0.00001).listen().onChange((val) => {
     springModifier.SPRING_STRENGTH = val;
   });
-  gui.add(settings, 'dampen', 0.9990, 0.999999).step(0.00001).onChange((val) => {
+  gui.add(settings, 'dampen', 0.999, 0.999999).step(0.000001).onChange((val) => {
     springModifier.DAMPEN = val;
   });
   gui.close();
@@ -92,22 +92,21 @@ async function main() {
   }
 
   if (detectIt.primaryInput == 'touch') {
-    settings.springDisplaceMagnitude = 0.00020;
-    elements.message.textContent = 'Swipe on me';
-    elements.message.style.left = 'calc(50% - 4.5em)';
+    // elements.message.textContent = 'Tap on me';
+    // elements.message.style.left = 'calc(50% - 4.5em)';
     // elements.message.style.fontSize = '24px';
-    const onTouchMove = (e: TouchEvent) => {
+    const onTouchStart = (e: TouchEvent) => {
       e.preventDefault();
-      onMouseMove({
+      onClick({
         offsetX: e.changedTouches[0].clientX,
         offsetY: e.changedTouches[0].clientY
       } as any);
     };
-    elements.message.addEventListener('touchmove', onTouchMove, false);
-    renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+    elements.message.addEventListener('touchstart', onTouchStart, false);
+    renderer.domElement.addEventListener('touchstart', onTouchStart, false);
   } else {
-    elements.message.addEventListener('mousemove', onMouseMove, false);
-    renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+    elements.message.addEventListener('click', onClick, false);
+    renderer.domElement.addEventListener('click', onClick, false);
   }
 
   // Start experiment
@@ -157,7 +156,7 @@ async function main() {
 }
 
 
-function onMouseMove(e: MouseEvent) {
+function onClick(e: MouseEvent) {
   if (!mesh) return;
 
   const mouseX = e.offsetX || e.clientX;
