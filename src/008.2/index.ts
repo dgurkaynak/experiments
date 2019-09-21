@@ -1,50 +1,54 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
 import times from 'lodash/times';
 import Clock from '../utils/clock';
-// import colors from 'nice-color-palettes';
-// import sample from 'lodash/sample';
+import colors from 'nice-color-palettes';
+import sampleSize from 'lodash/sampleSize';
+import saveImage from '../utils/canvas-save-image';
 
-
-// Random color selection
-// const COLOR_PALETTE = sample(colors);
-// const COLORS = {
-//   BG: sample(COLOR_PALETTE),
-//   UP: sample(COLOR_PALETTE),
-//   DOWN: sample(COLOR_PALETTE)
-// };
-// console.log(COLORS);
 
 
 /**
  * Constants
  */
-const ENABLE_STATS = true;
-const COLORS = [ // Some selected colors
-  {BG: "#000000", UP: "#ffffff", DOWN: "#ffffff"},
-  {BG: "#8b7a5e", UP: "#d0ecea", DOWN: "#fffee4"},
-  {BG: "#f8fcc1", UP: "#e6781e", DOWN: "#1693a7"},
-  {BG: "#363636", UP: "#474747", DOWN: "#e8175d"},
-  {BG: "#f1efa5", UP: "#60b99a", DOWN: "#f77825"},
-  {BG: "#fdf1cc", UP: "#987f69", DOWN: "#fcd036"},
-  {BG: "#f8b195", UP: "#355c7d", DOWN: "#f67280"},
-  {BG: "#031634", UP: "#036564", DOWN: "#cdb380"},
-  {BG: "#f4ead5", UP: "#d68189", DOWN: "#c6e5d9"},
-  {BG: "#e8d5b7", UP: "#0e2430", DOWN: "#fc3a51"},
-  {BG: "#fdf1cc", UP: "#e3ad40", DOWN: "#c6d6b8"},
-  {BG: "#615375", UP: "#f9bf76", DOWN: "#e5625c"},
-  {BG: "#f03c02", UP: "#6b0103", DOWN: "#a30006"},
-  {BG: "#f0f0d8", UP: "#604848", DOWN: "#c0d860"},
-][12];
-const RADIUS = 400;
-const Y_FACTOR = 0.1;
-const LINE_WIDTH = 3;
-const CIRCLE_DRAW_SAMPLE_ANGLE = Math.PI / 10;
-const NOISE_X_CLOCK_FACTOR = 0.4; // 0.2
-const NOISE_X_STEP = 2.5;
-const Y_STEP = 10; // 5
-const Y_NEGATIVE_OFFSET = 50;
+const ENABLE_STATS = false;
+
+const Y_NEGATIVE_OFFSET = 250;
+
+const GUISettings = class {
+  // Some other favs:
+  // #a6f6af #66b6ab #4f2958
+  // #cccccc #9f111b #000000
+  // #cad7b2 #ebe3aa #5d4157
+  // #a8a7a7 #e8175d #363636
+  // #e5f04c #a82743 #5c323e
+  bgColor = '#dee1b6';
+  lineColorUp = '#73c8a9';
+  lineColorDown = '#bd5532';
+
+  radius = 300;
+  lineControlPoint = 10;
+  lineWidth = 1;
+  yStep = 3;
+
+  noiseSpeed = 0.2;
+  noiseXStep = 1.0;
+  noiseYFactor = 0.1;
+
+  randomizeColors = () => {
+    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 3);
+    settings.bgColor = randomTwoColors[0];
+    settings.lineColorUp = randomTwoColors[1];
+    settings.lineColorDown = randomTwoColors[2];
+
+    redraw();
+  }
+
+  redraw = () => redraw();
+  saveImage = () => saveImage(resizer.canvas);
+};
 
 
 /**
@@ -56,10 +60,12 @@ const elements = {
 };
 let p: p5;
 const resizer = new CanvasResizer(null, {
-  dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimension: [1024, 1024],
+  dimensionScaleFactor: 1
 });
 const stats = new Stats();
+const settings = new GUISettings();
+const gui = new dat.GUI();
 const clock = new Clock();
 let i = 0;
 
@@ -75,6 +81,28 @@ async function main() {
     p.draw = draw;
   }, elements.container);
 
+  // Settings
+  const lineSettings = gui.addFolder('Line');
+  lineSettings.add(settings, 'radius', 10, 800).step(1).onChange(redraw);
+  lineSettings.add(settings, 'lineControlPoint', 5, 25).step(1).onChange(redraw);
+  lineSettings.add(settings, 'lineWidth', 1, 10).step(1).onChange(redraw);
+  lineSettings.add(settings, 'yStep', 1, 100).step(1).onChange(redraw);
+
+  const noiseSettings = gui.addFolder('Noise');
+  noiseSettings.add(settings, 'noiseSpeed', 0.1, 1).step(0.1).onChange(redraw);
+  noiseSettings.add(settings, 'noiseXStep', 0.1, 10).step(0.1).onChange(redraw);
+  noiseSettings.add(settings, 'noiseYFactor', 0.01, 1).step(0.01).onChange(redraw);
+
+  const viewSettings = gui.addFolder('View');
+  viewSettings.addColor(settings, 'bgColor').listen().onChange(redraw);
+  viewSettings.addColor(settings, 'lineColorUp').listen().onChange(redraw);
+  viewSettings.addColor(settings, 'lineColorDown').listen().onChange(redraw);
+  viewSettings.add(settings, 'randomizeColors');
+
+  gui.add(settings, 'redraw');
+  gui.add(settings, 'saveImage');
+  gui.close();
+
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
@@ -87,13 +115,23 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+  p.frameRate(30);
+  p.background(settings.bgColor);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
+}
 
-  p.pixelDensity(1);
-  // p.frameRate(30);
-  p.background(COLORS.BG);
+
+/**
+ * Redraw again.
+ */
+function redraw() {
+  p.background(settings.bgColor);
+  i = 0;
+  p.loop();
 }
 
 
@@ -104,14 +142,13 @@ function draw() {
   if (ENABLE_STATS) stats.begin();
 
   p.noFill();
-  p.strokeWeight(LINE_WIDTH);
+  p.strokeWeight(settings.lineWidth);
 
   const color = p.lerpColor(
-    p.color(COLORS.UP),
-    p.color(COLORS.DOWN),
+    p.color(settings.lineColorUp),
+    p.color(settings.lineColorDown),
     i / resizer.height
   );
-  // p.stroke(255, 255, 255);
   p.stroke(color);
 
   if (i > resizer.height + (2 * Y_NEGATIVE_OFFSET)) {
@@ -120,7 +157,7 @@ function draw() {
     return;
   }
 
-  const baseX = clock.getElapsedTime() * NOISE_X_CLOCK_FACTOR;
+  const baseX = clock.getElapsedTime() * settings.noiseSpeed;
   const center = {
     x: resizer.width / 2,
     y: resizer.height + Y_NEGATIVE_OFFSET - i
@@ -128,20 +165,20 @@ function draw() {
 
   p.beginShape();
 
-  const sampleCount = 2 * Math.PI / CIRCLE_DRAW_SAMPLE_ANGLE;
+  const sampleCount = 2 * Math.PI / (Math.PI / settings.lineControlPoint);
   times(sampleCount + 3, (j) => {
-    const angle = j * CIRCLE_DRAW_SAMPLE_ANGLE;
-    const noise = p.noise(baseX + NOISE_X_STEP * (j % sampleCount));
+    const angle = j * (Math.PI / settings.lineControlPoint);
+    const noise = p.noise(baseX + settings.noiseXStep * (j % sampleCount));
     const noiseMapped = p.map(noise, 0, 1, 0, 2);
-    const x = center.x + RADIUS * Math.cos(angle) * noiseMapped;
-    const y = center.y + RADIUS * Math.sin(angle) * noiseMapped * Y_FACTOR;
+    const x = center.x + settings.radius * Math.cos(angle) * noiseMapped;
+    const y = center.y + settings.radius * Math.sin(angle) * noiseMapped * settings.noiseYFactor;
 
     p.curveVertex(x, y);
   });
 
   p.endShape();
 
-  i += Y_STEP;
+  i += settings.yStep;
 
   if (ENABLE_STATS) stats.end();
 }
