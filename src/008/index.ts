@@ -1,42 +1,43 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
 import times from 'lodash/times';
-// import sample from 'lodash/sample';
 import Clock from '../utils/clock';
-// import colors from 'nice-color-palettes';
+import colors from 'nice-color-palettes';
+import sampleSize from 'lodash/sampleSize';
 
-
-// Random color selection
-// const COLOR_PALETTE = sample(colors);
-// const COLORS = {
-//   BG: sample(COLOR_PALETTE),
-//   UP: sample(COLOR_PALETTE),
-//   DOWN: sample(COLOR_PALETTE)
-// };
-// console.log(COLORS);
 
 
 /**
  * Constants
  */
-const ENABLE_STATS = true;
-const COLORS = [ // Some pre-selected colors
-  {BG: "#f1edd0", UP: "#f38a8a", DOWN: "#55443d"},
-  {BG: "#151101", UP: "#b3204d", DOWN: "#edf6ee"},
-  {BG: "#edf6ee", UP: "#b3204d", DOWN: "#151101"},
-  {BG: "#3b2d38", UP: "#f02475", DOWN: "#f27435"},
-  {BG: "#f7e4be", UP: "#b38184", DOWN: "#f0b49e"},
-][3];
+const ENABLE_STATS = false;
+
 const PADDING_RATIO = { TOP: 0.15, RIGHT: 0.15, BOTTOM: 0.15, LEFT: 0.15 };
-const LINE_COUNT = 50;
-const HORIZONTAL_SAMPLE_COUNT = 30;
-const LINE_WIDTH = 3;
-const NOISE_X_STEP = 0.20;
-const NOISE_X_CLOCK_FACTOR = 0.4;
-const NOISE_Y_STEP = 0.125;
-const NOISE_Y_INFLUENCE = 17;
-const LEFT_RIGHT_DAMPING_FACTOR = 3;
+
+const GUISettings = class {
+  bgColor = '#3b2d38';
+  lineColorUp = '#f02475';
+  lineColorDown = '#f27435';
+
+  lineCount = 100;
+  lineControlPoint = 50;
+  lineWidth = 1;
+
+  noiseSpeed = 0.4;
+  noiseXStep = 0.20;
+  noiseYStep = 0.075;
+  noiseYFactor = 30;
+  dampingFactor = 3;
+
+  randomizeColors = () => {
+    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 3);
+    settings.bgColor = randomTwoColors[0];
+    settings.lineColorUp = randomTwoColors[1];
+    settings.lineColorDown = randomTwoColors[2];
+  }
+};
 
 
 /**
@@ -48,10 +49,12 @@ const elements = {
 };
 let p: p5;
 const resizer = new CanvasResizer(null, {
-  dimension: 'fullscreen',
+  dimension: [1024, 1024],
   dimensionScaleFactor: window.devicePixelRatio
 });
 const stats = new Stats();
+const settings = new GUISettings();
+const gui = new dat.GUI();
 const clock = new Clock();
 
 
@@ -66,6 +69,28 @@ async function main() {
     p.draw = draw;
   }, elements.container);
 
+  // Settings
+  gui.close();
+
+  const lineSettings = gui.addFolder('Line');
+  lineSettings.add(settings, 'lineCount', 10, 500).step(1);
+  lineSettings.add(settings, 'lineControlPoint', 5, 100).step(1);
+  lineSettings.add(settings, 'lineWidth', 1, 10).step(1);
+
+  const noiseSettings = gui.addFolder('Noise');
+  noiseSettings.add(settings, 'noiseSpeed', 0.1, 1).step(0.1);
+  noiseSettings.add(settings, 'noiseXStep', 0.01, 1).step(0.01);
+  noiseSettings.add(settings, 'noiseYStep', 0.01, 1).step(0.01);
+  noiseSettings.add(settings, 'noiseYFactor', 5, 100).step(1);
+  noiseSettings.add(settings, 'dampingFactor', 0.1, 10).step(0.1);
+
+  const viewSettings = gui.addFolder('View');
+  viewSettings.addColor(settings, 'bgColor').listen();
+  viewSettings.addColor(settings, 'lineColorUp').listen();
+  viewSettings.addColor(settings, 'lineColorDown').listen();
+  viewSettings.add(settings, 'randomizeColors');
+
+
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
@@ -78,12 +103,12 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+  p.frameRate(30);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
-
-  p.pixelDensity(1);
-  p.frameRate(30);
 }
 
 
@@ -93,9 +118,9 @@ function setup() {
 function draw() {
   if (ENABLE_STATS) stats.begin();
 
-  p.background(COLORS.BG);
+  p.background(settings.bgColor);
   p.noFill();
-  p.strokeWeight(LINE_WIDTH);
+  p.strokeWeight(settings.lineWidth);
   p.stroke(255, 255, 255);
 
   const padding = {
@@ -104,32 +129,32 @@ function draw() {
     bottom: resizer.height * PADDING_RATIO.BOTTOM,
     left: resizer.width * PADDING_RATIO.LEFT
   };
-  const baseX = clock.getElapsedTime() * NOISE_X_CLOCK_FACTOR;
-  const lineVerticalMargin = (resizer.height - padding.top - padding.bottom) / (LINE_COUNT - 1);
-  const horizontalSampleWidth = (resizer.width - padding.left - padding.right) / (HORIZONTAL_SAMPLE_COUNT - 1);
+  const baseX = clock.getElapsedTime() * settings.noiseSpeed;
+  const lineVerticalMargin = (resizer.height - padding.top - padding.bottom) / (settings.lineCount - 1);
+  const horizontalSampleWidth = (resizer.width - padding.left - padding.right) / (settings.lineControlPoint - 1);
 
-  times(LINE_COUNT, (i) => {
+  times(settings.lineCount, (i) => {
     p.beginShape();
 
     const color = p.lerpColor(
-      p.color(COLORS.UP),
-      p.color(COLORS.DOWN),
-      p.map(i, 0, LINE_COUNT, 0, 1)
+      p.color(settings.lineColorUp),
+      p.color(settings.lineColorDown),
+      p.map(i, 0, settings.lineCount, 0, 1)
     );
     p.stroke(color);
 
     const baseY = padding.top + (lineVerticalMargin * i);
-    times(HORIZONTAL_SAMPLE_COUNT, (j) => {
+    times(settings.lineControlPoint, (j) => {
       const x = padding.left + (horizontalSampleWidth * j);
 
       const noise = p.noise(
-        baseX + NOISE_X_STEP * j,
-        NOISE_Y_STEP * i
+        baseX + settings.noiseXStep * j,
+        settings.noiseYStep * i
       );
-      const offsetY = (noise - 0.5) * lineVerticalMargin * NOISE_Y_INFLUENCE;
+      const offsetY = (noise - 0.5) * lineVerticalMargin * settings.noiseYFactor;
 
-      const dampingFactorLeft = 1 - (1 / Math.pow(Math.E, j / HORIZONTAL_SAMPLE_COUNT * LEFT_RIGHT_DAMPING_FACTOR));
-      const dampingFactorRight = 1 - (1 / Math.pow(Math.E, (1 - (j / HORIZONTAL_SAMPLE_COUNT)) * LEFT_RIGHT_DAMPING_FACTOR));
+      const dampingFactorLeft = 1 - (1 / Math.pow(Math.E, j / settings.lineControlPoint * settings.dampingFactor));
+      const dampingFactorRight = 1 - (1 / Math.pow(Math.E, (1 - (j / settings.lineControlPoint)) * settings.dampingFactor));
 
       const y = baseY + offsetY * dampingFactorLeft * dampingFactorRight;
       p.curveVertex(x, y);
