@@ -19,13 +19,16 @@ import toiletColorMapPath from './assets/toilet_color.jpg';
 /**
  * Constants
  */
-const ENABLE_STATS = true;
-const ENABLE_ORBIT_CONTROLS = true;
+const ENABLE_STATS = false;
+const ENABLE_ORBIT_CONTROLS = false;
 
 const GRAVITY = -9.8;
 const MARGIN = 0.05;
-const TEXT_BB_SEGMENTS = [8, 4, 1];
+const TEXT_BB_SEGMENTS = [8, 4, 1]; // Soft-body segment count, [1, 1, 1] means rigid-body (no bending capabilities)
 const ENABLE_SHADOWS = false;
+const SOFT_BODY_MASS = 1;
+const SOFT_BODY_PRESSURE = 25;
+const TEXT_SPAWN_INTERVAL = 1000;
 
 
 /**
@@ -37,7 +40,7 @@ const elements = {
 };
 const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
 const resizer = new CanvasResizer(renderer.domElement, {
-  dimension: 'fullscreen',
+  dimension: [1024, 1024],
   dimensionScaleFactor: window.devicePixelRatio
 });
 const animator = new Animator(animate);
@@ -104,7 +107,7 @@ async function main() {
   }
 
   camera.position.set(15, 5, 25);
-  camera.lookAt(new THREE.Vector3(-100, 100, 0));
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
@@ -214,7 +217,7 @@ function generateAndAddSoftBody(
 
   decorator(bBoxGeometry);
 
-  const volume = createSoftBody(bBoxGeometry, 2, 1);
+  const volume = createSoftBody(bBoxGeometry, SOFT_BODY_MASS, SOFT_BODY_PRESSURE);
 
   bBoxGeometryTemp.translate(bBoxWidth / 2, bBoxHeight / 2, bBoxDepth / 2);
   bBoxGeometryTemp.mergeVertices();
@@ -413,7 +416,7 @@ const addTextThrottled = throttle(() => {
     // geometry.rotateX((Math.random() - 0.5) * Math.PI / 8);
     // geometry.rotateZ((Math.random() - 0.5) * Math.PI / 8);
   });
-}, 1000);
+}, TEXT_SPAWN_INTERVAL);
 
 
 /**
