@@ -35,8 +35,20 @@ export default class VideoReader {
   }
 
 
+  async jumpToBegining() {
+    this.video.currentTime = 0;
+    await waitEvent(this.video, 'seeked');
+    this.draw();
+  }
+
+
   read() {
     return this.canvasContext.getImageData(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+
+  setFPS(fps: number) {
+    this.fps = fps;
   }
 
 

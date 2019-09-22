@@ -1,23 +1,37 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
 import VideoReader from '../utils/video-reader';
 import videoPath from './yt_cgm5nEdnuhE.mp4';
 import oflow from 'oflow';
-import CanvasRecorder from '../utils/canvas-recorder';
 
 
 
 /**
  * Constants
  */
-const VIDEO_SIZE = [1280, 720];
-const FPS = 30;
-const ZONE_SIZE = 1;
-const BG_ALPHA = 50; // max 255
-const STROKE_WIDTH = 1;
-const STROKE_ALPHA = 200; // max 255
 const ENABLE_STATS = true;
+const VIDEO_SIZE = [1280, 720];
+
+const GUISettings = class {
+  fps = 30;
+  zoneSize = 1;
+  bgAlpha = 50;
+  strokeWidth = 1;
+  strokeAlpha = 200;
+
+  play = async () => {
+    cancelAnimationFrame(rAF);
+    await videoReader.jumpToBegining();
+    draw();
+  }
+
+  stop = () => {
+    cancelAnimationFrame(rAF);
+    console.log('Stopped');
+  }
+};
 
 
 /**
@@ -33,10 +47,11 @@ const resizer = new CanvasResizer(null, {
   dimensionScaleFactor: 1
 });
 const stats = new Stats();
-const videoReader = new VideoReader(videoPath, FPS);
-const flowCalculator = new oflow.FlowCalculator(ZONE_SIZE);
+const settings = new GUISettings();
+const gui = new dat.GUI();
+const videoReader = new VideoReader(videoPath, settings.fps);
+let flowCalculator = new oflow.FlowCalculator(settings.zoneSize);
 let frame: ImageData;
-let canvasRecorder: CanvasRecorder;
 
 
 
@@ -45,12 +60,23 @@ let canvasRecorder: CanvasRecorder;
  */
 async function main() {
   await videoReader.init();
-  // videoReader.video.currentTime = 60;
 
   new p5((p_) => {
     p = p_;
     p.setup = setup;
   }, elements.container);
+
+  // Settings
+  gui.add(settings, 'fps', 1, 30).step(1).onChange(val => videoReader.setFPS(val));
+  gui.add(settings, 'zoneSize', 1, 30).step(1).onChange((val) => {
+    flowCalculator = new oflow.FlowCalculator(val);
+  });
+  gui.add(settings, 'bgAlpha', 1, 255).step(1);
+  gui.add(settings, 'strokeWidth', 1, 25).step(1);
+  gui.add(settings, 'strokeAlpha', 1, 255).step(1);
+  gui.add(settings, 'play');
+  gui.add(settings, 'stop');
+  // gui.close();
 
   if (ENABLE_STATS) {
     stats.showPanel(0);
@@ -64,33 +90,26 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
-
-  p.pixelDensity(1);
 
   frame = videoReader.read();
   p.background('#000000');
 
   // CCapture.js hooks video.currentTime, so this is a workaround for recording videos
   Object.freeze(HTMLVideoElement.prototype);
-  canvasRecorder = new CanvasRecorder(p.canvas, videoReader.video.duration * 1000, FPS);
-  // canvasRecorder = new CanvasRecorder(p.canvas, 60000, FPS);
-  // canvasRecorder.start();
-  canvasRecorder.onEnded = () => {
-    console.log('record ended');
-  };
 
   // draw();
 }
 
 
-
+let rAF: number;
 async function draw() {
   if (videoReader.video.ended) {
     console.log('video ended');
-    canvasRecorder.capture();
     return;
   }
 
@@ -99,28 +118,26 @@ async function draw() {
   const prevFrame = frame;
   await videoReader.nextFrame();
   frame = videoReader.read();
-  console.log(videoReader.video.currentTime);
+  console.log('Current time', videoReader.video.currentTime);
 
   const flow = flowCalculator.calculate(prevFrame.data, frame.data, frame.width, frame.height);
 
-  p.background(p.color(0, 0, 0, BG_ALPHA));
+  p.background(p.color(0, 0, 0, settings.bgAlpha));
   flow.zones.forEach((zone) => {
     // const shouldSkip = Math.abs(zone.u) < DISPLACEMENT_THRESHOLD || Math.abs(zone.v) < DISPLACEMENT_THRESHOLD;
     // if (shouldSkip) return;
 
     const i = (zone.y * frame.width + zone.x) * 4;
-    const color = p.color(frame.data[i + 0], frame.data[i + 1], frame.data[i + 2], STROKE_ALPHA);
+    const color = p.color(frame.data[i + 0], frame.data[i + 1], frame.data[i + 2], settings.strokeAlpha);
     p.stroke(color);
-    p.strokeWeight(STROKE_WIDTH);
+    p.strokeWeight(settings.strokeWidth);
     p.line(zone.x, zone.y, zone.x - zone.u, zone.y + zone.v);
   });
 
 
   if (ENABLE_STATS) stats.end();
-  canvasRecorder.capture();
-  requestAnimationFrame(draw);
+  rAF = requestAnimationFrame(draw);
 }
-(window as any).go = draw;
 
 
 /**
@@ -128,11 +145,6 @@ async function draw() {
  */
 function onWindowResize(width: number, height: number) {
   p.resizeCanvas(width, height);
-}
-
-
-function spatial2index(x: number, y: number, width: number, height: number) {
-  return y * width + x;
 }
 
 
