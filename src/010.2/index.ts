@@ -1,24 +1,37 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
+import saveImage from '../utils/canvas-save-image';
 import times from 'lodash/times';
 import sampleSize from 'lodash/sampleSize';
+import throttle from 'lodash/throttle';
 import randomColor from 'randomcolor';
-import Entity from '../010/entity/line-curve';
 
 
 /**
  * Constants
  */
-const ENABLE_STATS = true;
+const ENABLE_STATS = false;
 const MARGIN = [150, 150];
-const SAMPLE_COUNT = [25, 25];
-const STROKE_WIDTH_RANGE = { MIN: 3, MAX: 7 };
-const LINE_COUNT = 3;
-const LINE_POINT_CURVE_COUNT = 10;
-const LINE_ALPHA = 0.75;
-const GRID = [5, 5];
-const GRID_SPACING = [75, 75];
+
+const GUISettings = class {
+  gridCount = 5;
+  gridSpacing = 75;
+
+  innerGridCount = 25;
+  minStrokeWidth = 3;
+  maxStrokeWidth = 7;
+  lineCount = 3;
+  lineCurvePoint = 10;
+  lineAlpha = 0.75;
+
+  hue = 'all';
+  luminosity = 'light';
+
+  saveImage = () => saveImage(resizer.canvas);
+  redraw = () => redrawThrottle();
+};
 
 
 /**
@@ -34,6 +47,8 @@ const resizer = new CanvasResizer(null, {
   dimensionScaleFactor: 1
 });
 const stats = new Stats();
+const settings = new GUISettings();
+const gui = new dat.GUI();
 
 let coords: {x: number[], y: number[]}[];
 
@@ -61,22 +76,47 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
 
-  // p.pixelDensity(1);
+  // Settings
+  gui.add(settings, 'gridCount', 1, 20).step(1).onChange(redrawThrottle);
+  gui.add(settings, 'gridSpacing', 10, 100).step(1).onChange(redrawThrottle);
+  gui.add(settings, 'innerGridCount', 3, 50).step(1).onChange(redrawThrottle);
+  gui.add(settings, 'minStrokeWidth', 1, 5).step(1).onChange(redrawThrottle);
+  gui.add(settings, 'maxStrokeWidth', 5, 15).step(1).onChange(redrawThrottle);
+  gui.add(settings, 'lineCount', 1, 10).step(1).onChange(redrawThrottle);
+  gui.add(settings, 'lineCurvePoint', 3, 25).step(1).onChange(redrawThrottle);
+  gui.add(settings, 'lineAlpha', 0.1, 1.0).step(0.01).onChange(redrawThrottle);
+  gui.add(settings, 'hue', ['all', 'monochrome', 'red', 'orange', 'yellow', 'green', 'blue','purple', 'pink', 'random']).onChange(redrawThrottle);
+  gui.add(settings, 'luminosity', ['all', 'light', 'dark', 'random']).onChange(redrawThrottle);
+  gui.add(settings, 'saveImage');
+  gui.add(settings, 'redraw');
+  gui.close();
 
+  configure();
+}
+
+
+const redrawThrottle = throttle(() => {
+  configure();
+  p.loop();
+}, 250);
+
+
+function configure() {
   coords = [];
-  const gridWidth = (resizer.width - (2 * MARGIN[0]) - ((GRID[0] - 1) * GRID_SPACING[0])) / GRID[0];
-  const gridHeight = (resizer.height - (2 * MARGIN[1]) - ((GRID[1] - 1) * GRID_SPACING[1])) / GRID[1];
-  for (let y = 0; y < GRID[1]; y++) {
-    for (let x = 0; x < GRID[0]; x++) {
-      const minX = MARGIN[0] + (x * (gridWidth + GRID_SPACING[0]));
-      const minY = MARGIN[1] + (y * (gridHeight + GRID_SPACING[1]));
+  const gridWidth = (resizer.width - (2 * MARGIN[0]) - ((settings.gridCount - 1) * settings.gridSpacing)) / settings.gridCount;
+  const gridHeight = (resizer.height - (2 * MARGIN[1]) - ((settings.gridCount - 1) * settings.gridSpacing)) / settings.gridCount;
+  for (let y = 0; y < settings.gridCount; y++) {
+    for (let x = 0; x < settings.gridCount; x++) {
+      const minX = MARGIN[0] + (x * (gridWidth + settings.gridSpacing));
+      const minY = MARGIN[1] + (y * (gridHeight + settings.gridSpacing));
       coords.push({
-        x: times(SAMPLE_COUNT[0], i => p.lerp(minX, minX + gridWidth, i / SAMPLE_COUNT[0])),
-        y: times(SAMPLE_COUNT[1], i => p.lerp(minY, minY + gridHeight, i / SAMPLE_COUNT[1]))
+        x: times(settings.innerGridCount, i => p.lerp(minX, minX + gridWidth, i / settings.innerGridCount)),
+        y: times(settings.innerGridCount, i => p.lerp(minY, minY + gridHeight, i / settings.innerGridCount))
       });
     }
   }
@@ -99,24 +139,24 @@ function draw() {
     // });
 
 
-    times(LINE_COUNT, (i) => {
-      const xCoords = sampleSize(x, LINE_POINT_CURVE_COUNT);
-      const yCoords = sampleSize(y, LINE_POINT_CURVE_COUNT);
+    times(settings.lineCount, (i) => {
+      const xCoords = sampleSize(x, settings.lineCurvePoint);
+      const yCoords = sampleSize(y, settings.lineCurvePoint);
 
       const color = randomColor({
         format: 'rgba',
-        // hue: 'blue',
-        luminosity: 'light',
-        alpha: LINE_ALPHA
+        hue: settings.hue == 'all' ? null : settings.hue,
+        luminosity: settings.luminosity == 'all' ? null : settings.luminosity,
+        alpha: settings.lineAlpha
       });
       p.stroke(color);
-      p.strokeWeight(p.lerp(STROKE_WIDTH_RANGE.MAX, STROKE_WIDTH_RANGE.MIN, Math.pow(i / LINE_COUNT, 1 / 3)));
+      p.strokeWeight(p.lerp(settings.maxStrokeWidth, settings.minStrokeWidth, Math.pow(i / settings.lineCount, 1 / 3)));
 
       // p.line(xCoords[0], yCoords[0], xCoords[1], yCoords[1]);
 
       p.noFill();
       p.beginShape();
-      times(LINE_POINT_CURVE_COUNT, i => p.curveVertex(xCoords[i], yCoords[i]));
+      times(settings.lineCurvePoint, i => p.curveVertex(xCoords[i], yCoords[i]));
       p.endShape();
     });
 
