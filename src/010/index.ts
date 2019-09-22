@@ -1,30 +1,53 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
+import saveImage from '../utils/canvas-save-image';
 import times from 'lodash/times';
 import find from 'lodash/find';
 import sampleSize from 'lodash/sampleSize';
+import throttle from 'lodash/throttle';
+import values from 'lodash/values';
 import randomColor from 'randomcolor';
 import ml5 from 'ml5';
 import Entity from './entity/line-curve';
+import { IMAGENET_CLASSES } from './classes';
 
 
 /**
  * Constants
  */
-const ENABLE_STATS = true;
+const ENABLE_STATS = false;
 const MARGIN = 200;
-const SAMPLE_COUNT = 50;
-const STROKE_WIDTH_RANGE = { MIN: 5, MAX: 100 };
-const LINE_COUNT = 4;
-const LINE_POINT_CURVE_COUNT = 5;
-const CLASS_NAME = 'banana';
-const LINE_ALPHA = 0.5;
 
-const POPULATION_COUNT = 500;
-const MUTATION_RATE = 0.20;
-const GENERATION_LIMIT = 200;
-const SCORE_LIMIT = 0.95;
+const GUISettings = class {
+  targetClass = 'all';
+
+  gridSize = 50;
+  minStrokeWidth = 5;
+  maxStrokeWidth = 100;
+  lineCount = 4;
+  linePointCurvePoint = 5;
+  lineAlpha = 0.5;
+  randomColorCount = 25;
+
+  populationCount = 500;
+  mutationRate = 0.20;
+  maxGeneration = 10;
+  matchThreshold = 0.90;
+
+  saveImage = () => {
+    saveImage(resizer.canvas);
+  }
+
+  restart = () => {
+    restart();
+  }
+
+  stop = () => {
+    shouldStop = true;
+  };
+};
 
 
 /**
@@ -36,21 +59,25 @@ const elements = {
 };
 let p: p5;
 const resizer = new CanvasResizer(null, {
-  dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimension: [1080, 1080],
+  dimensionScaleFactor: 1
 });
 const stats = new Stats();
+const settings = new GUISettings();
+const gui = new dat.GUI();
+
 
 /**
  * Experiment variables
  */
 let classifier;
 let canvas: HTMLCanvasElement;
-let population: {entity: Entity, score: number}[];
+let population: {entity: Entity, bestPrediction: {label: string, confidence: number}}[];
 let validXCoords: number[];
 let validYCoords: number[];
 let validLineWidths: number[];
 let validColors: string[];
+let shouldStop = false;
 
 
 /**
@@ -62,6 +89,23 @@ async function main() {
     p.setup = setup;
     // p.draw = draw;
   }, elements.container);
+
+  gui.add(settings, 'targetClass', ['all'].concat(values(IMAGENET_CLASSES))).onChange(restart);
+  gui.add(settings, 'gridSize', 3, 100).step(1).onChange(restart);
+  gui.add(settings, 'minStrokeWidth', 1, 10).step(1).onChange(restart);
+  gui.add(settings, 'maxStrokeWidth', 10, 500).step(1).onChange(restart);
+  gui.add(settings, 'lineCount', 1, 25).step(1).onChange(restart);
+  gui.add(settings, 'lineAlpha', 0.1, 1).step(0.01).onChange(restart);
+  gui.add(settings, 'linePointCurvePoint', 1, 50).step(1).onChange(restart);
+  gui.add(settings, 'randomColorCount', 1, 50).step(1).onChange(restart);
+  gui.add(settings, 'populationCount', 100, 1000).step(1);
+  gui.add(settings, 'mutationRate', 0.1, 0.99).step(0.01);
+  gui.add(settings, 'maxGeneration', 1, 100).step(1);
+  gui.add(settings, 'matchThreshold', 0.1, 0.99).step(0.01);
+  gui.add(settings, 'saveImage');
+  gui.add(settings, 'restart');
+  gui.add(settings, 'stop');
+  gui.close();
 
   if (ENABLE_STATS) {
     stats.showPanel(0);
@@ -75,89 +119,71 @@ async function main() {
  */
 async function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   canvas = resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
 
-  p.pixelDensity(1);
-
   // Start experimenting
+  p.noStroke();
+  p.strokeWeight(1);
+  p.fill('#000');
+  p.textFont('Courier');
+  p.textSize(24);
+  p.textAlign(p.CENTER);
+  p.text('Model loading...', p.width / 2, p.height * 0.9);
+
   classifier = ml5.imageClassifier('MobileNet', onModelLoaded.bind(this));
+  applyConfigrations();
+}
 
-  validXCoords = times(SAMPLE_COUNT, i => p.lerp(MARGIN, resizer.width - MARGIN, i / SAMPLE_COUNT));
-  validYCoords = times(SAMPLE_COUNT, i => p.lerp(MARGIN, resizer.height - MARGIN, i / SAMPLE_COUNT));
-  validLineWidths = times(10, i => Math.round(STROKE_WIDTH_RANGE.MIN + Math.random() * (STROKE_WIDTH_RANGE.MAX - STROKE_WIDTH_RANGE.MIN)));
-  const mainColors = await searchColorPalette();
+
+const restart = throttle(() => {
+  shouldStop = true;
+  setTimeout(() => {
+    shouldStop = false;
+    applyConfigrations();
+    generationStep();
+  }, 300);
+}, 350);
+
+
+function applyConfigrations() {
+  validXCoords = times(settings.gridSize, i => p.lerp(MARGIN, resizer.width - MARGIN, i / settings.gridSize));
+  validYCoords = times(settings.gridSize, i => p.lerp(MARGIN, resizer.height - MARGIN, i / settings.gridSize));
+  validLineWidths = times(10, i => Math.round(settings.minStrokeWidth + Math.random() * (settings.maxStrokeWidth - settings.minStrokeWidth)));
+
   validColors = randomColor({
-    count: 10,
-    hue: 'monochrome',
+    count: settings.randomColorCount,
     format: 'rgba',
-    alpha: LINE_ALPHA
-  }).concat(mainColors);
+    alpha: settings.lineAlpha
+  });
 
-  population = times(POPULATION_COUNT, () => {
+  population = times(settings.populationCount, () => {
     const entity = Entity.create(
-      LINE_COUNT,
-      LINE_POINT_CURVE_COUNT,
+      settings.lineCount,
+      settings.linePointCurvePoint,
       validXCoords,
       validYCoords,
       validLineWidths,
       validColors
     );
 
-    return { entity, score: null };
+    return { entity, bestPrediction: null };
   });
-
-  generationStep();
 }
 
 
 function onModelLoaded() {
-  console.log('model loaded')
+  console.log('model loaded, starting');
+  generationStep();
 }
 
 
-async function searchColorPalette(topCount = 10, randomCount = 100) {
-  const colors = randomColor({
-    count: randomCount,
-    format: 'rgba',
-    alpha: LINE_ALPHA
-  });
-  const results = [];
-
-  for (let i = 0; i < colors.length; i++) {
-    const color = colors[i];
-    p.background(color);
-    const score = await predict(CLASS_NAME);
-    results.push({ color, score });
-  }
-
-  const resultsSorted = results.sort((a, b) => b.score - a.score);
-
-  return resultsSorted.slice(0, topCount).map(i => i.color);
-}
-
-
-async function predict(className?: string) {
+async function predict() {
   const results = await classifier.predict(canvas, 1000);
-  if (!className) return results;
-  const result = find(results, r => r.className == className);
-  return result ? result.probability : null;
-}
-
-
-function randomSketch() {
-  p.background('#ffffff');
-
-  const entity = Entity.create(
-    LINE_COUNT,
-    5,
-    validXCoords,
-    validYCoords,
-    validLineWidths,
-    validColors
-  );
-  entity.draw(p);
+  return results;
 }
 
 
@@ -168,36 +194,63 @@ async function generationStep(n = 1) {
     const item = population[i];
     p.background('#ffffff');
     item.entity.draw(p);
-    item.score = await predict(CLASS_NAME);
+    const predictions = await predict();
+
+    if (settings.targetClass == 'all') {
+      item.bestPrediction = predictions[0];
+    } else {
+      item.bestPrediction = find(predictions, r => r.label == settings.targetClass);
+    }
+
+    const TEXT_SIZE = 24;
+    p.noStroke();
+    p.strokeWeight(1);
+    p.fill('#000');
+    p.textFont('Courier');
+    p.textSize(TEXT_SIZE);
+    p.textAlign(p.CENTER);
+    const score = (item.bestPrediction.confidence * 100).toFixed(2);
+    p.text(`${score}%`, p.width / 2, p.height * 0.9);
+    p.text(item.bestPrediction.label, p.width / 2, (p.height * 0.9) + (TEXT_SIZE * 1.25));
+
     if (ENABLE_STATS) stats.end();
+
+    if (item.bestPrediction.confidence >= settings.matchThreshold) {
+      console.log('Matched', item.bestPrediction);
+      return;
+    }
+
+    if (shouldStop) {
+      shouldStop = false;
+      return;
+    }
   }
 
   // Sort by fitness scores
   const populationSorted = population.sort((a, b) => {
-    return b.score - a.score;
+    return b.bestPrediction.confidence - a.bestPrediction.confidence;
   });
 
-  const bestScore = populationSorted[0].score;
-  console.log(`Generation ${n} - Best score: ${bestScore}`);
+  console.log(`Generation ${n} - Best prediction:`, populationSorted[0].bestPrediction);
 
   // End
-  if (n >= GENERATION_LIMIT || bestScore >= SCORE_LIMIT) {
-    const bestEntity = populationSorted[0].entity;
-    bestEntity.draw(p);
-    console.log('Ended, best entity', bestEntity);
+  if (n >= settings.maxGeneration) {
+    const best = populationSorted[0].entity;
+    best.draw(p);
+    console.log('Ended, best entity', best);
     return;
   }
 
   // Built mating pool
   const matingPool: Entity[] = [];
-  const totalFitnessScore = populationSorted.reduce((acc, a) => acc + a.score, 0);
-  for (let i = 0; i < POPULATION_COUNT; i++) {
+  const totalFitnessScore = populationSorted.reduce((acc, a) => acc + a.bestPrediction.confidence, 0);
+  for (let i = 0; i < settings.populationCount; i++) {
     const rand = Math.random() * totalFitnessScore;
     let acc = 0;
 
     for (let j = 0; j < populationSorted.length; j++) {
       const item = populationSorted[j];
-      acc += item.score;
+      acc += item.bestPrediction.confidence;
       if (acc > rand) {
         matingPool.push(item.entity);
         break;
@@ -206,19 +259,19 @@ async function generationStep(n = 1) {
   }
 
   // Build new population
-  const newPopulation: {entity: Entity, score: number}[] = [];
-  for (let i = 0; i < POPULATION_COUNT / 2; i++) {
+  const newPopulation: any[] = [];
+  for (let i = 0; i < settings.populationCount / 2; i++) {
     const [ mother, father ] = sampleSize(matingPool, 2);
     const [ child1, child2 ] = Entity.crossover(mother, father);
 
-    times(LINE_COUNT, () => {
-      if (Math.random() < MUTATION_RATE) child1.mutate();
-      if (Math.random() < MUTATION_RATE) child2.mutate();
+    times(settings.lineCount, () => {
+      if (Math.random() < settings.mutationRate) child1.mutate();
+      if (Math.random() < settings.mutationRate) child2.mutate();
     });
 
     newPopulation.push(
-      { entity: child1, score: null },
-      { entity: child2, score: null }
+      { entity: child1 },
+      { entity: child2 }
     );
   }
 
