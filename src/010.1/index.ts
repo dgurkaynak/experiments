@@ -4,13 +4,12 @@ import CanvasResizer from '../utils/canvas-resizer';
 import times from 'lodash/times';
 import sampleSize from 'lodash/sampleSize';
 import randomColor from 'randomcolor';
-import Entity from '../010/entity/line-curve';
 
 
 /**
  * Constants
  */
-const ENABLE_STATS = true;
+const ENABLE_STATS = false;
 const MARGIN = 150;
 const SAMPLE_COUNT = 50;
 const STROKE_WIDTH_RANGE = { MIN: 5, MAX: 250 };
@@ -28,8 +27,8 @@ const elements = {
 };
 let p: p5;
 const resizer = new CanvasResizer(null, {
-  dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimension: [1080, 1080],
+  dimensionScaleFactor: 1
 });
 const stats = new Stats();
 
@@ -60,11 +59,11 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
-
-  p.pixelDensity(1);
 
   validXCoords = times(SAMPLE_COUNT, i => p.lerp(MARGIN, resizer.width - MARGIN, i / SAMPLE_COUNT));
   validYCoords = times(SAMPLE_COUNT, i => p.lerp(MARGIN, resizer.height - MARGIN, i / SAMPLE_COUNT));
