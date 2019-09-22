@@ -1,18 +1,46 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
+import saveImage from '../utils/canvas-save-image';
 import VideoReader from '../utils/video-reader';
 import videoPath from './rotate_hd_1280_lossless.mp4';
-// import CanvasRecorder from '../utils/canvas-recorder';
+import isBoolean from 'lodash/isBoolean';
 
 
 
 /**
  * Constants
  */
-const VIDEO_SIZE = [1280, 720];
-const FPS = 30;
 const ENABLE_STATS = true;
+const VIDEO_SIZE = [1280, 720];
+
+
+const GUISettings = class {
+  fps = 30;
+  lineHeight = 5;
+  sinPeriod = 20;
+
+  saveImage = async () => {
+    saveImage(resizer.canvas);
+  }
+
+  play = () => {
+    shouldStop = true;
+    setTimeout(async () => {
+      shouldStop = false;
+      await videoReader.jumpToBegining();
+      const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
+      pContext.drawImage(videoReader.canvas, 0, 0);
+      draw(true);
+    }, 250);
+  }
+
+  stop = () => {
+    shouldStop = true;
+    console.log('Stopped');
+  }
+};
 
 
 /**
@@ -28,9 +56,11 @@ const resizer = new CanvasResizer(null, {
   dimensionScaleFactor: 1
 });
 const stats = new Stats();
-const videoReader = new VideoReader(videoPath, FPS);
-// let canvasRecorder: CanvasRecorder;
+const settings = new GUISettings();
+const gui = new dat.GUI();
+const videoReader = new VideoReader(videoPath, settings.fps);
 let frameCounter = 0;
+let shouldStop = false;
 
 
 
@@ -45,6 +75,15 @@ async function main() {
     p.setup = setup;
   }, elements.container);
 
+  // Settings
+  gui.add(settings, 'fps', 1, 30).step(1).onChange(val => videoReader.setFPS(val));
+  gui.add(settings, 'lineHeight', 1, 100).step(1);
+  gui.add(settings, 'sinPeriod', 1, 30).step(1);
+  gui.add(settings, 'saveImage');
+  gui.add(settings, 'play');
+  gui.add(settings, 'stop');
+  gui.close();
+
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
@@ -57,25 +96,20 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
 
-  p.pixelDensity(1);
-
   const frame = videoReader.read();
-  const pContext: CanvasRenderingContext2D = p.drawingContext;
+  const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
   pContext.putImageData(frame, 0, 0);
 
   p.blendMode(p.DIFFERENCE);
 
   // CCapture.js hooks video.currentTime, so this is a workaround for recording videos
   Object.freeze(HTMLVideoElement.prototype);
-  // canvasRecorder = new CanvasRecorder(p.canvas, videoReader.video.duration * 1000, FPS);
-  // canvasRecorder.start();
-  // canvasRecorder.onEnded = () => {
-  //   console.log('record ended');
-  // };
 
   draw(true);
 }
@@ -83,9 +117,10 @@ function setup() {
 
 
 async function draw(loop = false) {
+  loop = isBoolean(loop) ? loop : false;
+
   if (videoReader.video.ended) {
     console.log('video ended');
-    // canvasRecorder.capture();
     return;
   }
 
@@ -93,42 +128,16 @@ async function draw(loop = false) {
 
   await videoReader.nextFrame();
   const frame = videoReader.read();
-  console.log(videoReader.video.currentTime);
+  console.log('Current time', videoReader.video.currentTime);
 
-  const pContext: CanvasRenderingContext2D = p.drawingContext;
+  const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
   pContext.putImageData(frame, 0, 0);
-
-
-
-  // draw horizontal difference line random to random
-  // DO NOT FORGET => p.blendMode(p.DIFFERENCE);
-  // for (let y = 0; y <= frame.height; y++) {
-  //   if (Math.random() < 0.25) continue;
-
-  //   const x = Math.floor(Math.random() * frame.width);
-  //   const i = spatial2index(x, y, frame.width, frame.height) * 4;
-
-  //   const color = p.color(
-  //     frame.data[i + 0],
-  //     frame.data[i + 1],
-  //     frame.data[i + 2]
-  //   );
-  //   p.stroke(color);
-  //   p.strokeCap(p.PROJECT);
-  //   p.strokeWeight(3 + Math.floor(Math.random() * 5));
-  //   p.line(x, y, randomIntegerBetween(x, frame.width - 1), y);
-  // }
-
-
 
   // for every line, reference the center color and apply difference to whole line
   // reference pixel ossilates around the center
-  // DO NOT FORGET => p.blendMode(p.DIFFERENCE);
-  const LINE_HEIGHT = 1;
-  // const LINE_HEIGHT = 3 + Math.floor(Math.random() * 10);
-  for (let y = 0; y <= frame.height; y = y + LINE_HEIGHT) {
+  for (let y = 0; y <= frame.height; y = y + settings.lineHeight) {
     // const refX = frame.width / 2;
-    const xOffset = Math.round(Math.sin(y / frame.height * 2 * Math.PI + (frameCounter / 20 * Math.PI)) * 100);
+    const xOffset = Math.round(Math.sin(y / frame.height * 2 * Math.PI + (frameCounter / settings.sinPeriod * Math.PI)) * 100);
     const refX = frame.width / 2 + xOffset;
     const i = spatial2index(refX, y, frame.width, frame.height) * 4;
 
@@ -139,18 +148,21 @@ async function draw(loop = false) {
     );
     p.stroke(color);
     p.strokeCap(p.PROJECT);
-    p.strokeWeight(LINE_HEIGHT);
+    p.strokeWeight(settings.lineHeight);
+
     p.line(0, y, frame.width - 1, y);
   }
 
-
-
   frameCounter++;
   if (ENABLE_STATS) stats.end();
-  // canvasRecorder.capture();
-  loop && requestAnimationFrame(draw);
+
+  if (shouldStop) {
+    shouldStop = false;
+    return;
+  }
+
+  loop && requestAnimationFrame(() => draw(true));
 }
-// (window as any).go = draw;
 
 
 /**
@@ -163,11 +175,6 @@ function onWindowResize(width: number, height: number) {
 
 function spatial2index(x: number, y: number, width: number, height: number) {
   return y * width + x;
-}
-
-
-function randomIntegerBetween(a: number, b: number) {
-  return Math.round(a + Math.random() * (b - a));
 }
 
 
