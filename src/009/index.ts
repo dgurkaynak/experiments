@@ -1,15 +1,19 @@
 // Needed for Matter.Bodies.fromVertices() function
-(<any>global).decomp = require('poly-decomp');
+(global as any).decomp = require('poly-decomp');
 require('pathseg');
 
 import Two from 'two.js';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
 import Animator from '../utils/animator';
 import Matter from 'matter-js';
 import * as opentype from 'opentype.js';
-import Letter from './letter';
 import Line from './line';
+import * as colorHelper from '../utils/color-helper';
+import colors from 'nice-color-palettes';
+import sampleSize from 'lodash/sampleSize';
+import saveImage from '../utils/canvas-save-image';
 
 import fontPath from './ModernSans-Light.otf';
 
@@ -17,16 +21,34 @@ import fontPath from './ModernSans-Light.otf';
 /**
  * Constants
  */
-const ENABLE_STATS = true;
-const TEXT = [
-  'YOU MAKE ME',
-  'LAUGH, BUT IT\'S',
-  'NOT FUNNY.'
-];
+const ENABLE_STATS = false;
 const LINE_HEIGHT = 150;
-const COLORS = {
-  BG: '#000000',
-  FONT: '#ffffff'
+
+const GUISettings = class {
+  text = `I CAN ONLY_NOTE THAT_THE PAST IS_BEAUTIFUL_BECAUSE_ONE NEVER_REALIZES_AN EMOTION_`
+    + `AT THE TIME_IT EXPANDS_LATER,_AND THUS_WE DON'T_HAVE COMPLETE_EMOTIONS_ABOUT_THE PRESENT,_`
+    + `ONLY ABOUT_THE PAST.`;
+  newLineSeperator = '_';
+  dropTimeout = 750;
+
+  // Other favs:
+  // #5c5863 #b4dec1 #ff1f4c
+  // #f5f4d7 #e0dfb1 #951f2b
+  // #fff7bd #f2f26f #f04155
+  bgColor = '#542437';
+  fontColorLatest = '#ecd078';
+  fontColorFirst = '#c02942';
+
+  randomizeColors = () => {
+    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 3);
+    settings.bgColor = randomTwoColors[0];
+    settings.fontColorLatest = randomTwoColors[1];
+    settings.fontColorFirst = randomTwoColors[2];
+    redraw();
+  }
+
+  redraw = () => redraw();
+  saveImage = () => saveImage(resizer.canvas);
 };
 
 
@@ -37,7 +59,7 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-const resizer = new CanvasResizer(null, { dimension: 'fullscreen' });
+const resizer = new CanvasResizer(null, { dimension: [1080, 1080] });
 const two = new Two({
   type: Two.Types.canvas,
   width: resizer.width,
@@ -45,15 +67,19 @@ const two = new Two({
   ratio: window.devicePixelRatio
 });
 const stats = new Stats();
+const settings = new GUISettings();
+const gui = new dat.GUI();
 const animator = new Animator(animate);
 
 
 /**
  * Experiment variables
  */
-const lines: Line[] = [];
-const engine = Matter.Engine.create();
+let font: opentype.Font;
+let lines: Line[] = [];
+const engine = Matter.Engine.create({ enableSleeping: true });
 // const render = Matter.Render.create({ engine, element: elements.container });
+let timeouts: any[] = [];
 
 
 /**
@@ -65,42 +91,99 @@ async function main() {
   resizer.resize = onWindowResize;
   resizer.init();
 
+  // Settings
+  gui.add(settings, 'text').onFinishChange(redraw);
+  gui.add(settings, 'newLineSeperator').onFinishChange(redraw);
+  gui.add(settings, 'dropTimeout', 500, 2500).step(1).onFinishChange(redraw);
+  gui.close();
+
+  const viewSettings = gui.addFolder('View');
+  viewSettings.addColor(settings, 'bgColor').listen().onFinishChange(redraw);
+  viewSettings.addColor(settings, 'fontColorLatest').listen().onFinishChange(redraw);
+  viewSettings.addColor(settings, 'fontColorFirst').listen().onFinishChange(redraw);
+  viewSettings.add(settings, 'randomizeColors');
+
+  gui.add(settings, 'redraw');
+  gui.add(settings, 'saveImage');
+
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
   }
 
-  // Start experiment
-  const [ w, h ] = [ resizer.width, resizer.height ];
-  const font = await loadFont(fontPath);
+  // Load the font
+  font = await loadFont(fontPath);
 
-  // Background
-  const bgRect = two.makeRectangle(w/2, h/2, w, h);
-  bgRect.fill = COLORS.BG;
-
-  // Texts
-  const offsetY = (h - TEXT.length * LINE_HEIGHT) / 2;
-
-  TEXT.forEach((text, i) => {
-    const line = new Line(font, text);
-    line.init(two, { x: 0, y: offsetY + LINE_HEIGHT * i, width: w, height: LINE_HEIGHT });
-
-    line.letters.forEach((letter) => {
-      // Set view
-      (<any>letter.view).fill = COLORS.FONT;
-
-      Matter.World.add(engine.world, letter.body);
-    });
-
-    lines.push(line);
-  });
-
+  redraw();
   initWalls();
   initMouseControls();
 
   two.update();
 
   animator.start();
+}
+
+
+/**
+ * Redraw the whole scene
+ */
+function redraw() {
+  // Clear timeouts
+  timeouts.forEach(clearTimeout);
+  timeouts = [];
+
+  // Clear psyhics
+  lines.forEach((line) => {
+    line.letters.forEach((letter) => {
+      Matter.World.remove(engine.world, letter.body);
+    });
+  });
+  lines = [];
+
+  // Background
+  const [ w, h ] = [ resizer.width, resizer.height ];
+  const bgRect = two.makeRectangle(w/2, h/2, w, h);
+  bgRect.fill = settings.bgColor;
+  bgRect.noStroke();
+
+  // Texts
+  const lines_ = settings.text.split(settings.newLineSeperator).map((text, i) => {
+    const line = new Line(font, text);
+    line.init(two, { x: 0, y: -LINE_HEIGHT, width: w, height: LINE_HEIGHT });
+    return line;
+  });
+
+  addLine(lines_, 0, lines_.length);
+}
+
+
+/**
+ * Starts the falling animation, (recursive func)
+ */
+function addLine(lines_: Line[], i: number, totalLineCount: number) {
+  if (lines_.length == 0) return;
+  const [ line, ...linesRest ] = lines_;
+  const color = colorHelper.lerp(settings.fontColorFirst, settings.fontColorLatest, i / totalLineCount);
+
+  line.letters.forEach((letter) => {
+    (<any>letter.view).fill = color;
+    Matter.World.add(engine.world, letter.body);
+  });
+
+  lines.push(line);
+  const timeout1 = setTimeout(() => {
+    addLine(linesRest, i + 1, totalLineCount);
+  }, settings.dropTimeout);
+
+  // Make them static after 5 drop_intervals
+  // This prevents glitches
+  const timeout2 = setTimeout(() => {
+    line.letters.forEach((letter) => {
+      Matter.Body.setStatic(letter.body, true);
+    });
+  }, settings.dropTimeout * 5);
+
+  timeouts.push(timeout1, timeout2);
 }
 
 
