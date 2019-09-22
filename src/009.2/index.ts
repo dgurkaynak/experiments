@@ -1,19 +1,19 @@
 // Needed for Matter.Bodies.fromVertices() function
-global.decomp = require('poly-decomp');
+(global as any).decomp = require('poly-decomp');
 require('pathseg');
 
 import Two from 'two.js';
 import Stats from 'stats.js';
 import CanvasResizer from '../utils/canvas-resizer';
 import Animator from '../utils/animator';
-import Matter from './matter-js';
+import Matter from 'matter-js';
 import noise from '../utils/noise';
 
 
 /**
  * Constants
  */
-const ENABLE_STATS = true;
+const ENABLE_STATS = false;
 const COLORS = {
   BG: '#ffffff',
   PARTICLE: '#000000'
@@ -30,7 +30,7 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-const resizer = new CanvasResizer(null, { dimension: 'fullscreen' });
+const resizer = new CanvasResizer(null, { dimension: [1080, 1080] });
 const two = new Two({
   type: Two.Types.canvas,
   width: resizer.width,
