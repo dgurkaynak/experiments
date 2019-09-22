@@ -1,18 +1,29 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
-import VideoReader from '../utils/video-reader';
-import videoPath from './clair_de_lune.mp4';
-import CanvasRecorder from '../utils/canvas-recorder';
+import saveImage from '../utils/canvas-save-image';
+import { loadImage, readImageData } from '../utils/image-helper';
+import imagePath from './Apollo11HP-128539876.jpg';
+import throttle from 'lodash/throttle';
 
 
 
 /**
  * Constants
  */
-const VIDEO_SIZE = [1280, 720];
-const FPS = 30;
-const ENABLE_STATS = true;
+let IMAGE_SIZE = [1080, 1065];
+const ENABLE_STATS = false;
+
+const GUISettings = class {
+  omega = 0.5;
+  phase = 0.5;
+  quantVal = 15;
+
+  saveImage = async () => {
+    saveImage(resizer.canvas);
+  }
+};
 
 
 /**
@@ -24,13 +35,15 @@ const elements = {
 };
 let p: p5;
 const resizer = new CanvasResizer(null, {
-  dimension: VIDEO_SIZE as [number, number],
+  dimension: IMAGE_SIZE as [number, number],
   dimensionScaleFactor: 1
 });
 const stats = new Stats();
-const videoReader = new VideoReader(videoPath, FPS);
-let canvasRecorder: CanvasRecorder;
-let frameCounter = 0;
+const settings = new GUISettings();
+const gui = new dat.GUI();
+let image: HTMLImageElement;
+let imageData: ImageData;
+const drawThrottled = throttle(draw, 500);
 
 // start
 class LowpassFilter {
@@ -69,14 +82,14 @@ const lowpass1_cutoff = 0.25; // percentage of rate
 const lowpass2_cutoff = 0.1;
 const lowpass3_cutoff = 0.05;
 const rate = 100000.0;
-const lpf1 = new LowpassFilter(rate, lowpass1_cutoff * rate);
-const lpf2 = new LowpassFilter(rate, lowpass2_cutoff * rate);
-const lpf3 = new LowpassFilter(rate, lowpass3_cutoff * rate);
+let lpf1 = new LowpassFilter(rate, lowpass1_cutoff * rate);
+let lpf2 = new LowpassFilter(rate, lowpass2_cutoff * rate);
+let lpf3 = new LowpassFilter(rate, lowpass3_cutoff * rate);
 
 const min_phase_mult = 0.05;
 const max_phase_mult = 50.0;
-let min_omega = Math.PI * 2 / (0.05 * VIDEO_SIZE[0]);
-let max_omega = Math.PI * 2 / (300.0 * VIDEO_SIZE[0]);
+let min_omega = Math.PI * 2 / (0.05 * IMAGE_SIZE[0]);
+let max_omega = Math.PI * 2 / (300.0 * IMAGE_SIZE[0]);
 let min_phase: number;
 let max_phase: number;
 let quantval = 30;
@@ -89,12 +102,20 @@ let phase = 0.5;
  * Main/Setup function, initialize stuff...
  */
 async function main() {
-  await videoReader.init();
+  image = await loadImage(imagePath);
+  imageData = await readImageData(image);
 
   new p5((p_) => {
     p = p_;
     p.setup = setup;
   }, elements.container);
+
+  // Settings
+  gui.add(settings, 'omega', 0, 1).step(0.01).onFinishChange(drawThrottled);
+  gui.add(settings, 'phase', 0, 1).step(0.01).onFinishChange(drawThrottled);
+  gui.add(settings, 'quantVal', 1, 30).step(0.1).onFinishChange(drawThrottled);
+  gui.add(settings, 'saveImage');
+  gui.close();
 
   if (ENABLE_STATS) {
     stats.showPanel(0);
@@ -108,24 +129,16 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
 
-  p.pixelDensity(1);
+  const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
+  pContext.putImageData(imageData, 0, 0);
 
-  const frame = videoReader.read();
-  const pContext: CanvasRenderingContext2D = p.drawingContext;
-  pContext.putImageData(frame, 0, 0);
-
-  // CCapture.js hooks video.currentTime, so this is a workaround for recording videos
-  Object.freeze(HTMLVideoElement.prototype);
-  // canvasRecorder = new CanvasRecorder(p.canvas, videoReader.video.duration * 1000, FPS);
-  canvasRecorder = new CanvasRecorder(p.canvas, 60000, FPS);
-  canvasRecorder.start();
-  canvasRecorder.onEnded = () => {
-    console.log('record ended');
-  };
+  draw();
 }
 
 
@@ -137,31 +150,14 @@ function updateOmegaPhase(om: number, ph: number) {
 }
 
 
-
-async function draw(loop = false) {
-  if (videoReader.video.ended) {
-    console.log('video ended');
-    canvasRecorder.capture();
-    return;
-  }
-
+async function draw() {
   if (ENABLE_STATS) stats.begin();
 
-
-  await videoReader.nextFrame();
-  const frame = videoReader.read();
-  console.log(videoReader.video.currentTime);
-
-  // Mess with the params
-  updateOmegaPhase(
-    p.noise(0, frameCounter * 0.1),
-    p.noise(10, frameCounter * 0.1)
-  );
-  quantval = Math.round(p.noise(20, frameCounter * 0.1) * 20);
-
+  updateOmegaPhase(settings.omega, settings.phase);
+  quantval = settings.quantVal;
 
   p.loadPixels();
-
+  const frame = imageData;
 
   for (let channelIndex = 0; channelIndex < 3; channelIndex++) {
     for (let y = 0; y < frame.height; y++) {
@@ -199,20 +195,13 @@ async function draw(loop = false) {
 
         p.pixels[offset + (x * 4 + channelIndex)] = v;
       }
-
     }
   }
 
   p.updatePixels();
 
-
-
-  frameCounter++;
   if (ENABLE_STATS) stats.end();
-  canvasRecorder.capture();
-  loop && requestAnimationFrame(draw);
 }
-(window as any).go = draw;
 
 
 /**
@@ -223,27 +212,88 @@ function onWindowResize(width: number, height: number) {
 }
 
 
-function spatial2index(x: number, y: number, width: number, height: number) {
-  return y * width + x;
+/**
+ * Listen dragover event for drag&drop
+ */
+function onDragOver(event: DragEvent) {
+  // Prevent default behavior (Prevent file from being opened)
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'copy';
 }
+document.body.addEventListener('dragover', onDragOver);
 
 
-function waitEvent(element: HTMLElement, eventName: string) {
-  return new Promise((resolve) => {
-    element.addEventListener(eventName, resolve, { once: true });
-  });
+/**
+ * Listen drop event for drag&drop
+ */
+async function onDrop(event: DragEvent) {
+  // Prevent default behavior (Prevent file from being opened)
+  event.preventDefault();
+
+  if (event.dataTransfer.files) {
+    onFilesDroppedOrSelected(event.dataTransfer.files);
+  } else {
+    console.log(`Your browser does not support FileList`);
+  }
 }
+document.body.addEventListener('drop', onDrop);
 
 
-function wait(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Main method for drag & drop or file-input selection.
+ */
+async function onFilesDroppedOrSelected(fileList: FileList) {
+  const images: { name: string, file: File }[] = [];
+  // Use DataTransferItemList interface to access the file(s)
+  for (let i = 0; i < fileList.length; i++) {
+    // If dropped items aren't files, reject them
+    const file = fileList[i];
+    if (file.type.split('/')[0] == 'image') {
+      images.push({
+        name: file.name,
+        file
+      });
+    }
+  }
+
+  if (images.length == 0) {
+    console.log('No image found');
+    return;
+  }
+
+  const url = URL.createObjectURL(images[0].file);
+  image = await loadImage(url);
+  imageData = await readImageData(image);
+
+  p.remove();
+
+  IMAGE_SIZE = [imageData.width, imageData.height];
+  min_omega = Math.PI * 2 / (0.05 * IMAGE_SIZE[0]);
+  max_omega = Math.PI * 2 / (300.0 * IMAGE_SIZE[0]);
+  lpf1 = new LowpassFilter(rate, lowpass1_cutoff * rate);
+  lpf2 = new LowpassFilter(rate, lowpass2_cutoff * rate);
+  lpf3 = new LowpassFilter(rate, lowpass3_cutoff * rate);
+
+  new p5((p_) => {
+    p = p_;
+    p.setup = function() {
+      const renderer: any = p.createCanvas(imageData.width, imageData.height);
+      p.pixelDensity(1);
+
+      resizer.canvas = renderer.canvas;
+      resizer.dimension = [imageData.width, imageData.height];
+      resizer.calculateDimensions();
+      resizer.addStyles();
+      resizer.canvas.style.width = `${resizer.styleWidth}px`;
+      resizer.canvas.style.height = `${resizer.styleHeight}px`;
+
+      const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
+      pContext.putImageData(imageData, 0, 0);
+
+      draw();
+    }
+  }, elements.container);
 }
-
-
-function randomIntegerBetween(a: number, b: number) {
-  return Math.round(a + Math.random() * (b - a));
-}
-
 
 
 /**
