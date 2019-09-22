@@ -1,10 +1,10 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
 import VideoReader from '../utils/video-reader';
 import videoPath from './yt_us79TMh5Dkk.mp4';
 import oflow from 'oflow';
-// import CanvasRecorder from '../utils/canvas-recorder';
 
 
 
@@ -12,10 +12,29 @@ import oflow from 'oflow';
  * Constants
  */
 const VIDEO_SIZE = [1280, 720];
-const FPS = 30;
-const ZONE_SIZE = 10;
-const DISPLACEMENT_THRESHOLD = 1.0;
 const ENABLE_STATS = true;
+
+const GUISettings = class {
+  fps = 30;
+  zoneSize = 10;
+  displacementThreshold = 1.0;
+
+  play = () => {
+    shouldStop = true;
+    setTimeout(async () => {
+      shouldStop = false;
+      await videoReader.jumpToBegining();
+      const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
+      pContext.drawImage(videoReader.canvas, 0, 0);
+      draw();
+    }, 250);
+  }
+
+  stop = () => {
+    shouldStop = true;
+    console.log('Stopped');
+  }
+};
 
 
 /**
@@ -31,10 +50,13 @@ const resizer = new CanvasResizer(null, {
   dimensionScaleFactor: 1
 });
 const stats = new Stats();
-const videoReader = new VideoReader(videoPath, FPS);
-const flowCalculator = new oflow.FlowCalculator(ZONE_SIZE);
+const settings = new GUISettings();
+const gui = new dat.GUI();
+const videoReader = new VideoReader(videoPath, settings.fps);
+let flowCalculator = new oflow.FlowCalculator(settings.zoneSize);
 let frame: ImageData;
-// let canvasRecorder: CanvasRecorder;
+let shouldStop = false;
+
 
 
 
@@ -49,6 +71,16 @@ async function main() {
     p.setup = setup;
   }, elements.container);
 
+  // Settings
+  gui.add(settings, 'fps', 1, 30).step(1).onChange(val => videoReader.setFPS(val));
+  gui.add(settings, 'zoneSize', 1, 50).step(1).onFinishChange((val) => {
+    flowCalculator = new oflow.FlowCalculator(val);
+  });
+  gui.add(settings, 'displacementThreshold', 0.1, 2.0).step(0.1);
+  gui.add(settings, 'play');
+  gui.add(settings, 'stop');
+  // gui.close();
+
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
@@ -61,28 +93,21 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
 
-  p.pixelDensity(1);
-
   frame = videoReader.read();
-  const pContext: CanvasRenderingContext2D = p.drawingContext;
+  p.background('#000');
+  const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
   pContext.drawImage(videoReader.canvas, 0, 0);
-
-  // p.blendMode(p.DARKEST);
 
   // CCapture.js hooks video.currentTime, so this is a workaround for recording videos
   Object.freeze(HTMLVideoElement.prototype);
-  // canvasRecorder = new CanvasRecorder(p.canvas, videoReader.video.duration * 1000, FPS);
-  // canvasRecorder = new CanvasRecorder(p.canvas, 60000, FPS);
-  // canvasRecorder.start();
-  // canvasRecorder.onEnded = () => {
-  //   console.log('record ended');
-  // };
 
-  draw();
+  // draw();
 }
 
 
@@ -90,7 +115,6 @@ function setup() {
 async function draw() {
   if (videoReader.video.ended) {
     console.log('video ended');
-    // canvasRecorder.capture();
     return;
   }
 
@@ -99,13 +123,13 @@ async function draw() {
   const prevFrame = frame;
   await videoReader.nextFrame();
   frame = videoReader.read();
-  console.log(videoReader.video.currentTime);
+  console.log('Current time', videoReader.video.currentTime);
 
   const flow = flowCalculator.calculate(prevFrame.data, frame.data, frame.width, frame.height);
 
   // debug
   // flow.zones.forEach((zone) => {
-  //   const shouldSkip = Math.abs(zone.u) < DISPLACEMENT_THRESHOLD || Math.abs(zone.v) < DISPLACEMENT_THRESHOLD;
+  //   const shouldSkip = Math.abs(zone.u) < settings.displacementThreshold || Math.abs(zone.v) < settings.displacementThreshold;
   //   if (shouldSkip) return;
 
   //   p.stroke('#ff0000');
@@ -114,14 +138,14 @@ async function draw() {
   // return;
 
   flow.zones.forEach((zone) => {
-    const shouldSkip = Math.abs(zone.u) < DISPLACEMENT_THRESHOLD || Math.abs(zone.v) < DISPLACEMENT_THRESHOLD;
+    const shouldSkip = Math.abs(zone.u) < settings.displacementThreshold || Math.abs(zone.v) < settings.displacementThreshold;
     if (shouldSkip) return;
 
     const targetX = Math.round(zone.x - zone.u);
     const targetY = Math.round(zone.y + zone.v);
 
-    for (let x = targetX - ZONE_SIZE; x <= targetX + ZONE_SIZE; x++) {
-      for (let y = targetY - ZONE_SIZE; y <= targetY + ZONE_SIZE; y++) {
+    for (let x = targetX - settings.zoneSize; x <= targetX + settings.zoneSize; x++) {
+      for (let y = targetY - settings.zoneSize; y <= targetY + settings.zoneSize; y++) {
         const i = spatial2index(x, y, frame.width, frame.height) * 4;
         const color = p.color(
           frame.data[i + 0],
@@ -136,10 +160,14 @@ async function draw() {
   });
 
   if (ENABLE_STATS) stats.end();
-  // canvasRecorder.capture();
+
+  if (shouldStop) {
+    shouldStop = false;
+    return;
+  }
+
   requestAnimationFrame(draw);
 }
-// (window as any).go = draw;
 
 
 /**
