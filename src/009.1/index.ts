@@ -2,6 +2,7 @@
 global.decomp = require('poly-decomp');
 require('pathseg');
 
+
 import Two from 'two.js';
 import Stats from 'stats.js';
 import CanvasResizer from '../utils/canvas-resizer';
@@ -9,21 +10,10 @@ import Animator from '../utils/animator';
 import Matter from 'matter-js';
 import * as opentype from 'opentype.js';
 import Line from '../009/line';
-// import sample from 'lodash/sample';
-// import sampleSize from 'lodash/sampleSize';
-// import colors from 'nice-color-palettes';
-import * as colorHelper from '../utils/color-helper';
+import sample from 'lodash/sample';
+import times from 'lodash/times';
 
 import fontPath from './ModernSans-Light.otf';
-
-
-// const PALETTE = sampleSize(sample(colors), 3);
-// const COLORS = {
-//   BG: PALETTE[0],
-//   FONT_UP: PALETTE[1],
-//   FONT_DOWN: PALETTE[2]
-// };
-// console.log(COLORS);
 
 
 /**
@@ -31,35 +21,21 @@ import fontPath from './ModernSans-Light.otf';
  */
 const ENABLE_STATS = true;
 const TEXT = [
-  'I CAN ONLY',
-  'NOTE THAT',
-  'THE PAST IS',
-  'BEAUTIFUL',
-  'BECAUSE',
-  'ONE NEVER',
-  'REALIZES',
-  'AN EMOTION',
-  'AT THE TIME,',
-  'IT EXPANDS',
-  'LATER,',
-  'AND THUS',
-  'WE DON\'T',
-  'HAVE COMPLETE',
-  'EMOTIONS',
-  'ABOUT',
-  'THE PRESENT,',
-  'ONLY ABOUT',
-  'THE PAST.'
+  'YOU MAKE',
+  'ME LAUGH,',
+  'BUT IT\'S',
+  'NOT FUNNY.'
 ];
 const LINE_HEIGHT = 150;
-const COLORS = [ // Selected colors
-  {BG: "#F9F6F1", FONT_UP: "#000000", FONT_DOWN: "#000000"},
-  {BG: "#000000", FONT_UP: "#ffffff", FONT_DOWN: "#ffffff"},
-  {BG: "#f03c02", FONT_UP: "#a30006", FONT_DOWN: "#6b0103"},
-  {BG: "#1c0113", FONT_UP: "#c21a01", FONT_DOWN: "#a30006"},
-  {BG: "#fff7bd", FONT_UP: "#f2f26f", FONT_DOWN: "#f04155"},
-][0];
-const DROP_INTERVAL = 750;
+const COLORS = {
+  BG: '#000000',
+  FONT: '#ffffff'
+};
+const CONSTRAINT = {
+  COUNT: 3,
+  LENGTH: 0,
+  STIFFNESS: 0.001
+};
 
 
 /**
@@ -84,7 +60,7 @@ const animator = new Animator(animate);
  * Experiment variables
  */
 const lines: Line[] = [];
-const engine = Matter.Engine.create({ enableSleeping: true });
+const engine = Matter.Engine.create();
 // const render = Matter.Render.create({ engine, element: elements.container });
 
 
@@ -112,13 +88,36 @@ async function main() {
   bgRect.noStroke();
 
   // Texts
-  const lines = TEXT.map((text, i) => {
-    const line = new Line(font, text);
-    line.init(two, { x: 0, y: -LINE_HEIGHT, width: w, height: LINE_HEIGHT });
-    return line;
-  });
+  const offsetY = (h - TEXT.length * LINE_HEIGHT) / 2;
 
-  addFirstLine(lines, 0, lines.length);
+  TEXT.forEach((text, i) => {
+    const line = new Line(font, text);
+    line.init(two, { x: 0, y: offsetY + LINE_HEIGHT * i, width: w, height: LINE_HEIGHT });
+
+    line.letters.forEach((letter) => {
+      // Set view
+      (<any>letter.view).fill = COLORS.FONT;
+
+      // Add constraints
+      const newThings: any[] = [ letter.body ];
+      const vertex = sample(letter.body.vertices);
+      times(CONSTRAINT.COUNT, () => {
+        const vertex = sample(letter.body.vertices);
+        const constraint = Matter.Constraint.create({
+          pointA: { x: vertex.x, y: vertex.y },
+          bodyB: letter.body,
+          pointB: { x: vertex.x - letter.body.position.x, y: vertex.y - letter.body.position.y },
+          length: CONSTRAINT.LENGTH,
+          stiffness: CONSTRAINT.STIFFNESS,
+        });
+        newThings.push(constraint);
+      });
+
+      Matter.World.add(engine.world, newThings);
+    });
+
+    lines.push(line);
+  });
 
   initWalls();
   initMouseControls();
@@ -126,31 +125,6 @@ async function main() {
   two.update();
 
   animator.start();
-}
-
-
-function addFirstLine(lines_: Line[], i: number, totalLineCount: number) {
-  if (lines_.length == 0) return;
-  const [ line, ...linesRest ] = lines_;
-  const color = colorHelper.lerp(COLORS.FONT_DOWN, COLORS.FONT_UP, i / totalLineCount);
-
-  line.letters.forEach((letter) => {
-    (<any>letter.view).fill = color;
-    Matter.World.add(engine.world, letter.body);
-  });
-
-  lines.push(line);
-  setTimeout(() => {
-    addFirstLine(linesRest, i + 1, totalLineCount);
-  }, DROP_INTERVAL);
-
-  // Make them static after 5 drop_intervals
-  // This prevents glitches
-  setTimeout(() => {
-    line.letters.forEach((letter) => {
-      Matter.Body.setStatic(letter.body, true);
-    });
-  }, DROP_INTERVAL * 5);
 }
 
 
@@ -167,6 +141,7 @@ function animate() {
 
   if (ENABLE_STATS) stats.end();
 }
+
 
 function initWalls() {
   const [ w, h ] = [ resizer.width, resizer.height ];
@@ -195,7 +170,6 @@ function loadFont(path): Promise<opentype.Font> {
     });
   });
 }
-
 
 
 /**
