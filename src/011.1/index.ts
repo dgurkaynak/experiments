@@ -1,9 +1,10 @@
 import p5 from 'p5/lib/p5.min';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
+import saveImage from '../utils/canvas-save-image';
 import VideoReader from '../utils/video-reader';
 import videoPath from './yt_VSdnsWANdfA.mp4';
-// import CanvasRecorder from '../utils/canvas-recorder';
 
 
 
@@ -11,8 +12,32 @@ import videoPath from './yt_VSdnsWANdfA.mp4';
  * Constants
  */
 const ENABLE_STATS = true;
-const FPS = 30;
 const VIDEO_SIZE = [1280, 720];
+
+const GUISettings = class {
+  fps = 30;
+  operation = 'difference';
+
+  saveImage = async () => {
+    saveImage(resizer.canvas);
+  }
+
+  play = () => {
+    shouldStop = true;
+    setTimeout(async () => {
+      shouldStop = false;
+      await videoReader.jumpToBegining();
+      const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
+      pContext.drawImage(videoReader.canvas, 0, 0);
+      draw();
+    }, 250);
+  }
+
+  stop = () => {
+    shouldStop = true;
+    console.log('Stopped');
+  }
+};
 
 
 /**
@@ -28,8 +53,10 @@ const resizer = new CanvasResizer(null, {
   dimensionScaleFactor: 1
 });
 const stats = new Stats();
-const videoReader = new VideoReader(videoPath, FPS);
-// let canvasRecorder: CanvasRecorder;
+const settings = new GUISettings();
+const gui = new dat.GUI();
+const videoReader = new VideoReader(videoPath, settings.fps);
+let shouldStop = false;
 
 
 
@@ -44,6 +71,14 @@ async function main() {
     p.setup = setup;
   }, elements.container);
 
+  // Settings
+  gui.add(settings, 'fps', 1, 30).step(1).onChange(val => videoReader.setFPS(val));
+  gui.add(settings, 'operation', ['lighten', 'darken', 'difference']);
+  gui.add(settings, 'saveImage');
+  gui.add(settings, 'play');
+  gui.add(settings, 'stop');
+  gui.close();
+
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
@@ -56,23 +91,17 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
 
-  p.pixelDensity(1);
-
-  const frame = videoReader.read();
-  const pContext: CanvasRenderingContext2D = p.drawingContext;
+  const pContext: CanvasRenderingContext2D = (p as any).drawingContext;
   pContext.drawImage(videoReader.canvas, 0, 0);
 
   // CCapture.js hooks video.currentTime, so this is a workaround for recording videos
   Object.freeze(HTMLVideoElement.prototype);
-  // canvasRecorder = new CanvasRecorder(p.canvas, videoReader.video.duration * 1000, FPS);
-  // canvasRecorder.start();
-  // canvasRecorder.onEnded = () => {
-  //   console.log('record ended');
-  // };
 
   draw();
 }
@@ -81,26 +110,27 @@ function setup() {
 async function draw() {
   if (videoReader.video.ended) {
     console.log('video ended');
-    // canvasRecorder.capture();
     return;
   }
   if (ENABLE_STATS) stats.begin();
 
   await videoReader.nextFrame();
-  // console.log(videoReader.video.currentTime);
-  const frame = videoReader.read();
 
-  const pContext: CanvasRenderingContext2D = p.drawingContext;
+  const pContext: CanvasRenderingContext2D = (p as any).drawingContext;;
   const globalCompositeOperation_ = pContext.globalCompositeOperation;
-  pContext.globalCompositeOperation = 'darken'; // lighten, darken, difference
+  pContext.globalCompositeOperation = settings.operation;
   pContext.drawImage(videoReader.canvas, 0, 0);
   pContext.globalCompositeOperation = globalCompositeOperation_;
 
   if (ENABLE_STATS) stats.end();
-  // canvasRecorder.capture();
+
+  if (shouldStop) {
+    shouldStop = false;
+    return;
+  }
+
   requestAnimationFrame(draw);
 }
-// (window as any).go = draw;
 
 
 /**
