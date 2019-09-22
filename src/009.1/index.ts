@@ -1,10 +1,11 @@
 // Needed for Matter.Bodies.fromVertices() function
-global.decomp = require('poly-decomp');
+(global as any).decomp = require('poly-decomp');
 require('pathseg');
 
 
 import Two from 'two.js';
 import Stats from 'stats.js';
+import * as dat from 'dat.gui';
 import CanvasResizer from '../utils/canvas-resizer';
 import Animator from '../utils/animator';
 import Matter from 'matter-js';
@@ -12,6 +13,9 @@ import * as opentype from 'opentype.js';
 import Line from '../009/line';
 import sample from 'lodash/sample';
 import times from 'lodash/times';
+import colors from 'nice-color-palettes';
+import sampleSize from 'lodash/sampleSize';
+import saveImage from '../utils/canvas-save-image';
 
 import fontPath from './ModernSans-Light.otf';
 
@@ -19,22 +23,32 @@ import fontPath from './ModernSans-Light.otf';
 /**
  * Constants
  */
-const ENABLE_STATS = true;
-const TEXT = [
-  'YOU MAKE',
-  'ME LAUGH,',
-  'BUT IT\'S',
-  'NOT FUNNY.'
-];
+const ENABLE_STATS = false;
 const LINE_HEIGHT = 150;
-const COLORS = {
-  BG: '#000000',
-  FONT: '#ffffff'
-};
-const CONSTRAINT = {
-  COUNT: 3,
-  LENGTH: 0,
-  STIFFNESS: 0.001
+
+const GUISettings = class {
+  text = `YOU MAKE_ME LAUGH,_BUT IT'S_NOT FUNNY.`;
+  newLineSeperator = '_';
+
+  springCount = 3;
+  springLength = 3;
+  springStiffness = 0.001;
+
+  // Other favs:
+  // #c6d6b8 #987f69
+  // #f03c02 #a30006
+  bgColor = '#83af9b';
+  textColor = '#f9cdad';
+
+  randomizeColors = () => {
+    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 2);
+    settings.bgColor = randomTwoColors[0];
+    settings.textColor = randomTwoColors[1];
+    redraw();
+  }
+
+  redraw = () => redraw();
+  saveImage = () => saveImage(resizer.canvas);
 };
 
 
@@ -45,7 +59,7 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-const resizer = new CanvasResizer(null, { dimension: 'fullscreen' });
+const resizer = new CanvasResizer(null, { dimension: [1080, 1080] });
 const two = new Two({
   type: Two.Types.canvas,
   width: resizer.width,
@@ -53,13 +67,16 @@ const two = new Two({
   ratio: window.devicePixelRatio
 });
 const stats = new Stats();
+const settings = new GUISettings();
+const gui = new dat.GUI();
 const animator = new Animator(animate);
 
 
 /**
  * Experiment variables
  */
-const lines: Line[] = [];
+let font: opentype.Font;
+let lines: Line[] = [];
 const engine = Matter.Engine.create();
 // const render = Matter.Render.create({ engine, element: elements.container });
 
@@ -73,21 +90,62 @@ async function main() {
   resizer.resize = onWindowResize;
   resizer.init();
 
+  // Settings
+  gui.add(settings, 'text').onFinishChange(redraw);
+  gui.add(settings, 'newLineSeperator').onFinishChange(redraw);
+  gui.close();
+
+  const springSettings = gui.addFolder('Spring');
+  springSettings.add(settings, 'springCount', 1, 10).step(1).onFinishChange(redraw);
+  springSettings.add(settings, 'springLength', 0.1, 100).step(0.1).onFinishChange(redraw);
+  springSettings.add(settings, 'springStiffness', 0.0001, 0.01).step(0.0001).onFinishChange(redraw);
+
+  const viewSettings = gui.addFolder('View');
+  viewSettings.addColor(settings, 'bgColor').listen().onFinishChange(redraw);
+  viewSettings.addColor(settings, 'textColor').listen().onFinishChange(redraw);
+  viewSettings.add(settings, 'randomizeColors');
+
+  gui.add(settings, 'redraw');
+  gui.add(settings, 'saveImage');
+
   if (ENABLE_STATS) {
     stats.showPanel(0);
     elements.stats.appendChild(stats.dom);
   }
 
   // Start experiment
+  font = await loadFont(fontPath);
+
+  redraw();
+  initWalls();
+  initMouseControls();
+
+  two.update();
+
+  animator.start();
+}
+
+
+function redraw() {
+  lines.forEach((line) => {
+    line.letters.forEach((letter) => {
+      const constraints = (letter as any).constraints;
+      Matter.World.remove(engine.world, constraints);
+      Matter.World.remove(engine.world, letter.body);
+    });
+  });
+  lines = [];
+
+
   const [ w, h ] = [ resizer.width, resizer.height ];
-  const font = await loadFont(fontPath);
 
   // Background
   const bgRect = two.makeRectangle(w/2, h/2, w, h);
-  bgRect.fill = COLORS.BG;
+  bgRect.fill = settings.bgColor;
   bgRect.noStroke();
 
   // Texts
+  const TEXT = settings.text.split(settings.newLineSeperator);
   const offsetY = (h - TEXT.length * LINE_HEIGHT) / 2;
 
   TEXT.forEach((text, i) => {
@@ -96,21 +154,23 @@ async function main() {
 
     line.letters.forEach((letter) => {
       // Set view
-      (<any>letter.view).fill = COLORS.FONT;
+      (<any>letter.view).fill = settings.textColor;
 
       // Add constraints
       const newThings: any[] = [ letter.body ];
+      const constraints = (letter as any).constraints = [];
       const vertex = sample(letter.body.vertices);
-      times(CONSTRAINT.COUNT, () => {
+      times(settings.springCount, () => {
         const vertex = sample(letter.body.vertices);
         const constraint = Matter.Constraint.create({
           pointA: { x: vertex.x, y: vertex.y },
           bodyB: letter.body,
           pointB: { x: vertex.x - letter.body.position.x, y: vertex.y - letter.body.position.y },
-          length: CONSTRAINT.LENGTH,
-          stiffness: CONSTRAINT.STIFFNESS,
+          length: settings.springLength,
+          stiffness: settings.springStiffness,
         });
         newThings.push(constraint);
+        constraints.push(constraint);
       });
 
       Matter.World.add(engine.world, newThings);
@@ -118,13 +178,6 @@ async function main() {
 
     lines.push(line);
   });
-
-  initWalls();
-  initMouseControls();
-
-  two.update();
-
-  animator.start();
 }
 
 
