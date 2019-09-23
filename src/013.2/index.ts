@@ -5,7 +5,7 @@ import saveImage from '../utils/canvas-save-image';
 import sampleSize from 'lodash/sampleSize';
 import times from 'lodash/times';
 import { hex2rgb } from '../utils/color-helper';
-// import * as colors from 'nice-color-palettes';
+import * as colors from 'nice-color-palettes';
 import * as dat from 'dat.gui';
 import fontPath from './LemonMilk.otf';
 
@@ -14,22 +14,26 @@ import fontPath from './LemonMilk.otf';
 /**
  * Constants
  */
-interface Point { x: number, y: number };
-const ENABLE_STATS = true;
+interface Point { x: number, y: number, angle?: number, hitCount?: number, color?: string };
+const ENABLE_STATS = false;
 const GUISettings = function() {
+  this.scene = 'W';
   this.reflectionLimit = 10;
   this.rayCount = 360 * 20;
   this.rayAlpha = 5;
   this.rayWeight = 1;
-  // this.lightColor = sampleSize(sampleSize(colors, 1)[0], 1)[0];
   this.lightColor = '#fff';
+
+  this.randomColor = function() {
+    this.lightColor = sampleSize(sampleSize(colors, 1)[0], 1)[0];
+  }
 
   this.clear = function() {
     p.clear();
     p.background('#000');
   };
 
-  this.save = function() {
+  this.saveImage = function() {
     saveImage(resizer.canvas);
   };
 };
@@ -48,8 +52,7 @@ const elements = {
 let p: p5;
 const resizer = new CanvasResizer(null, {
   dimension: [1080, 1080],
-  // dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: 1
 });
 const stats = new Stats();
 const settings = new GUISettings();
@@ -73,13 +76,16 @@ async function main() {
     p.draw = draw;
   }, elements.container);
 
+  gui.add(settings, 'scene', ['horizontalLine', 'triangle', 'C', 'E', 'F', 'G', 'H', 'I',
+    'J', 'K', 'L', 'M', 'N', 'S', 'X', 'W']).onChange(configure);
   gui.add(settings, 'reflectionLimit', 1, 10);
   gui.add(settings, 'rayCount', 1, 36000);
   gui.add(settings, 'rayAlpha', 1, 255);
   gui.add(settings, 'rayWeight', 1, 50);
-  gui.addColor(settings, 'lightColor');
+  gui.addColor(settings, 'lightColor').listen();
+  gui.add(settings, 'randomColor');
   gui.add(settings, 'clear');
-  gui.add(settings, 'save');
+  gui.add(settings, 'saveImage');
   gui.close();
 
   if (ENABLE_STATS) {
@@ -114,14 +120,23 @@ function preload() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
 
   resizer.canvas.addEventListener('click', () => mouseClicked(), false);
 
-  lights = [];
+  configure();
+}
 
+
+function configure() {
+  p.clear();
+  p.background('#000');
+
+  lights = [];
   wallLineSegments = [
     // frame
     [{ x: 0, y: 0 }, { x: resizer.width, y: 0 }],
@@ -130,22 +145,90 @@ function setup() {
     [{ x: 0, y: resizer.height }, { x: 0, y: 0 }]
   ];
 
-  // p.pixelDensity(1);
-  p.background('#000');
+  switch (settings.scene) {
+    case 'horizontalLine': {
+      wallLineSegments.push(
+        [{ x: resizer.width / 6, y: resizer.height / 2 }, { x: 5 * resizer.width / 6, y: resizer.height / 2 }]
+      );
+      return;
+    }
 
-  const dpr = window.devicePixelRatio;
-  // const textPoints = font.textToPoints('X', 170 * dpr, 975 * dpr, 1080 * dpr);
-  // const textPoints = font.textToPoints('S', 250 * dpr, 975 * dpr, 1080 * dpr);
-  const textPoints = font.textToPoints('W', 25 * dpr, 975 * dpr, 1080 * dpr);
-  textPoints.forEach((point, i, arr) => {
-    let nextPoint = arr[i + 1];
-    if (!nextPoint) nextPoint = arr[0];
-    wallLineSegments.push([ point, nextPoint ]);
-    // for debug purposes, draw the letter
-    // p.stroke('#fff');
-    // p.strokeWeight(1);
-    // p.line(point.x, point.y, nextPoint.x, nextPoint.y);
-  });
+    case 'triangle': {
+      const triangleWeight = resizer.height / 2.5;
+      const centerX = resizer.width / 2;
+      const centerY = resizer.height / 2 + triangleWeight / 5;
+
+      wallLineSegments.push(
+        [
+          { x: centerX, y: centerY - triangleWeight },
+          { x: centerX + (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) }
+        ],
+        [
+          { x: centerX + (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) },
+          { x: centerX - (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) }
+        ],
+        [
+          { x: centerX - (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) },
+          { x: centerX, y: centerY - triangleWeight }
+        ]
+      );
+      return;
+    }
+
+    default: {
+      const dpr = 1; // window.devicePixelRatio
+      let textPoints: any[];
+
+      if (settings.scene == 'X') {
+        textPoints = font.textToPoints('X', 170 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'S') {
+        textPoints = font.textToPoints('S', 250 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'W') {
+        textPoints = font.textToPoints('W', 25 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'C') {
+        textPoints = font.textToPoints('C', 130 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'E') {
+        textPoints = font.textToPoints('E', 230 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'F') {
+        textPoints = font.textToPoints('F', 230 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'G') {
+        textPoints = font.textToPoints('G', 80 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'H') {
+        textPoints = font.textToPoints('H', 170 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'I') {
+        textPoints = font.textToPoints('I', 400 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'J') {
+        textPoints = font.textToPoints('J', 200 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'K') {
+        textPoints = font.textToPoints('K', 200 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'L') {
+        textPoints = font.textToPoints('L', 250 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'M') {
+        textPoints = font.textToPoints('M', 75 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'N') {
+        textPoints = font.textToPoints('N', 150 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'Y') {
+        textPoints = font.textToPoints('Y', 170 * dpr, 975 * dpr, 1080 * dpr);
+      } else if (settings.scene == 'Z') {
+        textPoints = font.textToPoints('Z', 230 * dpr, 975 * dpr, 1080 * dpr);
+      } else {
+        console.error(`Unknown scene: "${settings.scene}"`);
+        return;
+      }
+
+      textPoints.forEach((point, i, arr) => {
+        let nextPoint = arr[i + 1];
+        if (!nextPoint) nextPoint = arr[0];
+        wallLineSegments.push([ point, nextPoint ]);
+        // for debug purposes, draw the letter
+        // p.stroke('#fff');
+        // p.strokeWeight(1);
+        // p.line(point.x, point.y, nextPoint.x, nextPoint.y);
+      });
+
+      return;
+    }
+  }
 }
 
 
@@ -176,7 +259,7 @@ function addPointLight(x, y, color = settings.lightColor) {
 }
 
 
-function addLineLight(p1: Point, p2: Point, angle: Number, angleOffset = 0, color = settings.lightColor) {
+function addLineLight(p1: Point, p2: Point, angle: number, angleOffset = 0, color = settings.lightColor) {
   times(settings.rayCount, (i) => {
     const x = p.map(i, 0, settings.rayCount, p1.x, p2.x);
     const y = p.map(i, 0, settings.rayCount, p1.y, p2.y);
