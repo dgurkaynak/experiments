@@ -4,7 +4,7 @@ import CanvasResizer from '../utils/canvas-resizer';
 import times from 'lodash/times';
 import { hex2rgb } from '../utils/color-helper';
 import * as dat from 'dat.gui';
-import * as TWEEN from '@tweenjs/tween.js';
+import TWEEN from '@tweenjs/tween.js';
 
 
 
@@ -13,6 +13,7 @@ import * as TWEEN from '@tweenjs/tween.js';
  */
 interface Point { x: number, y: number };
 const ENABLE_STATS = true;
+
 const GUISettings = function () {
   this.reflectionLimit = 10;
   this.rayCount = 360 * 10;
@@ -20,13 +21,7 @@ const GUISettings = function () {
   this.rayWeight = 1;
   this.lightColor1 = '#f00';
   this.lightColor2 = '#00f';
-
-  this.clear = function () {
-    p.clear();
-    p.background('#000');
-  };
 };
-
 
 
 
@@ -39,9 +34,8 @@ const elements = {
 };
 let p: p5;
 const resizer = new CanvasResizer(null, {
-  dimension: [1080, 1080],
-  // dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimension: [1024, 1024],
+  dimensionScaleFactor: 1
 });
 const stats = new Stats();
 const settings = new GUISettings();
@@ -64,12 +58,11 @@ async function main() {
   }, elements.container);
 
   gui.add(settings, 'reflectionLimit', 1, 10);
-  gui.add(settings, 'rayCount', 1, 36000);
+  gui.add(settings, 'rayCount', 1, 7200);
   gui.add(settings, 'rayAlpha', 1, 255);
   gui.add(settings, 'rayWeight', 1, 50);
   gui.addColor(settings, 'lightColor1');
   gui.addColor(settings, 'lightColor2');
-  gui.add(settings, 'clear');
   gui.close();
 
   if (ENABLE_STATS) {
@@ -84,11 +77,11 @@ async function main() {
  */
 function setup() {
   const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  p.pixelDensity(1);
+
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
-
-  // resizer.canvas.addEventListener('click', () => onMouseClick(), false);
 
   rays = [];
 
@@ -117,7 +110,6 @@ function setup() {
     ],
   ];
 
-  // p.pixelDensity(1);
   p.background('#000');
 }
 
@@ -159,11 +151,6 @@ function setupLightAnimation() {
 
   tween1.start();
 }
-
-
-// function onMouseClick() {
-//   addLight(p.mouseX, p.mouseY, settings.LIGHT_COLOR);
-// }
 
 
 function addLight(x: number, y: number, color: string, rayCount = settings.rayCount) {
@@ -257,20 +244,10 @@ function castRays() {
 function draw() {
   if (ENABLE_STATS) stats.begin();
 
-  // One point light attached to mouse coordinates
-  // p.background('#000');
-  // addLight(p.mouseX, p.mouseY, settings.LIGHT_COLOR);
-  // while (rays.length > 0) {
-  //   castRays();
-  // }
-
-  // Cast ray just one-hit
-  // castRays();
-
   // Two light source rotating
   p.background('#000');
   if (frameCount == 0) setupLightAnimation();
-  TWEEN.default.update(frameCount * 1000 / 30);
+  TWEEN.update(frameCount * 1000 / 30);
   while (rays.length > 0) {
     castRays();
   }
@@ -302,6 +279,7 @@ function dispose() {
     while (element.firstChild) { element.removeChild(element.firstChild); }
   });
 }
+
 
 function getIntersection(lineSegment1: Point[], lineSegment2: Point[]) {
   const p1 = lineSegment1[0];
