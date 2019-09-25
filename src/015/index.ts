@@ -53,7 +53,7 @@ const GUISettings = class {
 
   // Ketamine particles
   ketamineSniffingGameVelocityNegativeGain = 0.5;
-  ketamineSpawnPropability = 0.01;
+  ketamineSpawnPropability = 0.05;
   // Kenamine view
   ketamineParticleSize = 3;
   ketamineLineHeight = 2;
@@ -65,6 +65,10 @@ const GUISettings = class {
   ketamineSparkleRandomness = 0.0025;
 
   restart = () => {
+    isGameRunning = true;
+    isGamePaused = false;
+    isGameOver = false;
+
     configure();
     generateRoadIfNecessary(p.width / 2);
     p.loop();
@@ -88,9 +92,11 @@ const resizer = new CanvasResizer(null, {
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI({ width: 300 });
-const clock = new Clock();
+let clock = new Clock();
 
-
+let isGameRunning = false;
+let isGamePaused = false;
+let isGameOver = false;
 let noseImage: p5.Image;
 let sparkleImage: p5.Image;
 let particleTracks: Particle[][] = [];
@@ -237,8 +243,6 @@ function setup() {
 
   lungCapacityProgressBar = new ProgressBar(60, p.height - 32, 190, 15);
   wastePointProgressBar = new ProgressBar(p.width - 200, p.height - 32, 190, 15);
-
-  // p.noLoop();
 }
 
 
@@ -246,6 +250,42 @@ function setup() {
  * Animate stuff...
  */
 function draw() {
+  if (!isGameRunning) {
+    if (isGameOver) {
+      p.background(p.color(0, 0, 0, 150));
+      p.textAlign(p.CENTER);
+      p.noStroke();
+      p.fill('#fff');
+      p.textSize(72);
+      p.text('GAME OVER', p.width / 2, p.height / 2 - 25);
+      p.textSize(16);
+      p.text('Press any key to restart', p.width / 2, p.height / 2 + 25);
+    } else if (isGamePaused) {
+      p.background(p.color(0, 0, 0, 200));
+      p.textAlign(p.CENTER);
+      p.noStroke();
+      p.fill('#fff');
+      p.textSize(72);
+      p.text('PAUSED', p.width / 2, p.height / 2 - 25);
+      p.textSize(16);
+      p.text('Press any key to resume', p.width / 2, p.height / 2 + 25);
+    } else {
+      p.background('#000000');
+      p.textAlign(p.CENTER);
+      p.noStroke();
+      p.fill('#fff');
+      p.textSize(72);
+      p.text('SNORTY', p.width / 2, p.height / 2 - 50);
+      p.textSize(16);
+      p.text('Up/Down keys to change track', p.width / 2, p.height / 2 + 15);
+      p.text('Space key to snort', p.width / 2, p.height / 2 + 40);
+      p.text('Press any key to start', p.width / 2, p.height / 2 + 100);
+    }
+
+    p.noLoop();
+    return;
+  }
+
   if (ENABLE_STATS) stats.begin();
 
   p.background('#000000');
@@ -255,6 +295,7 @@ function draw() {
   distance += settings.gameVelocity * deltaTime;
 
   // Info texts
+  p.textSize(12);
   p.noStroke();
   p.fill(255, 255, 255, 120);
   const infoText = `Total Score: ${Math.round(cocainPoint)} / Total Distance: ${Math.round(distance)} / Waste: ${wastePoint}`;
@@ -309,7 +350,9 @@ function draw() {
     console.log('======== GAME ENDED ===========');
     wastePointProgressBar.fillColor = [255, 0, 0, 255];
     wastePointProgressBar.borderColor = [255, 0, 0, 255];
-    p.noLoop();
+
+    isGameRunning = false;
+    isGameOver = true;
   }
   wastePointProgressBar.draw(p);
 
@@ -383,7 +426,7 @@ function draw() {
           configureNoseHoles();
         } else if (particle.type == 'ketamine') {
           settings.gameVelocity -= settings.ketamineSniffingGameVelocityNegativeGain;
-          settings.gameVelocity = Math.max(settings.gameVelocity, 1);
+          settings.gameVelocity = Math.max(settings.gameVelocity, 100);
         }
         return;
       } else if (particle.position.y >= p.height) {
@@ -467,6 +510,23 @@ function isParticleInSniffZone(particle: Particle, particleTrackIndex: number, y
 
 
 function onKeyDown(e: KeyboardEvent) {
+  if (!isGameRunning) {
+    if (isGamePaused)  {
+      clock = new Clock();
+      isGameRunning = true;
+      isGamePaused = false;
+      p.loop();
+      return;
+    } else {
+      // Ended or not started
+      isGameRunning = true;
+      isGamePaused = false;
+      isGameOver = false;
+      settings.restart();
+      return;
+    }
+  }
+
   switch (e.keyCode) {
     case 38: // up
       currentTrack = Math.max(currentTrack - 1, 0);
@@ -477,6 +537,11 @@ function onKeyDown(e: KeyboardEvent) {
     case 32: // space
       if (e.repeat) return;
       isSnorting = true;
+      break;
+    case 27: // esc
+      if (e.repeat) return;
+      isGameRunning = false;
+      isGamePaused = true;
       break;
   }
 }
