@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "format": "prettier --write \"src/**/*.js\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -39,6 +40,7 @@
     "parcel-plugin-bundle-visualiser": "^1.2.0",
     "pathseg": "^1.2.0",
     "poly-decomp": "^0.3.0",
+    "prettier": "2.0.5",
     "randomcolor": "^0.5.4",
     "stats.js": "^0.17.0",
     "three": "^0.108.0",
