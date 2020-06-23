@@ -1,21 +1,12 @@
-import * as THREE from 'three';
-import randomColor from 'randomcolor';
-import GLTFLoader from 'three-gltf-loader';
+// Global deps:
+// - THREE
+// - randomColor
+// - GLTFLoader
 
-
-import eyesGltfPath from './assets/eyes.gltf';
-import irisBumpMapPath from './assets/iris_bump.png';
-import irisColorMapPath from './assets/iris_color.png';
-import eyeAlphaMapPath from './assets/translucent_mask.png';
-import eyeBumpMapPath from './assets/sclera_bump.png';
-import eyeColorMapPath from './assets/sclera_color.png';
-
-
-class EyeMeshFactory {
+export class EyeMeshFactory {
   gltfLoader = new GLTFLoader();
   textureLoader = new THREE.TextureLoader();
-  group: THREE.Group;
-
+  group = null;
 
   async init() {
     const [
@@ -24,14 +15,14 @@ class EyeMeshFactory {
       irisColorMapTexture,
       eyeAlphaMapTexture,
       eyeBumpMapTexture,
-      eyeColorMapTexture
+      eyeColorMapTexture,
     ] = await Promise.all([
-      this.loadGltf(eyesGltfPath),
-      this.loadTexture(irisBumpMapPath),
-      this.loadTexture(irisColorMapPath),
-      this.loadTexture(eyeAlphaMapPath),
-      this.loadTexture(eyeBumpMapPath),
-      this.loadTexture(eyeColorMapPath)
+      this.loadGltf('./assets/eyes.gltf'),
+      this.loadTexture('./assets/iris_bump.png'),
+      this.loadTexture('./assets/iris_color.png'),
+      this.loadTexture('./assets/translucent_mask.png'),
+      this.loadTexture('./assets/sclera_bump.png'),
+      this.loadTexture('./assets/sclera_color.png'),
     ]);
 
     const meshes = [];
@@ -39,7 +30,7 @@ class EyeMeshFactory {
       if (child.name.indexOf('Right_Iris') == 0) {
         child.material = new THREE.MeshPhongMaterial({
           bumpMap: irisBumpMapTexture,
-          map: irisColorMapTexture
+          map: irisColorMapTexture,
         });
         child.position.z = 7.252;
         meshes.push(child);
@@ -49,7 +40,7 @@ class EyeMeshFactory {
           bumpMap: eyeBumpMapTexture,
           map: eyeColorMapTexture,
           color: 0xffffff,
-          transparent: true
+          transparent: true,
         });
         child.position.z = 7.252;
         meshes.push(child);
@@ -57,13 +48,12 @@ class EyeMeshFactory {
     });
 
     const innerGroup = new THREE.Group();
-    meshes.forEach(x => innerGroup.add(x));
-    innerGroup.rotateY(- Math.PI / 2);
+    meshes.forEach((x) => innerGroup.add(x));
+    innerGroup.rotateY(-Math.PI / 2);
     this.group = new THREE.Group();
     this.group.add(innerGroup);
     this.group.castShadow = true;
   }
-
 
   create() {
     if (!this.group) return;
@@ -72,12 +62,13 @@ class EyeMeshFactory {
     // Random color
     const iris = eye.children[0].children[1];
     const newIrisMaterial = iris.material.clone();
-    newIrisMaterial.color = new THREE.Color(randomColor({ luminosity: 'light' }));
+    newIrisMaterial.color = new THREE.Color(
+      randomColor({ luminosity: 'light' })
+    );
     iris.material = newIrisMaterial;
 
     return eye;
   }
-
 
   async loadGltf(path) {
     return new Promise((resolve, reject) => {
@@ -85,13 +76,9 @@ class EyeMeshFactory {
     });
   }
 
-
-  async loadTexture(path): Promise<THREE.Texture> {
+  async loadTexture(path) {
     return new Promise((resolve, reject) => {
       this.textureLoader.load(path, resolve, null, reject);
     });
   }
 }
-
-
-export default EyeMeshFactory;
