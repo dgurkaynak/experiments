@@ -1,16 +1,16 @@
 // Copycat: http://bigblueboo.tumblr.com/post/145035932469/from-all-angles#notes
 
-import * as THREE from 'three';
-import Stats from 'stats.js';
-import * as dat from 'dat.gui';
-import OrbitControlsFactory from 'three-orbit-controls';
-const OrbitControls = OrbitControlsFactory(THREE);
-import CanvasResizer from '../utils/canvas-resizer';
-import Animator from '../utils/animator';
-import Clock from '../utils/clock';
-import colors from 'nice-color-palettes';
-import sampleSize from 'lodash/sampleSize';
+// Global dependencies:
+// - three.js
+// - stats.js
+// - dat.gui
+// - three-orbit-controls
+// - nice-color-palettes-100
+// - lodash
 
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Animator } from '../lib/animator.js';
+import { Clock } from '../lib/clock.js';
 
 /**
  * Constants
@@ -18,7 +18,7 @@ import sampleSize from 'lodash/sampleSize';
 const ENABLE_STATS = false;
 const ENABLE_ORBIT_CONTROLS = false;
 
-const DISTANCE = 80;
+const DISTANCE = 50;
 const NUMBER_OF_BOXES_X = 10;
 const NUMBER_OF_BOXES_Y = 10;
 
@@ -29,14 +29,16 @@ const GUISettings = class {
   bgColor = '#FEF8EC';
 
   randomizeColors = () => {
-    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 2);
+    const randomTwoColors = _.sampleSize(
+      _.sampleSize(niceColorPalettes100, 1)[0],
+      2
+    );
     settings.bgColor = randomTwoColors[0];
     setBackgroundAndFaceColor(settings.bgColor);
     settings.lineColor = randomTwoColors[1];
     setLineColor(settings.lineColor);
   };
 };
-
 
 /**
  * Setup environment
@@ -45,37 +47,42 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+const renderer = new THREE.WebGLRenderer({
+  antialias: window.devicePixelRatio == 1,
+});
 const resizer = new CanvasResizer(renderer.domElement, {
   dimension: [1024, 1024],
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: window.devicePixelRatio,
 });
 const animator = new Animator(animate);
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
 const scene = new THREE.Scene();
-const camera = new THREE.OrthographicCamera(
-  resizer.width / resizer.dimensionScaleFactor / -2,
-  resizer.width / resizer.dimensionScaleFactor / 2,
-  resizer.height / resizer.dimensionScaleFactor / 2,
-  resizer.height / resizer.dimensionScaleFactor / -2,
+const camera = new THREE.PerspectiveCamera(
+  150,
+  resizer.width / resizer.height,
   0.1,
   1000
 );
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
 
-
 /**
  * Experiment variables
  */
 const clock = new Clock();
-const geometry = new THREE.BoxBufferGeometry(40, 40, 40);
-const material = new THREE.MeshBasicMaterial({ color: settings.bgColor, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
-const lineMaterial = new THREE.LineBasicMaterial({ color: settings.lineColor, linewidth: settings.lineWidth });
-const boxes: THREE.Mesh[][] = [];
-
-
+const geometry = new THREE.BoxBufferGeometry(25, 25, 25);
+const material = new THREE.MeshBasicMaterial({
+  color: settings.bgColor,
+  polygonOffset: true,
+  polygonOffsetFactor: 1,
+  polygonOffsetUnits: 1,
+});
+const lineMaterial = new THREE.LineBasicMaterial({
+  color: settings.lineColor,
+  linewidth: settings.lineWidth,
+});
+const boxes = [];
 
 /**
  * Main/Setup function, initialize stuff...
@@ -88,9 +95,15 @@ async function main() {
 
   // Settings
   gui.add(settings, 'rotatePeriod', 0.1, 5).step(0.1);
-  gui.add(settings, 'lineWidth', 1, 5).step(1).onChange(w => lineMaterial.linewidth = w);
+  gui
+    .add(settings, 'lineWidth', 1, 5)
+    .step(1)
+    .onChange((w) => (lineMaterial.linewidth = w));
   gui.addColor(settings, 'lineColor').listen().onChange(setLineColor);
-  gui.addColor(settings, 'bgColor').listen().onChange(setBackgroundAndFaceColor);
+  gui
+    .addColor(settings, 'bgColor')
+    .listen()
+    .onChange(setBackgroundAndFaceColor);
   gui.add(settings, 'randomizeColors');
   gui.close();
 
@@ -104,7 +117,7 @@ async function main() {
   renderer.setClearColor(settings.bgColor);
 
   for (let i = 0; i < NUMBER_OF_BOXES_X; i++) {
-    const line: THREE.Mesh[] = [];
+    const line = [];
 
     for (let j = 0; j < NUMBER_OF_BOXES_Y; j++) {
       const mesh = new THREE.Mesh(geometry, material);
@@ -114,11 +127,11 @@ async function main() {
 
       const offsetX = (NUMBER_OF_BOXES_X - 1) / 2;
       const offsetY = (NUMBER_OF_BOXES_Y - 1) / 2;
-      mesh.position.x = DISTANCE * -offsetX + (DISTANCE * i);
-      mesh.position.y = DISTANCE * -offsetY + (DISTANCE * j);
+      mesh.position.x = DISTANCE * -offsetX + DISTANCE * i;
+      mesh.position.y = DISTANCE * -offsetY + DISTANCE * j;
 
-      mesh.rotateZ(Math.PI / 18 * j);
-      mesh.rotateX(Math.PI / 18 * i);
+      mesh.rotateZ((Math.PI / 18) * j);
+      mesh.rotateX((Math.PI / 18) * i);
 
       scene.add(mesh);
       line.push(mesh);
@@ -130,7 +143,6 @@ async function main() {
   animator.start();
 }
 
-
 /**
  * Sets background and cube's face color
  */
@@ -139,14 +151,12 @@ function setBackgroundAndFaceColor(color) {
   material.color.set(color);
 }
 
-
 /**
  * Sets cube's line color
  */
 function setLineColor(color) {
   lineMaterial.color.set(color);
 }
-
 
 /**
  * Animate stuff...
@@ -168,19 +178,14 @@ function animate() {
   if (ENABLE_STATS) stats.end();
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
-  camera.left = width / resizer.dimensionScaleFactor / -2;
-  camera.right = width / resizer.dimensionScaleFactor / 2;
-  camera.top = height / resizer.dimensionScaleFactor / 2;
-  camera.bottom = height / resizer.dimensionScaleFactor / -2;
+function onWindowResize(width, height) {
+  camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -195,10 +200,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
