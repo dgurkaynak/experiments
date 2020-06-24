@@ -1,20 +1,15 @@
-import * as THREE from 'three';
-import Stats from 'stats.js';
-import * as dat from 'dat.gui';
-import OrbitControlsFactory from 'three-orbit-controls';
-const OrbitControls = OrbitControlsFactory(THREE);
-import CanvasResizer from '../utils/canvas-resizer';
-import Animator from '../utils/animator';
-import GeometrySpringModifier from './spring-modifier';
-import { disableBodyScroll } from 'body-scroll-lock';
-import detectIt from 'detect-it';
+// Global deps
+// - three
+// - stats.js
+// - dat.gui
+// - three-orbit-controls
+// - body-scroll-lock
+// - detect-it // forget it, no easy way to add it
+// - three-ctm-loader
 
-require('../utils/three/ctm/ctm-loader');
-import headCtmPath from './assets/LeePerry.ctm';
-import colorMapTexturePath from './assets/Map-COL.jpg';
-import specularMapTexturePath from './assets/Map-SPEC.jpg';
-import normalMapTexturePath from './assets/Infinite-Level_02_Tangent_SmoothUV.jpg';
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Animator } from '../lib/animator.js';
+import { GeometrySpringModifier } from './spring-modifier.js';
 
 /**
  * Constants
@@ -28,7 +23,6 @@ const GUISettings = class {
   dampen = 0.999999;
 };
 
-
 /**
  * Setup environment
  */
@@ -37,31 +31,35 @@ const elements = {
   stats: document.getElementById('stats'),
   message: document.getElementById('message'),
 };
-const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+const renderer = new THREE.WebGLRenderer({
+  antialias: window.devicePixelRatio == 1,
+});
 const resizer = new CanvasResizer(renderer.domElement, {
   dimension: 'fullscreen',
-  dimensionScaleFactor: 1
+  dimensionScaleFactor: 1,
 });
 const animator = new Animator(animate);
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, resizer.width / resizer.height, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+  50,
+  resizer.width / resizer.height,
+  0.1,
+  1000
+);
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
-
 
 /**
  * Experiment variables
  */
 const rayCaster = new THREE.Raycaster();
 const mousePosition = new THREE.Vector2();
-let mesh: THREE.Mesh;
-let springModifier: GeometrySpringModifier;
+let mesh;
+let springModifier;
 const ctmLoader = new THREE.CTMLoader();
 const textureLoader = new THREE.TextureLoader();
-
-
 
 /**
  * Main/Setup function, initialize stuff...
@@ -74,16 +72,26 @@ async function main() {
   resizer.init();
 
   // Disable body scroll
-  disableBodyScroll(document.body);
+  // bodyScrollLock.disableBodyScroll(document.body);
 
   // Settings
-  gui.add(settings, 'springDisplaceMagnitude', 0.000001, 0.0025).step(0.000001).listen();
-  gui.add(settings, 'springStrength', 0.00001, 0.01).step(0.00001).listen().onChange((val) => {
-    springModifier.SPRING_STRENGTH = val;
-  });
-  gui.add(settings, 'dampen', 0.999, 0.999999).step(0.000001).onChange((val) => {
-    springModifier.DAMPEN = val;
-  });
+  gui
+    .add(settings, 'springDisplaceMagnitude', 0.000001, 0.0025)
+    .step(0.000001)
+    .listen();
+  gui
+    .add(settings, 'springStrength', 0.00001, 0.01)
+    .step(0.00001)
+    .listen()
+    .onChange((val) => {
+      springModifier.SPRING_STRENGTH = val;
+    });
+  gui
+    .add(settings, 'dampen', 0.999, 0.999999)
+    .step(0.000001)
+    .onChange((val) => {
+      springModifier.DAMPEN = val;
+    });
   gui.close();
 
   if (ENABLE_STATS) {
@@ -91,23 +99,23 @@ async function main() {
     elements.stats.appendChild(stats.dom);
   }
 
-  if (detectIt.primaryInput == 'touch') {
-    // elements.message.textContent = 'Tap on me';
-    // elements.message.style.left = 'calc(50% - 4.5em)';
-    // elements.message.style.fontSize = '24px';
-    const onTouchStart = (e: TouchEvent) => {
-      e.preventDefault();
-      onClick({
-        offsetX: e.changedTouches[0].clientX,
-        offsetY: e.changedTouches[0].clientY
-      } as any);
-    };
-    elements.message.addEventListener('touchstart', onTouchStart, false);
-    renderer.domElement.addEventListener('touchstart', onTouchStart, false);
-  } else {
-    elements.message.addEventListener('click', onClick, false);
-    renderer.domElement.addEventListener('click', onClick, false);
-  }
+  // if (detectIt.primaryInput == 'touch') {
+  //   // elements.message.textContent = 'Tap on me';
+  //   // elements.message.style.left = 'calc(50% - 4.5em)';
+  //   // elements.message.style.fontSize = '24px';
+  //   const onTouchStart = (e) => {
+  //     e.preventDefault();
+  //     onClick({
+  //       offsetX: e.changedTouches[0].clientX,
+  //       offsetY: e.changedTouches[0].clientY
+  //     });
+  //   };
+  //   elements.message.addEventListener('touchstart', onTouchStart, false);
+  //   renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+  // } else {
+  elements.message.addEventListener('click', onClick, false);
+  renderer.domElement.addEventListener('click', onClick, false);
+  // }
 
   // Start experiment
   camera.position.set(0, 0, 1);
@@ -120,22 +128,15 @@ async function main() {
   pointLight.position.set(0, 1, 2);
   scene.add(pointLight);
 
-  const [
-    geometry_,
-    map,
-    normalMap,
-    specularMap
-  ] = await Promise.all([
-    loadCTM(headCtmPath),
-    loadTexture(colorMapTexturePath),
-    loadTexture(normalMapTexturePath),
-    loadTexture(specularMapTexturePath),
+  const [geometry_, map, specularMap] = await Promise.all([
+    loadCTM('./assets/LeePerry.ctm'),
+    loadTexture('./assets/Map-COL.jpg'),
+    loadTexture('./assets/Infinite-Level_02_Tangent_SmoothUV.jpg'),
   ]);
 
-  const geometry = new THREE.Geometry().fromBufferGeometry(geometry_ as any);
+  const geometry = new THREE.Geometry().fromBufferGeometry(geometry_);
   const material = new THREE.MeshPhongMaterial({
     map,
-    normalMap,
     normalScale: new THREE.Vector2(0.8, 0.8),
     specularMap,
   });
@@ -155,8 +156,7 @@ async function main() {
   animator.start();
 }
 
-
-function onClick(e: MouseEvent) {
+function onClick(e) {
   if (!mesh) return;
 
   const mouseX = e.offsetX || e.clientX;
@@ -172,12 +172,14 @@ function onClick(e: MouseEvent) {
   rayCaster.set(camera.position, vector.sub(camera.position).normalize());
   const intersects = rayCaster.intersectObject(mesh);
 
-  if(intersects.length) {
-    springModifier.displaceFace(intersects[0].face, settings.springDisplaceMagnitude);
+  if (intersects.length) {
+    springModifier.displaceFace(
+      intersects[0].face,
+      settings.springDisplaceMagnitude
+    );
     elements.message.style.display = 'none';
   }
 }
-
 
 /**
  * Animate stuff...
@@ -188,9 +190,9 @@ function animate() {
 
   if (mesh) {
     springModifier.updateVertexSprings();
-    (<any>mesh.geometry).verticesNeedUpdate = true;
-    (<any>mesh.geometry).normalsNeedUpdate = true;
-    (<any>mesh.geometry).computeFaceNormals();
+    mesh.geometry.verticesNeedUpdate = true;
+    mesh.geometry.normalsNeedUpdate = true;
+    mesh.geometry.computeFaceNormals();
     mesh.geometry.computeVertexNormals();
   }
   renderer.render(scene, camera);
@@ -198,28 +200,26 @@ function animate() {
   if (ENABLE_STATS) stats.end();
 }
 
-
-function loadCTM(path): Promise<THREE.Geometry> {
+function loadCTM(path) {
   return new Promise((resolve, reject) => {
     ctmLoader.load(path, resolve);
   });
 }
 
-
-function loadTexture(path): Promise<THREE.Texture> {
-  return new Promise((resolve, reject) => textureLoader.load(path, resolve, null, reject));
+function loadTexture(path) {
+  return new Promise((resolve, reject) =>
+    textureLoader.load(path, resolve, null, reject)
+  );
 }
-
 
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -231,14 +231,14 @@ function dispose() {
   renderer.domElement.removeEventListener('mousemove', onMouseMove, false);
   renderer.dispose();
   mesh.geometry.dispose();
-  (<any>mesh.material).dispose();
+  mesh.material.dispose();
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));

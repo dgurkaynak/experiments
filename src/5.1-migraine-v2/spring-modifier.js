@@ -1,15 +1,15 @@
 // Derived from:
 // https://www.creativebloq.com/javascript/create-interactive-liquid-metal-ball-webgl-4126370
 
-import * as THREE from 'three';
+// Global deps
+// - THREE
 
-
-export default class GeometrySpringModifier {
+export class GeometrySpringModifier {
   SPRING_STRENGTH = 0.0005;
   DAMPEN = 0.999;
 
-
-  constructor(private geometry: THREE.Geometry) {
+  constructor(geometry) {
+    this.geometry = geometry;
     geometry.faces.forEach((face) => {
       this.createSpring(face.a, face.b);
       this.createSpring(face.b, face.c);
@@ -17,10 +17,9 @@ export default class GeometrySpringModifier {
     });
   }
 
-
   createSpring(start, end) {
-    const startVertex: any = this.geometry.vertices[start];
-    const endVertex: any = this.geometry.vertices[end];
+    const startVertex = this.geometry.vertices[start];
+    const endVertex = this.geometry.vertices[end];
 
     if (!startVertex.springs) {
       startVertex.springs = [];
@@ -42,10 +41,9 @@ export default class GeometrySpringModifier {
     startVertex.springs.push({
       start: startVertex,
       end: endVertex,
-      length: startVertex.length(endVertex)
+      length: startVertex.length(endVertex),
     });
   }
-
 
   displaceFace(face, magnitude) {
     this.displaceVertex(face.a, magnitude);
@@ -53,22 +51,19 @@ export default class GeometrySpringModifier {
     this.displaceVertex(face.c, magnitude);
   }
 
-
   displaceVertex(vertexIndex, magnitude) {
-    const vertex: any = this.geometry.vertices[vertexIndex];
+    const vertex = this.geometry.vertices[vertexIndex];
     const velocityDelta = vertex.normal.clone().multiplyScalar(magnitude);
     vertex.velocity.add(velocityDelta);
   }
-
 
   updateVertexSprings() {
     // go through each spring and
     // work out what the extension is
     let vertexCount = this.geometry.vertices.length;
 
-    while(vertexCount--) {
-
-      const vertex: any = this.geometry.vertices[vertexCount];
+    while (vertexCount--) {
+      const vertex = this.geometry.vertices[vertexCount];
       const vertexSprings = vertex.springs;
 
       if (!vertexSprings) {
@@ -79,12 +74,16 @@ export default class GeometrySpringModifier {
         const vertexSpring = vertexSprings[v];
         const length = vertexSpring.start.length(vertexSpring.end);
         const extension = vertexSpring.length - length;
-        const  acceleration = new THREE.Vector3(0, 0, 0);
+        const acceleration = new THREE.Vector3(0, 0, 0);
 
-        acceleration.copy(vertexSpring.start.normal).multiplyScalar(extension * this.SPRING_STRENGTH);
+        acceleration
+          .copy(vertexSpring.start.normal)
+          .multiplyScalar(extension * this.SPRING_STRENGTH);
         vertexSpring.start.velocity.add(acceleration);
 
-        acceleration.copy(vertexSpring.end.normal).multiplyScalar(extension * this.SPRING_STRENGTH);
+        acceleration
+          .copy(vertexSpring.end.normal)
+          .multiplyScalar(extension * this.SPRING_STRENGTH);
         vertexSpring.end.velocity.add(acceleration);
 
         vertexSpring.start.add(vertexSpring.start.velocity);
