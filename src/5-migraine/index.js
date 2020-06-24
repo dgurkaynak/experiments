@@ -1,23 +1,18 @@
-import * as THREE from 'three';
-import Stats from 'stats.js';
-import OrbitControlsFactory from 'three-orbit-controls';
-const OrbitControls = OrbitControlsFactory(THREE);
-import CanvasResizer from '../utils/canvas-resizer';
-import Animator from '../utils/animator';
-import Wave2dCanvas from './wave2d-canvas';
+// Global deps
+// - three
+// - stats.js
+// - three-orbit-controls
+// - three-ctm-loader
 
-require('../utils/three/ctm/ctm-loader');
-import headCtmPath from './assets/LeePerry.ctm';
-import colorMapTexturePath from './assets/Map-COL.jpg';
-import normalMapTexturePath from './assets/Infinite-Level_02_Tangent_SmoothUV.jpg';
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Animator } from '../lib/animator.js';
+import { Wave2dCanvas } from './wave2d-canvas.js';
 
 /**
  * Constants
  */
 const ENABLE_STATS = false;
 const ENABLE_ORBIT_CONTROLS = false;
-
 
 /**
  * Setup environment
@@ -27,29 +22,33 @@ const elements = {
   stats: document.getElementById('stats'),
   message: document.getElementById('message'),
 };
-const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+const renderer = new THREE.WebGLRenderer({
+  antialias: window.devicePixelRatio == 1,
+});
 const resizer = new CanvasResizer(renderer.domElement, {
   dimension: 'fullscreen',
-  dimensionScaleFactor: 1//window.devicePixelRatio
+  dimensionScaleFactor: 1, //window.devicePixelRatio
 });
 const animator = new Animator(animate);
 const stats = new Stats();
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, resizer.width / resizer.height, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+  50,
+  resizer.width / resizer.height,
+  0.1,
+  1000
+);
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
-
 
 /**
  * Experiment variables
  */
 const rayCaster = new THREE.Raycaster();
 const mousePosition = new THREE.Vector2();
-let mesh: THREE.Mesh;
+let mesh;
 const wave2dCanvas = new Wave2dCanvas(64, 16);
 const ctmLoader = new THREE.CTMLoader();
 const textureLoader = new THREE.TextureLoader();
-
-
 
 /**
  * Main/Setup function, initialize stuff...
@@ -87,14 +86,10 @@ async function main() {
   // wave2dCanvas.canvas.style = 'position: absolute; top: 0; left: 0; width: 1024px; height: 1024px; zoom: 0.25;';
   // document.body.appendChild(wave2dCanvas.canvas);
 
-  const [
-    geometry,
-    map,
-    normalMap
-  ] = await Promise.all([
-    loadCTM(headCtmPath),
-    loadTexture(colorMapTexturePath),
-    loadTexture(normalMapTexturePath),
+  const [geometry, map, normalMap] = await Promise.all([
+    loadCTM('./assets/LeePerry.ctm'),
+    loadTexture('./assets/Map-COL.jpg'),
+    loadTexture('./assets/Infinite-Level_02_Tangent_SmoothUV.jpg'),
   ]);
 
   const material = new THREE.MeshStandardMaterial({
@@ -121,16 +116,17 @@ async function main() {
   animator.start();
 }
 
-
-function onClick(e: MouseEvent) {
-  mousePosition.x = (e.clientX / (resizer.width / resizer.dimensionScaleFactor)) * 2 - 1;
-  mousePosition.y = - (e.clientY / (resizer.height / resizer.dimensionScaleFactor)) * 2 + 1;
+function onClick(e) {
+  mousePosition.x =
+    (e.clientX / (resizer.width / resizer.dimensionScaleFactor)) * 2 - 1;
+  mousePosition.y =
+    -(e.clientY / (resizer.height / resizer.dimensionScaleFactor)) * 2 + 1;
 
   rayCaster.setFromCamera(mousePosition, camera);
   const intersects = rayCaster.intersectObject(mesh, true);
 
   if (intersects[0]) {
-    const intersect: any = intersects[0];
+    const intersect = intersects[0];
     const x = Math.floor(intersect.uv.x * 1024);
     const y = Math.floor((1 - intersect.uv.y) * 1024);
     wave2dCanvas.applyForce(x, y, -2);
@@ -138,7 +134,6 @@ function onClick(e: MouseEvent) {
     elements.message.style.display = 'none';
   }
 }
-
 
 /**
  * Animate stuff...
@@ -149,34 +144,32 @@ function animate() {
 
   wave2dCanvas.draw();
   wave2dCanvas.iterate();
-  if (mesh) (<any>mesh.material).displacementMap.needsUpdate = true;
+  if (mesh) mesh.material.displacementMap.needsUpdate = true;
   renderer.render(scene, camera);
 
   if (ENABLE_STATS) stats.end();
 }
 
-
-function loadCTM(path): Promise<THREE.Geometry> {
+function loadCTM(path) {
   return new Promise((resolve, reject) => {
     ctmLoader.load(path, resolve);
   });
 }
 
-
-function loadTexture(path): Promise<THREE.Texture> {
-  return new Promise((resolve, reject) => textureLoader.load(path, resolve, null, reject));
+function loadTexture(path) {
+  return new Promise((resolve, reject) =>
+    textureLoader.load(path, resolve, null, reject)
+  );
 }
-
 
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -188,14 +181,14 @@ function dispose() {
   renderer.domElement.removeEventListener('click', onClick, false);
   renderer.dispose();
   mesh.geometry.dispose();
-  (<any>mesh.material).dispose();
+  mesh.material.dispose();
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
