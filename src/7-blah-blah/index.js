@@ -1,20 +1,17 @@
-import * as THREE from 'three';
-import Stats from 'stats.js';
-import OrbitControlsFactory from 'three-orbit-controls';
-const OrbitControls = OrbitControlsFactory(THREE);
-import CanvasResizer from '../utils/canvas-resizer';
-import Animator from '../utils/animator';
-import getAmmo from 'ammo.js'; const Ammo = getAmmo();
-import * as ammoHelper from '../utils/three/ammo-helper';
-import times from 'lodash/times';
-import throttle from 'lodash/throttle';
-import GLTFLoader from 'three-gltf-loader';
-import { FFD } from '../utils/three/ffd';
+// Global deps
+// - three
+// - stats.js
+// - three-orbit-controls
+// - ammo.js (github:kripken/ammo.js#master, 29.10.2018)
+// - lodash (times, throttle)
+// - three-gltf-loader
 
-import theBoldFontData from '../006/the-bold-font.json';
-import toiletGltfPath from './assets/toilet.gltf';
-import toiletColorMapPath from './assets/toilet_color.jpg';
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Animator } from '../lib/animator.js';
+import * as ammoHelper from '../lib/ammo-helper.js';
+import { FFD } from '../lib/ffd.js';
 
+import theBoldFontData from './the-bold-font.js';
 
 /**
  * Constants
@@ -30,7 +27,6 @@ const SOFT_BODY_MASS = 1;
 const SOFT_BODY_PRESSURE = 25;
 const TEXT_SPAWN_INTERVAL = 1000;
 
-
 /**
  * Setup environment
  */
@@ -38,17 +34,23 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+const renderer = new THREE.WebGLRenderer({
+  antialias: window.devicePixelRatio == 1,
+});
 const resizer = new CanvasResizer(renderer.domElement, {
   dimension: [1024, 1024],
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: window.devicePixelRatio,
 });
 const animator = new Animator(animate);
 const stats = new Stats();
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(20, resizer.width / resizer.height, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+  20,
+  resizer.width / resizer.height,
+  0.1,
+  1000
+);
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
-
 
 /**
  * Experiment variables
@@ -63,33 +65,45 @@ const defaultTextGeometry = new THREE.TextGeometry('BLAH', {
   font: theBoldFont,
   size: 1,
   height: 0.75,
-  curveSegments: 12
+  curveSegments: 12,
 });
 const defaultTextMaterial = new THREE.MeshStandardMaterial({
   color: 0xff0000,
   metalness: 0.1,
-  roughness: 0.5
+  roughness: 0.5,
 });
-const meshes: THREE.Mesh[] = [];
+const meshes = [];
 
-const collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
-const dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-const broadphase = new Ammo.btDbvtBroadphase();
-const solver = new Ammo.btSequentialImpulseConstraintSolver();
-const softBodySolver = new Ammo.btDefaultSoftBodySolver();
-const physicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
-physicsWorld.setGravity(new Ammo.btVector3(0, GRAVITY, 0));
-(<any>physicsWorld.getWorldInfo()).set_m_gravity(new Ammo.btVector3(0, GRAVITY, 0));
+let physicsWorld;
 const softBodies = [];
-const softBodyHelpers = new Ammo.btSoftBodyHelpers();
-const cleanSoftBodiesThrottle = throttle(cleanSoftBodies, 500);
-
-
+let softBodyHelpers;
+const cleanSoftBodiesThrottle = _.throttle(cleanSoftBodies, 500);
 
 /**
  * Main/Setup function, initialize stuff...
  */
 async function main() {
+  // Init Ammo
+  // https://medium.com/@bluemagnificent/intro-to-javascript-3d-physics-using-ammo-js-and-three-js-dd48df81f591
+  await Ammo();
+
+  // More ammo stuff
+  const collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+  const dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+  const broadphase = new Ammo.btDbvtBroadphase();
+  const solver = new Ammo.btSequentialImpulseConstraintSolver();
+  const softBodySolver = new Ammo.btDefaultSoftBodySolver();
+  physicsWorld = new Ammo.btSoftRigidDynamicsWorld(
+    dispatcher,
+    broadphase,
+    solver,
+    collisionConfiguration,
+    softBodySolver
+  );
+  physicsWorld.setGravity(new Ammo.btVector3(0, GRAVITY, 0));
+  physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, GRAVITY, 0));
+  softBodyHelpers = new Ammo.btSoftBodyHelpers();
+
   renderer.setSize(resizer.width, resizer.height);
   elements.container.appendChild(renderer.domElement);
   resizer.resize = onWindowResize;
@@ -126,20 +140,21 @@ async function main() {
   animator.start();
 }
 
-
 async function setupToilet() {
   // Load model and texture
   const [toiletGtlf, toiletColorMapTexture] = await Promise.all([
-    loadGltf(toiletGltfPath),
-    loadTexture(toiletColorMapPath)
+    loadGltf('./assets/toilet.gltf'),
+    loadTexture('./assets/toilet_color.jpg'),
   ]);
 
   // Add to scene
-  (<any>toiletGtlf).scene.traverse((child) => {
+  toiletGtlf.scene.traverse((child) => {
     if (child instanceof THREE.Mesh) {
-      child.material = new THREE.MeshPhongMaterial({ map: toiletColorMapTexture });
+      child.material = new THREE.MeshPhongMaterial({
+        map: toiletColorMapTexture,
+      });
 
-      child.geometry.rotateX(- Math.PI / 2);
+      child.geometry.rotateX(-Math.PI / 2);
       child.geometry.translate(5, 0, 0);
       child.geometry.scale(0.5, 0.5, 0.5);
 
@@ -154,44 +169,61 @@ async function setupToilet() {
   });
 
   // Start physics stuff
-  const transparentMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 });
+  const transparentMaterial = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+  });
 
   // Toilet mouth - donut shape
   const geometry1 = new THREE.TorusGeometry(3, 0.5, null, 20);
   geometry1.rotateX(Math.PI / 2);
-  geometry1.scale(1.05, 0.25, 1.25)
+  geometry1.scale(1.05, 0.25, 1.25);
   geometry1.translate(-0.15, -2.0, 0.55);
   const mesh1 = new THREE.Mesh(geometry1, transparentMaterial);
-  const shape1 = ammoHelper.generateAmmoShapeFromGeometry(Ammo, geometry1, MARGIN);
+  const shape1 = ammoHelper.generateAmmoShapeFromGeometry(
+    Ammo,
+    geometry1,
+    MARGIN
+  );
   createRigidBody(shape1);
   scene.add(mesh1);
   meshes.push(mesh1);
 
   // Toilet inside - vase shape
-  const lathePoints = times(10, i => new THREE.Vector2(Math.sin(i * 0.2) * 10 + 5, (i - 5) * 2));
+  const lathePoints = _.times(
+    10,
+    (i) => new THREE.Vector2(Math.sin(i * 0.2) * 10 + 5, (i - 5) * 2)
+  );
   const geometry2 = new THREE.LatheGeometry(lathePoints);
   geometry2.scale(0.25, 0.25, 0.3);
-  geometry2.translate(-0.20, -4, 0.5);
+  geometry2.translate(-0.2, -4, 0.5);
   const mesh2 = new THREE.Mesh(geometry2, transparentMaterial);
-  const shape2 = ammoHelper.generateAmmoShapeFromGeometry(Ammo, geometry2, MARGIN);
+  const shape2 = ammoHelper.generateAmmoShapeFromGeometry(
+    Ammo,
+    geometry2,
+    MARGIN
+  );
   createRigidBody(shape2);
   scene.add(mesh2);
   meshes.push(mesh2);
 }
 
-
 function createRigidBody(physicsShape) {
   const motionState = new Ammo.btDefaultMotionState();
   const localInertia = new Ammo.btVector3(0, 0, 0);
   physicsShape.calculateLocalInertia(0, localInertia);
-  const rbInfo = new Ammo.btRigidBodyConstructionInfo(0, motionState, physicsShape, localInertia);
+  const rbInfo = new Ammo.btRigidBodyConstructionInfo(
+    0,
+    motionState,
+    physicsShape,
+    localInertia
+  );
   const body = new Ammo.btRigidBody(rbInfo);
   physicsWorld.addRigidBody(body);
 }
 
-
 function generateAndAddSoftBody(
-  decorator: (geometry: THREE.Geometry) => void = () => {},
+  decorator = () => {},
   geometry = defaultTextGeometry.clone(),
   material = defaultTextMaterial
 ) {
@@ -202,7 +234,9 @@ function generateAndAddSoftBody(
   }
   scene.add(mesh);
 
-  const undeformedVertices = geometry.vertices.map(v => new THREE.Vector3().copy(v))
+  const undeformedVertices = geometry.vertices.map((v) =>
+    new THREE.Vector3().copy(v)
+  );
   const bBox = new THREE.Box3();
   bBox.setFromPoints(geometry.vertices);
 
@@ -212,19 +246,32 @@ function generateAndAddSoftBody(
   const bBoxWidth = Math.abs(bBox.max.x - bBox.min.x);
   const bBoxHeight = Math.abs(bBox.max.y - bBox.min.y);
   const bBoxDepth = Math.abs(bBox.max.z - bBox.min.z);
-  const bBoxGeometry = new THREE.BoxGeometry(bBoxWidth, bBoxHeight, bBoxDepth, TEXT_BB_SEGMENTS[0], TEXT_BB_SEGMENTS[1], TEXT_BB_SEGMENTS[2]);
+  const bBoxGeometry = new THREE.BoxGeometry(
+    bBoxWidth,
+    bBoxHeight,
+    bBoxDepth,
+    TEXT_BB_SEGMENTS[0],
+    TEXT_BB_SEGMENTS[1],
+    TEXT_BB_SEGMENTS[2]
+  );
   const bBoxGeometryTemp = bBoxGeometry.clone();
 
   decorator(bBoxGeometry);
 
-  const volume = createSoftBody(bBoxGeometry, SOFT_BODY_MASS, SOFT_BODY_PRESSURE);
+  const volume = createSoftBody(
+    bBoxGeometry,
+    SOFT_BODY_MASS,
+    SOFT_BODY_PRESSURE
+  );
 
   bBoxGeometryTemp.translate(bBoxWidth / 2, bBoxHeight / 2, bBoxDepth / 2);
   bBoxGeometryTemp.mergeVertices();
   const vertexIndexToLatticeMapping = {};
-  for (let i = 0; i < ffd.getTotalCtrlPtCount() ; i++) {
+  for (let i = 0; i < ffd.getTotalCtrlPtCount(); i++) {
     const ctrlPos = ffd.getPosition(i);
-    const targetI = findMinIndex(bBoxGeometryTemp.vertices, v => v.distanceTo(ctrlPos));
+    const targetI = findMinIndex(bBoxGeometryTemp.vertices, (v) =>
+      v.distanceTo(ctrlPos)
+    );
     vertexIndexToLatticeMapping[targetI] = i;
   }
   bBoxGeometryTemp.dispose();
@@ -237,8 +284,7 @@ function generateAndAddSoftBody(
   volume.ffd = ffd;
 }
 
-
-function createSoftBody(geometry: THREE.Geometry, mass: number, pressure: number) {
+function createSoftBody(geometry, mass, pressure) {
   const bufferGeometry = new THREE.BufferGeometry().fromGeometry(geometry);
 
   // Merge the vertices so the triangle soup is converted to indexed triangles
@@ -250,26 +296,31 @@ function createSoftBody(geometry: THREE.Geometry, mass: number, pressure: number
   const numFaces = geometry.faces.length;
   const bufferGeometryIndexed = new THREE.BufferGeometry();
   const vertices = new Float32Array(numVertices * 3);
-  const indices = new (numFaces * 3 > 65535 ? Uint32Array : Uint16Array)(numFaces * 3);
+  const indices = new (numFaces * 3 > 65535 ? Uint32Array : Uint16Array)(
+    numFaces * 3
+  );
 
   for (let i = 0; i < numVertices; i++) {
-      const p = geometry.vertices[i];
-      const i3 = i * 3;
-      vertices[i3] = p.x;
-      vertices[i3 + 1] = p.y;
-      vertices[i3 + 2] = p.z;
+    const p = geometry.vertices[i];
+    const i3 = i * 3;
+    vertices[i3] = p.x;
+    vertices[i3 + 1] = p.y;
+    vertices[i3 + 2] = p.z;
   }
 
   for (let i = 0; i < numFaces; i++) {
-      const f = geometry.faces[i];
-      const i3 = i * 3;
-      indices[i3] = f.a;
-      indices[i3 + 1] = f.b;
-      indices[i3 + 2] = f.c;
+    const f = geometry.faces[i];
+    const i3 = i * 3;
+    indices[i3] = f.a;
+    indices[i3 + 1] = f.b;
+    indices[i3 + 2] = f.c;
   }
 
   bufferGeometryIndexed.setIndex(new THREE.BufferAttribute(indices, 1));
-  bufferGeometryIndexed.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  bufferGeometryIndexed.addAttribute(
+    'position',
+    new THREE.BufferAttribute(vertices, 3)
+  );
 
   // Create index arrays mapping the indexed vertices to bufGeometry vertices
   // mapIndices(bufGeometry, indexedBufferGeom);
@@ -282,25 +333,31 @@ function createSoftBody(geometry: THREE.Geometry, mass: number, pressure: number
   bufferGeometry.ammoIndexAssociation = [];
 
   for (let i = 0; i < numIdxVertices; i++) {
-      const association = [];
-      bufferGeometry.ammoIndexAssociation.push( association );
-      const i3 = i * 3;
+    const association = [];
+    bufferGeometry.ammoIndexAssociation.push(association);
+    const i3 = i * 3;
 
-      for (let j = 0; j < numBufVertices; j++) {
-          const j3 = j * 3;
-          if (isEqual(
-            idxVertices[i3], idxVertices[i3 + 1],  idxVertices[i3 + 2],
-            vertices[j3], vertices[j3 + 1], vertices[j3 + 2]
-          )) {
-              association.push(j3);
-          }
+    for (let j = 0; j < numBufVertices; j++) {
+      const j3 = j * 3;
+      if (
+        isEqual(
+          idxVertices[i3],
+          idxVertices[i3 + 1],
+          idxVertices[i3 + 2],
+          vertices[j3],
+          vertices[j3 + 1],
+          vertices[j3 + 2]
+        )
+      ) {
+        association.push(j3);
       }
+    }
   }
 
   bufferGeometryIndexed.dispose();
 
   // Volume physic object
-  const volumeSoftBody = (<any>softBodyHelpers).CreateFromTriMesh(
+  const volumeSoftBody = softBodyHelpers.CreateFromTriMesh(
     physicsWorld.getWorldInfo(),
     bufferGeometry.ammoVertices,
     bufferGeometry.ammoIndices,
@@ -318,7 +375,9 @@ function createSoftBody(geometry: THREE.Geometry, mass: number, pressure: number
   volumeSoftBody.get_m_materials().at(0).set_m_kLST(0.9); // Stiffness
   volumeSoftBody.get_m_materials().at(0).set_m_kAST(0.9); // Stiffness
   volumeSoftBody.setTotalMass(mass, false);
-  (<any>Ammo).castObject(volumeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(MARGIN);
+  Ammo.castObject(volumeSoftBody, Ammo.btCollisionObject)
+    .getCollisionShape()
+    .setMargin(MARGIN);
   physicsWorld.addSoftBody(volumeSoftBody, 1, -1);
   volumeSoftBody.setActivationState(4); // Disable deactivation
 
@@ -327,7 +386,6 @@ function createSoftBody(geometry: THREE.Geometry, mass: number, pressure: number
 
   return softBody;
 }
-
 
 function cleanSoftBodies() {
   const toBeDeleteds = softBodies.filter((softBody) => {
@@ -338,7 +396,6 @@ function cleanSoftBodies() {
     const index = softBodies.indexOf(softBody);
     if (index > -1) softBodies.splice(index, 1);
 
-
     softBody.bufferGeometry.dispose();
     softBody.bBoxGeometry.dispose();
     softBody.mesh.geometry.dispose();
@@ -346,8 +403,6 @@ function cleanSoftBodies() {
     physicsWorld.removeSoftBody(softBody.physicsBody);
   });
 }
-
-
 
 function updatePhysics(deltaTime) {
   // Step world
@@ -404,20 +459,18 @@ function updatePhysics(deltaTime) {
   });
 }
 
-
-const addTextThrottled = throttle(() => {
+const addTextThrottled = _.throttle(() => {
   generateAndAddSoftBody((geometry) => {
     geometry.translate(
       (Math.random() < 0.5 ? -1.35 : 0.95) + (Math.random() - 0.5) * 0.15,
       6.5,
       (Math.random() < 0.5 ? -1.05 : 1.35) + (Math.random() - 0.5) * 0.15
     );
-    geometry.rotateY((Math.random() - 0.25) * Math.PI / 2);
+    geometry.rotateY(((Math.random() - 0.25) * Math.PI) / 2);
     // geometry.rotateX((Math.random() - 0.5) * Math.PI / 8);
     // geometry.rotateZ((Math.random() - 0.5) * Math.PI / 8);
   });
 }, TEXT_SPAWN_INTERVAL);
-
 
 /**
  * Animate stuff...
@@ -435,25 +488,24 @@ function animate() {
   if (ENABLE_STATS) stats.end();
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
 }
 
-
 function isEqual(x1, y1, z1, x2, y2, z2, delta = 0.000001) {
-  return Math.abs(x2 - x1) < delta &&
+  return (
+    Math.abs(x2 - x1) < delta &&
     Math.abs(y2 - y1) < delta &&
-    Math.abs(z2 - z1) < delta;
+    Math.abs(z2 - z1) < delta
+  );
 }
 
-
-function findMinIndex(arr: THREE.Vector3[], fn) {
+function findMinIndex(arr, fn) {
   let index = -1;
   let min = Infinity;
 
@@ -468,21 +520,21 @@ function findMinIndex(arr: THREE.Vector3[], fn) {
   return index;
 }
 
-
 function loadGltf(path) {
-  return new Promise((resolve, reject) => gltfLoader.load(path, resolve, null, reject));
+  return new Promise((resolve, reject) =>
+    gltfLoader.load(path, resolve, null, reject)
+  );
 }
 
-
-function loadTexture(path): Promise<THREE.Texture> {
-  return new Promise((resolve, reject) => textureLoader.load(path, resolve, null, reject));
+function loadTexture(path) {
+  return new Promise((resolve, reject) =>
+    textureLoader.load(path, resolve, null, reject)
+  );
 }
-
 
 function wait(duration) {
-  return new Promise(resolve => setTimeout(resolve, duration));
+  return new Promise((resolve) => setTimeout(resolve, duration));
 }
-
 
 /**
  * Clean your shit
@@ -495,7 +547,7 @@ function dispose() {
 
   meshes.forEach((mesh) => {
     mesh.geometry.dispose();
-    (<any>mesh.material).dispose();
+    mesh.material.dispose();
   });
 
   softBodies.forEach((softBody) => {
@@ -511,10 +563,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
