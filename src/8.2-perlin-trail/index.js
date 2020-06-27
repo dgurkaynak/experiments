@@ -1,14 +1,13 @@
-import p5 from 'p5/lib/p5.min';
-import Stats from 'stats.js';
-import * as dat from 'dat.gui';
-import CanvasResizer from '../utils/canvas-resizer';
-import times from 'lodash/times';
-import Clock from '../utils/clock';
-import colors from 'nice-color-palettes';
-import sampleSize from 'lodash/sampleSize';
-import saveImage from '../utils/canvas-save-image';
+// Global deps
+// - p5
+// - stats.js
+// - dat.gui
+// - lodash (times,sampleSize)
+// - nice-color-palettes
 
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Clock } from '../lib/clock.js';
+import { saveImage } from '../lib/canvas-helper.js';
 
 /**
  * Constants
@@ -38,18 +37,20 @@ const GUISettings = class {
   noiseYFactor = 0.1;
 
   randomizeColors = () => {
-    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 3);
+    const randomTwoColors = _.sampleSize(
+      _.sampleSize(niceColorPalettes100, 1)[0],
+      3
+    );
     settings.bgColor = randomTwoColors[0];
     settings.lineColorUp = randomTwoColors[1];
     settings.lineColorDown = randomTwoColors[2];
 
     redraw();
-  }
+  };
 
   redraw = () => redraw();
   saveImage = () => saveImage(resizer.canvas);
 };
-
 
 /**
  * Setup environment
@@ -58,18 +59,16 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-let p: p5;
+let p;
 const resizer = new CanvasResizer(null, {
   dimension: [1024, 1024],
-  dimensionScaleFactor: 1
+  dimensionScaleFactor: 1,
 });
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
 const clock = new Clock();
 let i = 0;
-
-
 
 /**
  * Main/Setup function, initialize stuff...
@@ -84,14 +83,20 @@ async function main() {
   // Settings
   const lineSettings = gui.addFolder('Line');
   lineSettings.add(settings, 'radius', 10, 800).step(1).onChange(redraw);
-  lineSettings.add(settings, 'lineControlPoint', 5, 25).step(1).onChange(redraw);
+  lineSettings
+    .add(settings, 'lineControlPoint', 5, 25)
+    .step(1)
+    .onChange(redraw);
   lineSettings.add(settings, 'lineWidth', 1, 10).step(1).onChange(redraw);
   lineSettings.add(settings, 'yStep', 1, 100).step(1).onChange(redraw);
 
   const noiseSettings = gui.addFolder('Noise');
   noiseSettings.add(settings, 'noiseSpeed', 0.1, 1).step(0.1).onChange(redraw);
   noiseSettings.add(settings, 'noiseXStep', 0.1, 10).step(0.1).onChange(redraw);
-  noiseSettings.add(settings, 'noiseYFactor', 0.01, 1).step(0.01).onChange(redraw);
+  noiseSettings
+    .add(settings, 'noiseYFactor', 0.01, 1)
+    .step(0.01)
+    .onChange(redraw);
 
   const viewSettings = gui.addFolder('View');
   viewSettings.addColor(settings, 'bgColor').listen().onChange(redraw);
@@ -109,12 +114,11 @@ async function main() {
   }
 }
 
-
 /**
  * p5's setup function
  */
 function setup() {
-  const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  const renderer = p.createCanvas(resizer.width, resizer.height);
   p.pixelDensity(1);
   p.frameRate(30);
   p.background(settings.bgColor);
@@ -124,7 +128,6 @@ function setup() {
   resizer.init();
 }
 
-
 /**
  * Redraw again.
  */
@@ -133,7 +136,6 @@ function redraw() {
   i = 0;
   p.loop();
 }
-
 
 /**
  * Animate stuff...
@@ -151,7 +153,7 @@ function draw() {
   );
   p.stroke(color);
 
-  if (i > resizer.height + (2 * Y_NEGATIVE_OFFSET)) {
+  if (i > resizer.height + 2 * Y_NEGATIVE_OFFSET) {
     console.log('end');
     p.noLoop();
     return;
@@ -160,18 +162,20 @@ function draw() {
   const baseX = clock.getElapsedTime() * settings.noiseSpeed;
   const center = {
     x: resizer.width / 2,
-    y: resizer.height + Y_NEGATIVE_OFFSET - i
+    y: resizer.height + Y_NEGATIVE_OFFSET - i,
   };
 
   p.beginShape();
 
-  const sampleCount = 2 * Math.PI / (Math.PI / settings.lineControlPoint);
-  times(sampleCount + 3, (j) => {
+  const sampleCount = (2 * Math.PI) / (Math.PI / settings.lineControlPoint);
+  _.times(sampleCount + 3, (j) => {
     const angle = j * (Math.PI / settings.lineControlPoint);
     const noise = p.noise(baseX + settings.noiseXStep * (j % sampleCount));
     const noiseMapped = p.map(noise, 0, 1, 0, 2);
     const x = center.x + settings.radius * Math.cos(angle) * noiseMapped;
-    const y = center.y + settings.radius * Math.sin(angle) * noiseMapped * settings.noiseYFactor;
+    const y =
+      center.y +
+      settings.radius * Math.sin(angle) * noiseMapped * settings.noiseYFactor;
 
     p.curveVertex(x, y);
   });
@@ -183,14 +187,12 @@ function draw() {
   if (ENABLE_STATS) stats.end();
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   p.resizeCanvas(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -202,10 +204,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
