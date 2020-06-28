@@ -1,39 +1,18 @@
-import * as opentype from 'opentype.js';
-import defaults from 'lodash/defaults';
-import Letter from './letter';
+import { Letter } from './letter.js';
 
-
-interface LineOptions {
-  fontSize: number;
-  letterSpacing: number;
-  whitespaceSpacing: number;
-}
-
-
-interface BoundingBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-
-export default class Line {
-  options: LineOptions = {
+export class Line {
+  options = {
     fontSize: 144,
     letterSpacing: 10,
-    whitespaceSpacing: 50
+    whitespaceSpacing: 50,
   };
-  letters: Letter[] = [];
+  letters = [];
   estimation = { width: 0, height: 0 };
 
-
-  constructor(
-    public font: opentype.Font,
-    public text: string,
-    options?: LineOptions
-  ) {
-    this.options = defaults(options, this.options);
+  constructor(font, text, options) {
+    this.font = font;
+    this.text = text;
+    this.options = _.defaults(options, this.options);
 
     // Height estimation
     const letterA = new Letter(font, 'A', this.options.fontSize);
@@ -52,8 +31,7 @@ export default class Line {
     });
   }
 
-
-  init(two: Two, boundingBox: BoundingBox) {
+  init(two, boundingBox) {
     let x = boundingBox.x + (boundingBox.width - this.estimation.width) / 2;
     const y = boundingBox.y + (boundingBox.height - this.estimation.height) / 2;
     let letterIndex = 0;
@@ -72,8 +50,7 @@ export default class Line {
     });
   }
 
-
   update() {
-    this.letters.forEach(letter => letter.update());
+    this.letters.forEach((letter) => letter.update());
   }
 }

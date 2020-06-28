@@ -1,24 +1,20 @@
+// Global deps
+// - two.js
+// - stats.js
+// - dat.gui
+// - matter.js
+// - opentype.js
+// - lodash (sample, times, sampleSize)
+// - nice-color-palettes
+
 // Needed for Matter.Bodies.fromVertices() function
-(global as any).decomp = require('poly-decomp');
-require('pathseg');
+// - poly-decomp
+// - path-seg
 
-
-import Two from 'two.js';
-import Stats from 'stats.js';
-import * as dat from 'dat.gui';
-import CanvasResizer from '../utils/canvas-resizer';
-import Animator from '../utils/animator';
-import Matter from 'matter-js';
-import * as opentype from 'opentype.js';
-import Line from '../009/line';
-import sample from 'lodash/sample';
-import times from 'lodash/times';
-import colors from 'nice-color-palettes';
-import sampleSize from 'lodash/sampleSize';
-import saveImage from '../utils/canvas-save-image';
-
-import fontPath from './ModernSans-Light.otf';
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Animator } from '../lib/animator.js';
+import { saveImage } from '../lib/canvas-helper.js';
+import { Line } from '../9.0-matter-gravity/line.js';
 
 /**
  * Constants
@@ -41,16 +37,18 @@ const GUISettings = class {
   textColor = '#f9cdad';
 
   randomizeColors = () => {
-    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 2);
+    const randomTwoColors = _.sampleSize(
+      _.sampleSize(niceColorPalettes100, 1)[0],
+      2
+    );
     settings.bgColor = randomTwoColors[0];
     settings.textColor = randomTwoColors[1];
     redraw();
-  }
+  };
 
   redraw = () => redraw();
   saveImage = () => saveImage(resizer.canvas);
 };
-
 
 /**
  * Setup environment
@@ -64,29 +62,27 @@ const two = new Two({
   type: Two.Types.canvas,
   width: resizer.width,
   height: resizer.height,
-  ratio: window.devicePixelRatio
+  ratio: window.devicePixelRatio,
 });
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
 const animator = new Animator(animate);
 
-
 /**
  * Experiment variables
  */
-let font: opentype.Font;
-let lines: Line[] = [];
+let font;
+let lines = [];
 const engine = Matter.Engine.create();
 // const render = Matter.Render.create({ engine, element: elements.container });
-
 
 /**
  * Main/Setup function, initialize stuff...
  */
 async function main() {
   two.appendTo(elements.container);
-  resizer.canvas = (two as any).renderer.domElement;
+  resizer.canvas = two.renderer.domElement;
   resizer.resize = onWindowResize;
   resizer.init();
 
@@ -96,9 +92,18 @@ async function main() {
   gui.close();
 
   const springSettings = gui.addFolder('Spring');
-  springSettings.add(settings, 'springCount', 1, 10).step(1).onFinishChange(redraw);
-  springSettings.add(settings, 'springLength', 0.1, 100).step(0.1).onFinishChange(redraw);
-  springSettings.add(settings, 'springStiffness', 0.0001, 0.01).step(0.0001).onFinishChange(redraw);
+  springSettings
+    .add(settings, 'springCount', 1, 10)
+    .step(1)
+    .onFinishChange(redraw);
+  springSettings
+    .add(settings, 'springLength', 0.1, 100)
+    .step(0.1)
+    .onFinishChange(redraw);
+  springSettings
+    .add(settings, 'springStiffness', 0.0001, 0.01)
+    .step(0.0001)
+    .onFinishChange(redraw);
 
   const viewSettings = gui.addFolder('View');
   viewSettings.addColor(settings, 'bgColor').listen().onFinishChange(redraw);
@@ -114,7 +119,7 @@ async function main() {
   }
 
   // Start experiment
-  font = await loadFont(fontPath);
+  font = await loadFont('../9.0-matter-gravity/ModernSans-Light.otf');
 
   redraw();
   initWalls();
@@ -125,22 +130,20 @@ async function main() {
   animator.start();
 }
 
-
 function redraw() {
   lines.forEach((line) => {
     line.letters.forEach((letter) => {
-      const constraints = (letter as any).constraints;
+      const constraints = letter.constraints;
       Matter.World.remove(engine.world, constraints);
       Matter.World.remove(engine.world, letter.body);
     });
   });
   lines = [];
 
-
-  const [ w, h ] = [ resizer.width, resizer.height ];
+  const [w, h] = [resizer.width, resizer.height];
 
   // Background
-  const bgRect = two.makeRectangle(w/2, h/2, w, h);
+  const bgRect = two.makeRectangle(w / 2, h / 2, w, h);
   bgRect.fill = settings.bgColor;
   bgRect.noStroke();
 
@@ -150,22 +153,30 @@ function redraw() {
 
   TEXT.forEach((text, i) => {
     const line = new Line(font, text);
-    line.init(two, { x: 0, y: offsetY + LINE_HEIGHT * i, width: w, height: LINE_HEIGHT });
+    line.init(two, {
+      x: 0,
+      y: offsetY + LINE_HEIGHT * i,
+      width: w,
+      height: LINE_HEIGHT,
+    });
 
     line.letters.forEach((letter) => {
       // Set view
-      (<any>letter.view).fill = settings.textColor;
+      letter.view.fill = settings.textColor;
 
       // Add constraints
-      const newThings: any[] = [ letter.body ];
-      const constraints = (letter as any).constraints = [];
-      const vertex = sample(letter.body.vertices);
-      times(settings.springCount, () => {
-        const vertex = sample(letter.body.vertices);
+      const newThings = [letter.body];
+      const constraints = (letter.constraints = []);
+      const vertex = _.sample(letter.body.vertices);
+      _.times(settings.springCount, () => {
+        const vertex = _.sample(letter.body.vertices);
         const constraint = Matter.Constraint.create({
           pointA: { x: vertex.x, y: vertex.y },
           bodyB: letter.body,
-          pointB: { x: vertex.x - letter.body.position.x, y: vertex.y - letter.body.position.y },
+          pointB: {
+            x: vertex.x - letter.body.position.x,
+            y: vertex.y - letter.body.position.y,
+          },
           length: settings.springLength,
           stiffness: settings.springStiffness,
         });
@@ -180,7 +191,6 @@ function redraw() {
   });
 }
 
-
 /**
  * Animate stuff...
  */
@@ -189,33 +199,36 @@ function animate() {
 
   Matter.Engine.update(engine, 1000 / 60);
   // Matter.Render.run(render);
-  lines.forEach(line => line.update());
+  lines.forEach((line) => line.update());
   two.update();
 
   if (ENABLE_STATS) stats.end();
 }
 
-
 function initWalls() {
-  const [ w, h ] = [ resizer.width, resizer.height ];
-  const groundLeft = Matter.Bodies.rectangle(-25, h / 2, 50, h, { isStatic: true });
-  const groundRight = Matter.Bodies.rectangle(w + 25, h / 2, 50, h, { isStatic: true });
-  const groundBottom = Matter.Bodies.rectangle(w / 2, h + 24, w, 50, { isStatic: true });
+  const [w, h] = [resizer.width, resizer.height];
+  const groundLeft = Matter.Bodies.rectangle(-25, h / 2, 50, h, {
+    isStatic: true,
+  });
+  const groundRight = Matter.Bodies.rectangle(w + 25, h / 2, 50, h, {
+    isStatic: true,
+  });
+  const groundBottom = Matter.Bodies.rectangle(w / 2, h + 24, w, 50, {
+    isStatic: true,
+  });
   Matter.World.add(engine.world, [groundLeft, groundBottom, groundRight]);
 }
 
-
 function initMouseControls() {
-  const mouse = Matter.Mouse.create((two as any).renderer.domElement);
+  const mouse = Matter.Mouse.create(two.renderer.domElement);
   const mouseConstraint = Matter.MouseConstraint.create(engine, {
     mouse,
-    constraint: { angularStiffness: 0 }
+    constraint: { angularStiffness: 0 },
   });
   Matter.World.add(engine.world, mouseConstraint);
 }
 
-
-function loadFont(path): Promise<opentype.Font> {
+function loadFont(path) {
   return new Promise((resolve, reject) => {
     opentype.load(path, (err, font) => {
       if (err) return reject(err);
@@ -224,15 +237,13 @@ function loadFont(path): Promise<opentype.Font> {
   });
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   two.width = width;
   two.height = height;
 }
-
 
 /**
  * Clean your shit
@@ -243,10 +254,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));

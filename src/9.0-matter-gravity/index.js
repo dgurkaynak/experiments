@@ -1,22 +1,21 @@
+// Global deps
+// - two.js
+// - stats.js
+// - dat.gui
+// - matter.js
+// - opentype.js
+// - nice-color-palettes
+// - lodash (sampleSize)
+
 // Needed for Matter.Bodies.fromVertices() function
-(global as any).decomp = require('poly-decomp');
-require('pathseg');
+// - poly-decomp
+// - path-seg
 
-import Two from 'two.js';
-import Stats from 'stats.js';
-import * as dat from 'dat.gui';
-import CanvasResizer from '../utils/canvas-resizer';
-import Animator from '../utils/animator';
-import Matter from 'matter-js';
-import * as opentype from 'opentype.js';
-import Line from './line';
-import * as colorHelper from '../utils/color-helper';
-import colors from 'nice-color-palettes';
-import sampleSize from 'lodash/sampleSize';
-import saveImage from '../utils/canvas-save-image';
-
-import fontPath from './ModernSans-Light.otf';
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Animator } from '../lib/animator.js';
+import { saveImage } from '../lib/canvas-helper.js';
+import { Line } from './line.js';
+import * as colorHelper from '../lib/color-helper.js';
 
 /**
  * Constants
@@ -25,9 +24,10 @@ const ENABLE_STATS = false;
 const LINE_HEIGHT = 150;
 
 const GUISettings = class {
-  text = `I CAN ONLY_NOTE THAT_THE PAST IS_BEAUTIFUL_BECAUSE_ONE NEVER_REALIZES_AN EMOTION_`
-    + `AT THE TIME_IT EXPANDS_LATER,_AND THUS_WE DON'T_HAVE COMPLETE_EMOTIONS_ABOUT_THE PRESENT,_`
-    + `ONLY ABOUT_THE PAST.`;
+  text =
+    `I CAN ONLY_NOTE THAT_THE PAST IS_BEAUTIFUL_BECAUSE_ONE NEVER_REALIZES_AN EMOTION_` +
+    `AT THE TIME_IT EXPANDS_LATER,_AND THUS_WE DON'T_HAVE COMPLETE_EMOTIONS_ABOUT_THE PRESENT,_` +
+    `ONLY ABOUT_THE PAST.`;
   newLineSeperator = '_';
   dropTimeout = 750;
 
@@ -40,17 +40,16 @@ const GUISettings = class {
   fontColorFirst = '#c02942';
 
   randomizeColors = () => {
-    const randomTwoColors = sampleSize(sampleSize(colors, 1)[0], 3);
+    const randomTwoColors = _.sampleSize(_.sampleSize(niceColorPalettes100, 1)[0], 3);
     settings.bgColor = randomTwoColors[0];
     settings.fontColorLatest = randomTwoColors[1];
     settings.fontColorFirst = randomTwoColors[2];
     redraw();
-  }
+  };
 
   redraw = () => redraw();
   saveImage = () => saveImage(resizer.canvas);
 };
-
 
 /**
  * Setup environment
@@ -64,30 +63,28 @@ const two = new Two({
   type: Two.Types.canvas,
   width: resizer.width,
   height: resizer.height,
-  ratio: window.devicePixelRatio
+  ratio: window.devicePixelRatio,
 });
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
 const animator = new Animator(animate);
 
-
 /**
  * Experiment variables
  */
-let font: opentype.Font;
-let lines: Line[] = [];
+let font;
+let lines = [];
 const engine = Matter.Engine.create({ enableSleeping: true });
 // const render = Matter.Render.create({ engine, element: elements.container });
-let timeouts: any[] = [];
-
+let timeouts = [];
 
 /**
  * Main/Setup function, initialize stuff...
  */
 async function main() {
   two.appendTo(elements.container);
-  resizer.canvas = (two as any).renderer.domElement;
+  resizer.canvas = two.renderer.domElement;
   resizer.resize = onWindowResize;
   resizer.init();
 
@@ -99,8 +96,14 @@ async function main() {
 
   const viewSettings = gui.addFolder('View');
   viewSettings.addColor(settings, 'bgColor').listen().onFinishChange(redraw);
-  viewSettings.addColor(settings, 'fontColorLatest').listen().onFinishChange(redraw);
-  viewSettings.addColor(settings, 'fontColorFirst').listen().onFinishChange(redraw);
+  viewSettings
+    .addColor(settings, 'fontColorLatest')
+    .listen()
+    .onFinishChange(redraw);
+  viewSettings
+    .addColor(settings, 'fontColorFirst')
+    .listen()
+    .onFinishChange(redraw);
   viewSettings.add(settings, 'randomizeColors');
 
   gui.add(settings, 'redraw');
@@ -112,7 +115,7 @@ async function main() {
   }
 
   // Load the font
-  font = await loadFont(fontPath);
+  font = await loadFont('./ModernSans-Light.otf');
 
   redraw();
   initWalls();
@@ -122,7 +125,6 @@ async function main() {
 
   animator.start();
 }
-
 
 /**
  * Redraw the whole scene
@@ -141,32 +143,37 @@ function redraw() {
   lines = [];
 
   // Background
-  const [ w, h ] = [ resizer.width, resizer.height ];
-  const bgRect = two.makeRectangle(w/2, h/2, w, h);
+  const [w, h] = [resizer.width, resizer.height];
+  const bgRect = two.makeRectangle(w / 2, h / 2, w, h);
   bgRect.fill = settings.bgColor;
   bgRect.noStroke();
 
   // Texts
-  const lines_ = settings.text.split(settings.newLineSeperator).map((text, i) => {
-    const line = new Line(font, text);
-    line.init(two, { x: 0, y: -LINE_HEIGHT, width: w, height: LINE_HEIGHT });
-    return line;
-  });
+  const lines_ = settings.text
+    .split(settings.newLineSeperator)
+    .map((text, i) => {
+      const line = new Line(font, text);
+      line.init(two, { x: 0, y: -LINE_HEIGHT, width: w, height: LINE_HEIGHT });
+      return line;
+    });
 
   addLine(lines_, 0, lines_.length);
 }
 
-
 /**
  * Starts the falling animation, (recursive func)
  */
-function addLine(lines_: Line[], i: number, totalLineCount: number) {
+function addLine(lines_, i, totalLineCount) {
   if (lines_.length == 0) return;
-  const [ line, ...linesRest ] = lines_;
-  const color = colorHelper.lerp(settings.fontColorFirst, settings.fontColorLatest, i / totalLineCount);
+  const [line, ...linesRest] = lines_;
+  const color = colorHelper.lerp(
+    settings.fontColorFirst,
+    settings.fontColorLatest,
+    i / totalLineCount
+  );
 
   line.letters.forEach((letter) => {
-    (<any>letter.view).fill = color;
+    letter.view.fill = color;
     Matter.World.add(engine.world, letter.body);
   });
 
@@ -186,7 +193,6 @@ function addLine(lines_: Line[], i: number, totalLineCount: number) {
   timeouts.push(timeout1, timeout2);
 }
 
-
 /**
  * Animate stuff...
  */
@@ -195,33 +201,36 @@ function animate() {
 
   Matter.Engine.update(engine, 1000 / 60);
   // Matter.Render.run(render);
-  lines.forEach(line => line.update());
+  lines.forEach((line) => line.update());
   two.update();
 
   if (ENABLE_STATS) stats.end();
 }
 
-
 function initWalls() {
-  const [ w, h ] = [ resizer.width, resizer.height ];
-  const groundLeft = Matter.Bodies.rectangle(-25, h / 2, 50, h, { isStatic: true });
-  const groundRight = Matter.Bodies.rectangle(w + 25, h / 2, 50, h, { isStatic: true });
-  const groundBottom = Matter.Bodies.rectangle(w / 2, h + 24, w, 50, { isStatic: true });
+  const [w, h] = [resizer.width, resizer.height];
+  const groundLeft = Matter.Bodies.rectangle(-25, h / 2, 50, h, {
+    isStatic: true,
+  });
+  const groundRight = Matter.Bodies.rectangle(w + 25, h / 2, 50, h, {
+    isStatic: true,
+  });
+  const groundBottom = Matter.Bodies.rectangle(w / 2, h + 24, w, 50, {
+    isStatic: true,
+  });
   Matter.World.add(engine.world, [groundLeft, groundBottom, groundRight]);
 }
 
-
 function initMouseControls() {
-  const mouse = Matter.Mouse.create((two as any).renderer.domElement);
+  const mouse = Matter.Mouse.create(two.renderer.domElement);
   const mouseConstraint = Matter.MouseConstraint.create(engine, {
     mouse,
-    constraint: { angularStiffness: 0 }
+    constraint: { angularStiffness: 0 },
   });
   Matter.World.add(engine.world, mouseConstraint);
 }
 
-
-function loadFont(path): Promise<opentype.Font> {
+function loadFont(path) {
   return new Promise((resolve, reject) => {
     opentype.load(path, (err, font) => {
       if (err) return reject(err);
@@ -230,15 +239,13 @@ function loadFont(path): Promise<opentype.Font> {
   });
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   two.width = width;
   two.height = height;
 }
-
 
 /**
  * Clean your shit
@@ -249,10 +256,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
