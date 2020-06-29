@@ -129,9 +129,9 @@ async function main() {
   scene.add(pointLight);
 
   const [geometry_, map, specularMap] = await Promise.all([
-    loadCTM('./assets/LeePerry.ctm'),
-    loadTexture('./assets/Map-COL.jpg'),
-    loadTexture('./assets/Infinite-Level_02_Tangent_SmoothUV.jpg'),
+    loadCTM('../5a-migraine/assets/LeePerry.ctm'),
+    loadTexture('../5a-migraine/assets/Map-COL.jpg'),
+    loadTexture('../5a-migraine/assets/Infinite-Level_02_Tangent_SmoothUV.jpg'),
   ]);
 
   const geometry = new THREE.Geometry().fromBufferGeometry(geometry_);

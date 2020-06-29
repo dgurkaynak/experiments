@@ -14,7 +14,7 @@
 import { CanvasResizer } from '../lib/canvas-resizer.js';
 import { Animator } from '../lib/animator.js';
 import { saveImage } from '../lib/canvas-helper.js';
-import { Line } from '../9.0-matter-gravity/line.js';
+import { Line } from '../9a-matter-gravity/line.js';
 
 /**
  * Constants
@@ -119,7 +119,7 @@ async function main() {
   }
 
   // Start experiment
-  font = await loadFont('../9.0-matter-gravity/ModernSans-Light.otf');
+  font = await loadFont('../9a-matter-gravity/ModernSans-Light.otf');
 
   redraw();
   initWalls();
