@@ -1,18 +1,15 @@
-import p5 from 'p5/lib/p5.min';
-import Stats from 'stats.js';
-import * as dat from 'dat.gui';
-import CanvasResizer from '../utils/canvas-resizer';
-import saveImage from '../utils/canvas-save-image';
-import times from 'lodash/times';
-import find from 'lodash/find';
-import sampleSize from 'lodash/sampleSize';
-import throttle from 'lodash/throttle';
-import values from 'lodash/values';
-import randomColor from 'randomcolor';
-import ml5 from 'ml5';
-import Entity from './entity/line-curve';
-import { IMAGENET_CLASSES } from './classes';
+// Global deps:
+// - p5
+// - stats.js
+// - dat.gui
+// - lodash (times, find, sampleSize, throttle, values)
+// - randomColor
+// - ml5
 
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { saveImage } from '../lib/canvas-helper.js';
+import { MultipleLineCurveEntity as Entity } from './line-curve.js';
+import { IMAGENET_CLASSES } from './classes.js';
 
 /**
  * Constants
@@ -32,23 +29,22 @@ const GUISettings = class {
   randomColorCount = 25;
 
   populationCount = 500;
-  mutationRate = 0.20;
+  mutationRate = 0.2;
   maxGeneration = 10;
-  matchThreshold = 0.90;
+  matchThreshold = 0.9;
 
   saveImage = () => {
     saveImage(resizer.canvas);
-  }
+  };
 
   restart = () => {
     restart();
-  }
+  };
 
   stop = () => {
     shouldStop = true;
   };
 };
-
 
 /**
  * Setup environment
@@ -57,28 +53,26 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-let p: p5;
+let p;
 const resizer = new CanvasResizer(null, {
   dimension: [1080, 1080],
-  dimensionScaleFactor: 1
+  dimensionScaleFactor: 1,
 });
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
 
-
 /**
  * Experiment variables
  */
 let classifier;
-let canvas: HTMLCanvasElement;
-let population: {entity: Entity, bestPrediction: {label: string, confidence: number}}[];
-let validXCoords: number[];
-let validYCoords: number[];
-let validLineWidths: number[];
-let validColors: string[];
+let canvas;
+let population;
+let validXCoords;
+let validYCoords;
+let validLineWidths;
+let validColors;
 let shouldStop = false;
-
 
 /**
  * Main/Setup function, initialize stuff...
@@ -90,7 +84,9 @@ async function main() {
     // p.draw = draw;
   }, elements.container);
 
-  gui.add(settings, 'targetClass', ['all'].concat(values(IMAGENET_CLASSES))).onChange(restart);
+  gui
+    .add(settings, 'targetClass', ['all'].concat(_.values(IMAGENET_CLASSES)))
+    .onChange(restart);
   gui.add(settings, 'gridSize', 3, 100).step(1).onChange(restart);
   gui.add(settings, 'minStrokeWidth', 1, 10).step(1).onChange(restart);
   gui.add(settings, 'maxStrokeWidth', 10, 500).step(1).onChange(restart);
@@ -113,12 +109,11 @@ async function main() {
   }
 }
 
-
 /**
  * p5's setup function
  */
 async function setup() {
-  const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  const renderer = p.createCanvas(resizer.width, resizer.height);
   p.pixelDensity(1);
 
   canvas = resizer.canvas = renderer.canvas;
@@ -138,8 +133,7 @@ async function setup() {
   applyConfigrations();
 }
 
-
-const restart = throttle(() => {
+const restart = _.throttle(() => {
   shouldStop = true;
   setTimeout(() => {
     shouldStop = false;
@@ -148,19 +142,27 @@ const restart = throttle(() => {
   }, 300);
 }, 350);
 
-
 function applyConfigrations() {
-  validXCoords = times(settings.gridSize, i => p.lerp(MARGIN, resizer.width - MARGIN, i / settings.gridSize));
-  validYCoords = times(settings.gridSize, i => p.lerp(MARGIN, resizer.height - MARGIN, i / settings.gridSize));
-  validLineWidths = times(10, i => Math.round(settings.minStrokeWidth + Math.random() * (settings.maxStrokeWidth - settings.minStrokeWidth)));
+  validXCoords = _.times(settings.gridSize, (i) =>
+    p.lerp(MARGIN, resizer.width - MARGIN, i / settings.gridSize)
+  );
+  validYCoords = _.times(settings.gridSize, (i) =>
+    p.lerp(MARGIN, resizer.height - MARGIN, i / settings.gridSize)
+  );
+  validLineWidths = _.times(10, (i) =>
+    Math.round(
+      settings.minStrokeWidth +
+        Math.random() * (settings.maxStrokeWidth - settings.minStrokeWidth)
+    )
+  );
 
   validColors = randomColor({
     count: settings.randomColorCount,
     format: 'rgba',
-    alpha: settings.lineAlpha
+    alpha: settings.lineAlpha,
   });
 
-  population = times(settings.populationCount, () => {
+  population = _.times(settings.populationCount, () => {
     const entity = Entity.create(
       settings.lineCount,
       settings.linePointCurvePoint,
@@ -174,18 +176,15 @@ function applyConfigrations() {
   });
 }
 
-
 function onModelLoaded() {
   console.log('model loaded, starting');
   generationStep();
 }
 
-
 async function predict() {
   const results = await classifier.predict(canvas, 1000);
   return results;
 }
-
 
 async function generationStep(n = 1) {
   // Calculate fitness
@@ -199,7 +198,10 @@ async function generationStep(n = 1) {
     if (settings.targetClass == 'all') {
       item.bestPrediction = predictions[0];
     } else {
-      item.bestPrediction = find(predictions, r => r.label == settings.targetClass);
+      item.bestPrediction = _.find(
+        predictions,
+        (r) => r.label == settings.targetClass
+      );
     }
 
     const TEXT_SIZE = 24;
@@ -211,7 +213,11 @@ async function generationStep(n = 1) {
     p.textAlign(p.CENTER);
     const score = (item.bestPrediction.confidence * 100).toFixed(2);
     p.text(`${score}%`, p.width / 2, p.height * 0.9);
-    p.text(item.bestPrediction.label, p.width / 2, (p.height * 0.9) + (TEXT_SIZE * 1.25));
+    p.text(
+      item.bestPrediction.label,
+      p.width / 2,
+      p.height * 0.9 + TEXT_SIZE * 1.25
+    );
 
     if (ENABLE_STATS) stats.end();
 
@@ -231,7 +237,10 @@ async function generationStep(n = 1) {
     return b.bestPrediction.confidence - a.bestPrediction.confidence;
   });
 
-  console.log(`Generation ${n} - Best prediction:`, populationSorted[0].bestPrediction);
+  console.log(
+    `Generation ${n} - Best prediction:`,
+    populationSorted[0].bestPrediction
+  );
 
   // End
   if (n >= settings.maxGeneration) {
@@ -242,8 +251,11 @@ async function generationStep(n = 1) {
   }
 
   // Built mating pool
-  const matingPool: Entity[] = [];
-  const totalFitnessScore = populationSorted.reduce((acc, a) => acc + a.bestPrediction.confidence, 0);
+  const matingPool = [];
+  const totalFitnessScore = populationSorted.reduce(
+    (acc, a) => acc + a.bestPrediction.confidence,
+    0
+  );
   for (let i = 0; i < settings.populationCount; i++) {
     const rand = Math.random() * totalFitnessScore;
     let acc = 0;
@@ -259,34 +271,29 @@ async function generationStep(n = 1) {
   }
 
   // Build new population
-  const newPopulation: any[] = [];
+  const newPopulation = [];
   for (let i = 0; i < settings.populationCount / 2; i++) {
-    const [ mother, father ] = sampleSize(matingPool, 2);
-    const [ child1, child2 ] = Entity.crossover(mother, father);
+    const [mother, father] = _.sampleSize(matingPool, 2);
+    const [child1, child2] = Entity.crossover(mother, father);
 
-    times(settings.lineCount, () => {
+    _.times(settings.lineCount, () => {
       if (Math.random() < settings.mutationRate) child1.mutate();
       if (Math.random() < settings.mutationRate) child2.mutate();
     });
 
-    newPopulation.push(
-      { entity: child1 },
-      { entity: child2 }
-    );
+    newPopulation.push({ entity: child1 }, { entity: child2 });
   }
 
   population = newPopulation;
-  generationStep(n+1);
+  generationStep(n + 1);
 }
-
 
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   p.resizeCanvas(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -298,10 +305,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));

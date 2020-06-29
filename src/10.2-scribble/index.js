@@ -1,13 +1,12 @@
-import p5 from 'p5/lib/p5.min';
-import Stats from 'stats.js';
-import * as dat from 'dat.gui';
-import CanvasResizer from '../utils/canvas-resizer';
-import saveImage from '../utils/canvas-save-image';
-import times from 'lodash/times';
-import sampleSize from 'lodash/sampleSize';
-import throttle from 'lodash/throttle';
-import randomColor from 'randomcolor';
+// Global deps:
+// - p5
+// - stats.js
+// - dat.gui
+// - lodash (times, sampleSize, throttle)
+// - randomColor
 
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { saveImage } from '../lib/canvas-helper.js';
 
 /**
  * Constants
@@ -33,7 +32,6 @@ const GUISettings = class {
   redraw = () => redrawThrottle();
 };
 
-
 /**
  * Setup environment
  */
@@ -41,18 +39,16 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-let p: p5;
+let p;
 const resizer = new CanvasResizer(null, {
   dimension: [1080, 1080],
-  dimensionScaleFactor: 1
+  dimensionScaleFactor: 1,
 });
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
 
-let coords: {x: number[], y: number[]}[];
-
-
+let coords;
 
 /**
  * Main/Setup function, initialize stuff...
@@ -70,12 +66,11 @@ async function main() {
   }
 }
 
-
 /**
  * p5's setup function
  */
 function setup() {
-  const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  const renderer = p.createCanvas(resizer.width, resizer.height);
   p.pixelDensity(1);
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
@@ -90,8 +85,23 @@ function setup() {
   gui.add(settings, 'lineCount', 1, 10).step(1).onChange(redrawThrottle);
   gui.add(settings, 'lineCurvePoint', 3, 25).step(1).onChange(redrawThrottle);
   gui.add(settings, 'lineAlpha', 0.1, 1.0).step(0.01).onChange(redrawThrottle);
-  gui.add(settings, 'hue', ['all', 'monochrome', 'red', 'orange', 'yellow', 'green', 'blue','purple', 'pink', 'random']).onChange(redrawThrottle);
-  gui.add(settings, 'luminosity', ['all', 'light', 'dark', 'random']).onChange(redrawThrottle);
+  gui
+    .add(settings, 'hue', [
+      'all',
+      'monochrome',
+      'red',
+      'orange',
+      'yellow',
+      'green',
+      'blue',
+      'purple',
+      'pink',
+      'random',
+    ])
+    .onChange(redrawThrottle);
+  gui
+    .add(settings, 'luminosity', ['all', 'light', 'dark', 'random'])
+    .onChange(redrawThrottle);
   gui.add(settings, 'saveImage');
   gui.add(settings, 'redraw');
   gui.close();
@@ -99,29 +109,38 @@ function setup() {
   configure();
 }
 
-
-const redrawThrottle = throttle(() => {
+const redrawThrottle = _.throttle(() => {
   configure();
   p.loop();
 }, 250);
 
-
 function configure() {
   coords = [];
-  const gridWidth = (resizer.width - (2 * MARGIN[0]) - ((settings.gridCount - 1) * settings.gridSpacing)) / settings.gridCount;
-  const gridHeight = (resizer.height - (2 * MARGIN[1]) - ((settings.gridCount - 1) * settings.gridSpacing)) / settings.gridCount;
+  const gridWidth =
+    (resizer.width -
+      2 * MARGIN[0] -
+      (settings.gridCount - 1) * settings.gridSpacing) /
+    settings.gridCount;
+  const gridHeight =
+    (resizer.height -
+      2 * MARGIN[1] -
+      (settings.gridCount - 1) * settings.gridSpacing) /
+    settings.gridCount;
   for (let y = 0; y < settings.gridCount; y++) {
     for (let x = 0; x < settings.gridCount; x++) {
-      const minX = MARGIN[0] + (x * (gridWidth + settings.gridSpacing));
-      const minY = MARGIN[1] + (y * (gridHeight + settings.gridSpacing));
+      const minX = MARGIN[0] + x * (gridWidth + settings.gridSpacing);
+      const minY = MARGIN[1] + y * (gridHeight + settings.gridSpacing);
       coords.push({
-        x: times(settings.innerGridCount, i => p.lerp(minX, minX + gridWidth, i / settings.innerGridCount)),
-        y: times(settings.innerGridCount, i => p.lerp(minY, minY + gridHeight, i / settings.innerGridCount))
+        x: _.times(settings.innerGridCount, (i) =>
+          p.lerp(minX, minX + gridWidth, i / settings.innerGridCount)
+        ),
+        y: _.times(settings.innerGridCount, (i) =>
+          p.lerp(minY, minY + gridHeight, i / settings.innerGridCount)
+        ),
       });
     }
   }
 }
-
 
 /**
  * Animate stuff...
@@ -130,7 +149,7 @@ function draw() {
   if (ENABLE_STATS) stats.begin();
 
   p.background('#ffffff');
-  coords.forEach(({x, y}) => {
+  coords.forEach(({ x, y }) => {
     // p.stroke('#000');
     // x.forEach((elX) => {
     //   y.forEach((elY) => {
@@ -138,29 +157,34 @@ function draw() {
     //   });
     // });
 
-
-    times(settings.lineCount, (i) => {
-      const xCoords = sampleSize(x, settings.lineCurvePoint);
-      const yCoords = sampleSize(y, settings.lineCurvePoint);
+    _.times(settings.lineCount, (i) => {
+      const xCoords = _.sampleSize(x, settings.lineCurvePoint);
+      const yCoords = _.sampleSize(y, settings.lineCurvePoint);
 
       const color = randomColor({
         format: 'rgba',
         hue: settings.hue == 'all' ? null : settings.hue,
         luminosity: settings.luminosity == 'all' ? null : settings.luminosity,
-        alpha: settings.lineAlpha
+        alpha: settings.lineAlpha,
       });
       p.stroke(color);
-      p.strokeWeight(p.lerp(settings.maxStrokeWidth, settings.minStrokeWidth, Math.pow(i / settings.lineCount, 1 / 3)));
+      p.strokeWeight(
+        p.lerp(
+          settings.maxStrokeWidth,
+          settings.minStrokeWidth,
+          Math.pow(i / settings.lineCount, 1 / 3)
+        )
+      );
 
       // p.line(xCoords[0], yCoords[0], xCoords[1], yCoords[1]);
 
       p.noFill();
       p.beginShape();
-      times(settings.lineCurvePoint, i => p.curveVertex(xCoords[i], yCoords[i]));
+      _.times(settings.lineCurvePoint, (i) =>
+        p.curveVertex(xCoords[i], yCoords[i])
+      );
       p.endShape();
     });
-
-
   });
 
   p.noLoop();
@@ -168,14 +192,12 @@ function draw() {
   if (ENABLE_STATS) stats.end();
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   p.resizeCanvas(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -187,10 +209,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
