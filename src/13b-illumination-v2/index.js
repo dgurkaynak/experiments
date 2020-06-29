@@ -1,22 +1,19 @@
-import p5 from 'p5/lib/p5.min';
-import Stats from 'stats.js';
-import CanvasResizer from '../utils/canvas-resizer';
-import saveImage from '../utils/canvas-save-image';
-import sampleSize from 'lodash/sampleSize';
-import times from 'lodash/times';
-import { hex2rgb } from '../utils/color-helper';
-import * as colors from 'nice-color-palettes';
-import * as dat from 'dat.gui';
-import fontPath from './LemonMilk.otf';
+// Global deps
+// - p5.js
+// - stats.js
+// - dat.gui
+// - nice-color-palettes
+// - lodash (times, sampleSize)
 
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { saveImage } from '../lib/canvas-helper.js';
+import { hex2rgb } from '../lib/color-helper.js';
 
 /**
  * Constants
  */
-interface Point { x: number, y: number, angle?: number, hitCount?: number, color?: string };
 const ENABLE_STATS = false;
-const GUISettings = function() {
+const GUISettings = function () {
   this.scene = 'W';
   this.reflectionLimit = 10;
   this.rayCount = 360 * 20;
@@ -24,22 +21,22 @@ const GUISettings = function() {
   this.rayWeight = 1;
   this.lightColor = '#fff';
 
-  this.randomColor = function() {
-    this.lightColor = sampleSize(sampleSize(colors, 1)[0], 1)[0];
-  }
+  this.randomColor = function () {
+    this.lightColor = _.sampleSize(
+      _.sampleSize(niceColorPalettes100, 1)[0],
+      1
+    )[0];
+  };
 
-  this.clear = function() {
+  this.clear = function () {
     p.clear();
     p.background('#000');
   };
 
-  this.saveImage = function() {
+  this.saveImage = function () {
     saveImage(resizer.canvas);
   };
 };
-
-
-
 
 /**
  * Setup environment
@@ -47,23 +44,21 @@ const GUISettings = function() {
 const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
-  clickMessage: document.createElement('div')
+  clickMessage: document.createElement('div'),
 };
-let p: p5;
+let p;
 const resizer = new CanvasResizer(null, {
   dimension: [1080, 1080],
-  dimensionScaleFactor: 1
+  dimensionScaleFactor: 1,
 });
 const stats = new Stats();
 const settings = new GUISettings();
 const gui = new dat.GUI();
 
-let lights: Point[];
-let wallLineSegments: Point[][];
-let font: p5.Font;
+let lights;
+let wallLineSegments;
+let font;
 let isClickMessageHidden = false;
-
-
 
 /**
  * Main/Setup function, initialize stuff...
@@ -76,8 +71,26 @@ async function main() {
     p.draw = draw;
   }, elements.container);
 
-  gui.add(settings, 'scene', ['horizontalLine', 'triangle', 'C', 'E', 'F', 'G', 'H', 'I',
-    'J', 'K', 'L', 'M', 'N', 'S', 'X', 'W']).onChange(configure);
+  gui
+    .add(settings, 'scene', [
+      'horizontalLine',
+      'triangle',
+      'C',
+      'E',
+      'F',
+      'G',
+      'H',
+      'I',
+      'J',
+      'K',
+      'L',
+      'M',
+      'N',
+      'S',
+      'X',
+      'W',
+    ])
+    .onChange(configure);
   gui.add(settings, 'reflectionLimit', 1, 10);
   gui.add(settings, 'rayCount', 1, 36000);
   gui.add(settings, 'rayAlpha', 1, 255);
@@ -106,20 +119,18 @@ async function main() {
   elements.container.appendChild(elements.clickMessage);
 }
 
-
 /**
  * p5's preload function
  */
 function preload() {
-  font = p.loadFont(fontPath);
+  font = p.loadFont('./LemonMilk.otf');
 }
-
 
 /**
  * p5's setup function
  */
 function setup() {
-  const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  const renderer = p.createCanvas(resizer.width, resizer.height);
   p.pixelDensity(1);
 
   resizer.canvas = renderer.canvas;
@@ -131,7 +142,6 @@ function setup() {
   configure();
 }
 
-
 function configure() {
   p.clear();
   p.background('#000');
@@ -139,17 +149,30 @@ function configure() {
   lights = [];
   wallLineSegments = [
     // frame
-    [{ x: 0, y: 0 }, { x: resizer.width, y: 0 }],
-    [{ x: resizer.width, y: 0 }, { x: resizer.width, y: resizer.height }],
-    [{ x: resizer.width, y: resizer.height }, { x: 0, y: resizer.height }],
-    [{ x: 0, y: resizer.height }, { x: 0, y: 0 }]
+    [
+      { x: 0, y: 0 },
+      { x: resizer.width, y: 0 },
+    ],
+    [
+      { x: resizer.width, y: 0 },
+      { x: resizer.width, y: resizer.height },
+    ],
+    [
+      { x: resizer.width, y: resizer.height },
+      { x: 0, y: resizer.height },
+    ],
+    [
+      { x: 0, y: resizer.height },
+      { x: 0, y: 0 },
+    ],
   ];
 
   switch (settings.scene) {
     case 'horizontalLine': {
-      wallLineSegments.push(
-        [{ x: resizer.width / 6, y: resizer.height / 2 }, { x: 5 * resizer.width / 6, y: resizer.height / 2 }]
-      );
+      wallLineSegments.push([
+        { x: resizer.width / 6, y: resizer.height / 2 },
+        { x: (5 * resizer.width) / 6, y: resizer.height / 2 },
+      ]);
       return;
     }
 
@@ -161,15 +184,27 @@ function configure() {
       wallLineSegments.push(
         [
           { x: centerX, y: centerY - triangleWeight },
-          { x: centerX + (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) }
+          {
+            x: centerX + (triangleWeight * Math.sqrt(3)) / 2,
+            y: centerY + triangleWeight / 2,
+          },
         ],
         [
-          { x: centerX + (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) },
-          { x: centerX - (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) }
+          {
+            x: centerX + (triangleWeight * Math.sqrt(3)) / 2,
+            y: centerY + triangleWeight / 2,
+          },
+          {
+            x: centerX - (triangleWeight * Math.sqrt(3)) / 2,
+            y: centerY + triangleWeight / 2,
+          },
         ],
         [
-          { x: centerX - (triangleWeight * Math.sqrt(3) / 2), y: centerY + (triangleWeight / 2) },
-          { x: centerX, y: centerY - triangleWeight }
+          {
+            x: centerX - (triangleWeight * Math.sqrt(3)) / 2,
+            y: centerY + triangleWeight / 2,
+          },
+          { x: centerX, y: centerY - triangleWeight },
         ]
       );
       return;
@@ -177,7 +212,7 @@ function configure() {
 
     default: {
       const dpr = 1; // window.devicePixelRatio
-      let textPoints: any[];
+      let textPoints;
 
       if (settings.scene == 'X') {
         textPoints = font.textToPoints('X', 170 * dpr, 975 * dpr, 1080 * dpr);
@@ -219,7 +254,7 @@ function configure() {
       textPoints.forEach((point, i, arr) => {
         let nextPoint = arr[i + 1];
         if (!nextPoint) nextPoint = arr[0];
-        wallLineSegments.push([ point, nextPoint ]);
+        wallLineSegments.push([point, nextPoint]);
         // for debug purposes, draw the letter
         // p.stroke('#fff');
         // p.strokeWeight(1);
@@ -231,7 +266,6 @@ function configure() {
   }
 }
 
-
 function mouseClicked() {
   if (!isClickMessageHidden) {
     elements.container.removeChild(elements.clickMessage);
@@ -242,10 +276,9 @@ function mouseClicked() {
   addPointLight(p.mouseX, p.mouseY);
 }
 
-
 function addPointLight(x, y, color = settings.lightColor) {
-  times(settings.rayCount, (i) => {
-    const angle = i * (2 * Math.PI / settings.rayCount);
+  _.times(settings.rayCount, (i) => {
+    const angle = i * ((2 * Math.PI) / settings.rayCount);
     // Ignore horizontal and vertical rays, because they're ugly
     // if (angle % (Math.PI / 2) == 0) return;
     lights.push({
@@ -253,17 +286,28 @@ function addPointLight(x, y, color = settings.lightColor) {
       y: y + (Math.random() - 0.5) * 5,
       angle,
       hitCount: 0,
-      color
+      color,
     });
   });
 }
 
-
-function addLineLight(p1: Point, p2: Point, angle: number, angleOffset = 0, color = settings.lightColor) {
-  times(settings.rayCount, (i) => {
+function addLineLight(
+  p1,
+  p2,
+  angle,
+  angleOffset = 0,
+  color = settings.lightColor
+) {
+  _.times(settings.rayCount, (i) => {
     const x = p.map(i, 0, settings.rayCount, p1.x, p2.x);
     const y = p.map(i, 0, settings.rayCount, p1.y, p2.y);
-    const angle_ = p.map(i, 0, settings.rayCount, angle + angleOffset, angle - angleOffset);
+    const angle_ = p.map(
+      i,
+      0,
+      settings.rayCount,
+      angle + angleOffset,
+      angle - angleOffset
+    );
     // Ignore horizontal and vertical rays, because they're ugly
     // if (angle % (Math.PI / 2) == 0) return;
     lights.push({
@@ -271,11 +315,10 @@ function addLineLight(p1: Point, p2: Point, angle: number, angleOffset = 0, colo
       y,
       angle: angle_,
       hitCount: 0,
-      color
+      color,
     });
   });
 }
-
 
 /**
  * Animate stuff...
@@ -289,17 +332,24 @@ function draw() {
     // Next point, far enough to cover all the viewport
     const rayEndPoint = {
       x: point.x + Math.cos(point.angle) * 100000,
-      y: point.y + Math.sin(-point.angle) * 100000
+      y: point.y + Math.sin(-point.angle) * 100000,
     };
 
     // Check all the line segments for intersection
     const allIntersections = [];
     wallLineSegments.forEach((lineSegment) => {
-      const intersectionPoint = getIntersection([ point, rayEndPoint ], lineSegment);
+      const intersectionPoint = getIntersection(
+        [point, rayEndPoint],
+        lineSegment
+      );
       if (!intersectionPoint) return;
       const distance = getDistance(point, intersectionPoint);
       if (distance < 1) return; // ignore already intersected ones
-      allIntersections.push({ distance, lineSegment, point: intersectionPoint });
+      allIntersections.push({
+        distance,
+        lineSegment,
+        point: intersectionPoint,
+      });
     });
 
     if (allIntersections.length == 0) {
@@ -310,13 +360,20 @@ function draw() {
 
     // Get the closest intersection distance,
     // and finally get real intersections (it may be multiple, actually 1 or 2)
-    const closestIntersectionDistance = minBy(allIntersections, i => i.distance).distance;
-    const intersections = allIntersections.filter(i => i.distance == closestIntersectionDistance);
+    const closestIntersectionDistance = minBy(
+      allIntersections,
+      (i) => i.distance
+    ).distance;
+    const intersections = allIntersections.filter(
+      (i) => i.distance == closestIntersectionDistance
+    );
 
     // Draw the line
     const intersectionPoint = intersections[0].point;
     const color = hex2rgb(point.color);
-    const alpha = settings.rayAlpha - point.hitCount * (settings.rayAlpha / settings.reflectionLimit);
+    const alpha =
+      settings.rayAlpha -
+      point.hitCount * (settings.rayAlpha / settings.reflectionLimit);
     p.stroke(color.r, color.g, color.b, settings.rayAlpha);
     p.strokeWeight(settings.rayWeight);
     p.line(point.x, point.y, intersectionPoint.x, intersectionPoint.y);
@@ -325,11 +382,12 @@ function draw() {
     intersections.forEach((i) => {
       let lineAngle = Math.atan2(
         -1 * (i.lineSegment[0].y - i.lineSegment[1].y),
-        i.lineSegment[0].x - i.lineSegment[1].x,
+        i.lineSegment[0].x - i.lineSegment[1].x
       );
       lineAngle = lineAngle < 0 ? Math.PI + lineAngle : lineAngle;
       let lineNormalAngle = lineAngle - Math.PI / 2;
-      lineNormalAngle = lineNormalAngle < 0 ? Math.PI + lineNormalAngle : lineNormalAngle;
+      lineNormalAngle =
+        lineNormalAngle < 0 ? Math.PI + lineNormalAngle : lineNormalAngle;
       let rayAngle = Math.atan2(
         -1 * (i.point.y - point.y),
         i.point.x - point.x
@@ -345,21 +403,21 @@ function draw() {
   });
 
   lights = lights.filter((light, i) => {
-    return light.hitCount < settings.reflectionLimit &&
-      lightIndexesToBeDeleted.indexOf(i) == -1;
+    return (
+      light.hitCount < settings.reflectionLimit &&
+      lightIndexesToBeDeleted.indexOf(i) == -1
+    );
   });
 
   if (ENABLE_STATS) stats.end();
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   p.resizeCanvas(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -372,18 +430,20 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-function getIntersection(lineSegment1: Point[], lineSegment2: Point[]) {
+function getIntersection(lineSegment1, lineSegment2) {
   const p1 = lineSegment1[0];
   const p2 = lineSegment1[1];
   const p3 = lineSegment2[0];
   const p4 = lineSegment2[1];
-  const denom = ((p4.y - p3.y) * (p2.x - p1.x)) - ((p4.x - p3.x) * (p2.y - p1.y));
-  const numeA = ((p4.x - p3.x) * (p1.y - p3.y)) - ((p4.y - p3.y) * (p1.x - p3.x));
-  const numeB = ((p2.x - p1.x) * (p1.y - p3.y)) - ((p2.y - p1.y) * (p1.x - p3.x));
+  const denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+  const numeA = (p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x);
+  const numeB = (p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x);
 
   if (denom == 0) {
     if (numeA == 0 && numeB == 0) {
@@ -397,29 +457,22 @@ function getIntersection(lineSegment1: Point[], lineSegment2: Point[]) {
 
   if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
     return {
-      x: p1.x + (uA * (p2.x - p1.x)),
-      y: p1.y + (uA * (p2.y - p1.y))
+      x: p1.x + uA * (p2.x - p1.x),
+      y: p1.y + uA * (p2.y - p1.y),
     };
   }
 
   return;
 }
 
-
-function getDistance(p1: Point, p2: Point) {
-  return Math.sqrt(
-    Math.pow(p2.y - p1.y, 2) +
-    Math.pow(p2.x - p1.x, 2)
-  );
+function getDistance(p1, p2) {
+  return Math.sqrt(Math.pow(p2.y - p1.y, 2) + Math.pow(p2.x - p1.x, 2));
 }
 
-
-function minBy(arr, lambda: Function) {
+function minBy(arr, lambda) {
   const mapped = arr.map(lambda);
   const minValue = Math.min.apply(Math, mapped);
   return arr[mapped.indexOf(minValue)];
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
