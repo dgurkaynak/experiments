@@ -1,10 +1,7 @@
-import times from 'lodash/times';
-import throttle from 'lodash/throttle';
-import anime from 'animejs';
-import fontPath from './talldark.ttf';
-import * as dat from 'dat.gui';
-
-
+// Global deps
+// - animejs
+// - dat.gui
+// - lodash (times, throttle)
 
 /**
  * Constants
@@ -20,9 +17,9 @@ const GUISettings = class {
   wait = 250;
   textColor = '#ffffff';
 
-  text0 = 'YEAH';
+  text0 = 'WHAT';
   bgColor0 = '#000000';
-  text1 = 'BRO';
+  text1 = 'EVER';
   bgColor1 = '#0B24FB';
   text2 = '';
   bgColor2 = '#000000';
@@ -42,7 +39,6 @@ const GUISettings = class {
   bgColor9 = '#000000';
 };
 
-
 /**
  * Setup environment
  */
@@ -52,8 +48,8 @@ const elements = {
 };
 const settings = new GUISettings();
 const gui = new dat.GUI();
-const font = new (window as any).FontFace('TallDark', `url(${fontPath})`);
-let itemHeight: number;
+const font = new FontFace('TallDark', `url(./talldark.ttf)`);
+let itemHeight;
 const iterator = (arr) => {
   let i = 0;
   const next = () => {
@@ -63,13 +59,12 @@ const iterator = (arr) => {
   };
   return { next };
 };
-let textsIterator: Iterator<string>;
-let bgColorsIterator: Iterator<string>;
-let entryTextAnimation: anime.AnimeInstance;
-let outroTextAnimation: anime.AnimeInstance;
-let waitTimeout: any;
-let screenSettings: dat.GUI[] = [];
-
+let textsIterator;
+let bgColorsIterator;
+let entryTextAnimation;
+let outroTextAnimation;
+let waitTimeout;
+let screenSettings = [];
 
 /**
  * Main/Setup function, initialize stuff...
@@ -82,10 +77,22 @@ async function main() {
   // elements.container.style.height = '1080px';
 
   // Settings
-  gui.add(settings, 'screenCount', 1, 10).step(1).onChange(stopConfigureGoThrottle);
-  gui.add(settings, 'textSize', 0.1, 1).step(0.01).onChange(stopConfigureGoThrottle);
-  gui.add(settings, 'splitCount', 2, 100).step(1).onChange(stopConfigureGoThrottle);
-  gui.add(settings, 'duration', 100, 10000).step(1).onChange(stopConfigureGoThrottle);
+  gui
+    .add(settings, 'screenCount', 1, 10)
+    .step(1)
+    .onChange(stopConfigureGoThrottle);
+  gui
+    .add(settings, 'textSize', 0.1, 1)
+    .step(0.01)
+    .onChange(stopConfigureGoThrottle);
+  gui
+    .add(settings, 'splitCount', 2, 100)
+    .step(1)
+    .onChange(stopConfigureGoThrottle);
+  gui
+    .add(settings, 'duration', 100, 10000)
+    .step(1)
+    .onChange(stopConfigureGoThrottle);
   gui.add(settings, 'delay', 5, 500).step(1).onChange(stopConfigureGoThrottle);
   gui.add(settings, 'wait', 0, 5000).step(1).onChange(stopConfigureGoThrottle);
   gui.addColor(settings, 'textColor').onChange(stopConfigureGoThrottle);
@@ -93,41 +100,40 @@ async function main() {
   gui.close();
 
   const fontFace = await font.load();
-  (document as any).fonts.add(fontFace);
+  document.fonts.add(fontFace);
 
   configure();
   go();
 }
 
-
-const stopConfigureGoThrottle = throttle(() => {
+const stopConfigureGoThrottle = _.throttle(() => {
   stop();
   configure();
   go();
 }, 500);
-
 
 function configure() {
   elements.container.style.backgroundColor = settings.bgColor0;
 
   itemHeight = (window.innerHeight * settings.textSize) / settings.splitCount;
 
-  const texts = times(settings.screenCount, i => settings[`text${i}`]);
-  const bgColors = times(settings.screenCount, i => settings[`bgColor${i}`]);
+  const texts = _.times(settings.screenCount, (i) => settings[`text${i}`]);
+  const bgColors = _.times(settings.screenCount, (i) => settings[`bgColor${i}`]);
   textsIterator = iterator(texts);
   bgColorsIterator = iterator(bgColors);
 
   // Settings
-  screenSettings.forEach(subFolder => gui.removeFolder(subFolder));
-  screenSettings = times(settings.screenCount, (i) => {
-    const subFolder = gui.addFolder(`Screen ${i+1}`);
+  screenSettings.forEach((subFolder) => gui.removeFolder(subFolder));
+  screenSettings = _.times(settings.screenCount, (i) => {
+    const subFolder = gui.addFolder(`Screen ${i + 1}`);
     subFolder.add(settings, `text${i}`).onFinishChange(stopConfigureGoThrottle);
-    subFolder.addColor(settings, `bgColor${i}`).onFinishChange(stopConfigureGoThrottle);
+    subFolder
+      .addColor(settings, `bgColor${i}`)
+      .onFinishChange(stopConfigureGoThrottle);
     subFolder.open();
     return subFolder;
   });
 }
-
 
 async function go() {
   const textContainer = document.createElement('div');
@@ -142,14 +148,14 @@ async function go() {
   textContainer.style.flexDirection = 'column';
 
   const text = textsIterator.next();
-  const texts = times(settings.splitCount, (i) => {
+  const texts = _.times(settings.splitCount, (i) => {
     const element = createText();
     element.style.width = `100%`;
     element.style.height = `${itemHeight}px`;
     element.style.transform = `translateX(100%)`;
-    element.firstChild.textContent = text as any;
-    (element.firstChild as any).style.color = settings.textColor;
-    (element.firstChild as any).style.top = `${-i * itemHeight}px`;
+    element.firstChild.textContent = text;
+    element.firstChild.style.color = settings.textColor;
+    element.firstChild.style.top = `${-i * itemHeight}px`;
     textContainer.appendChild(element);
     return element;
   });
@@ -162,7 +168,7 @@ async function go() {
     easing: EASING,
     translateX: '0',
     duration: settings.duration,
-    delay: (el, i) => i * settings.delay
+    delay: (el, i) => i * settings.delay,
   });
 
   // Background animation
@@ -170,7 +176,7 @@ async function go() {
     targets: elements.container,
     easing: EASING,
     backgroundColor: bgColorsIterator.next(),
-    duration: settings.duration
+    duration: settings.duration,
   });
 
   // Wait for the text animation
@@ -190,7 +196,7 @@ async function go() {
     easing: EASING,
     translateX: '-100%',
     duration: settings.duration,
-    delay: (el, i) => i * settings.delay
+    delay: (el, i) => i * settings.delay,
   });
   await outroTextAnimation.finished;
 
@@ -199,23 +205,23 @@ async function go() {
     elements.container.removeChild(textContainer);
   }
 }
-(window as any).go = go;
-
+window.go = go;
 
 function stop() {
   clearTimeout(waitTimeout);
   entryTextAnimation && entryTextAnimation.pause();
   outroTextAnimation && outroTextAnimation.pause();
-  while (elements.container.firstChild) { elements.container.removeChild(elements.container.firstChild); }
-};
-(window as any).stop = stop;
-
+  while (elements.container.firstChild) {
+    elements.container.removeChild(elements.container.firstChild);
+  }
+}
+window.stop = stop;
 
 function createText() {
   const innerElement = document.createElement('div');
   // innerElement.textContent = TEXT;
   innerElement.style.fontFamily = 'TallDark';
-  innerElement.style.fontSize = `${(window.innerHeight * settings.textSize)}px`;
+  innerElement.style.fontSize = `${window.innerHeight * settings.textSize}px`;
   innerElement.style.textAlign = 'center';
   innerElement.style.position = 'relative';
   // innerElement.style.top = '-50px';
@@ -228,18 +234,16 @@ function createText() {
   return outerElement;
 }
 
-
 /**
  * Clean your shit
  */
 function dispose() {
-
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
