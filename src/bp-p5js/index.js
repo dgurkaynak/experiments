@@ -1,13 +1,9 @@
-import p5 from 'p5/lib/p5.min';
-import Stats from 'stats.js';
-import CanvasResizer from '../utils/canvas-resizer';
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
 
 /**
  * Constants
  */
 const ENABLE_STATS = true;
-
 
 /**
  * Setup environment
@@ -16,14 +12,12 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-let p: p5;
+let p;
 const resizer = new CanvasResizer(null, {
   dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: window.devicePixelRatio,
 });
 const stats = new Stats();
-
-
 
 /**
  * Main/Setup function, initialize stuff...
@@ -41,19 +35,17 @@ async function main() {
   }
 }
 
-
 /**
  * p5's setup function
  */
 function setup() {
-  const renderer: any = p.createCanvas(resizer.width, resizer.height);
+  const renderer = p.createCanvas(resizer.width, resizer.height);
   resizer.canvas = renderer.canvas;
   resizer.resize = onWindowResize;
   resizer.init();
 
   // p.pixelDensity(1);
 }
-
 
 /**
  * Animate stuff...
@@ -67,14 +59,12 @@ function draw() {
   if (ENABLE_STATS) stats.end();
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   p.resizeCanvas(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -86,10 +76,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));

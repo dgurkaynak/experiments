@@ -1,17 +1,11 @@
-import * as THREE from 'three';
-import Stats from 'stats.js';
-import OrbitControlsFactory from 'three-orbit-controls';
-const OrbitControls = OrbitControlsFactory(THREE);
-import CanvasResizer from '../utils/canvas-resizer';
-import Animator from '../utils/animator';
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Animator } from '../lib/animator.js';
 
 /**
  * Constants
  */
 const ENABLE_STATS = true;
 const ENABLE_ORBIT_CONTROLS = true;
-
 
 /**
  * Setup environment
@@ -20,26 +14,33 @@ const elements = {
   container: document.getElementById('container'),
   stats: document.getElementById('stats'),
 };
-const renderer = new THREE.WebGLRenderer({ antialias: window.devicePixelRatio == 1 });
+const renderer = new THREE.WebGLRenderer({
+  antialias: window.devicePixelRatio == 1,
+});
 const resizer = new CanvasResizer(renderer.domElement, {
   dimension: 'fullscreen',
-  dimensionScaleFactor: window.devicePixelRatio
+  dimensionScaleFactor: window.devicePixelRatio,
 });
 const animator = new Animator(animate);
 const stats = new Stats();
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, resizer.width / resizer.height, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+  75,
+  resizer.width / resizer.height,
+  0.1,
+  1000
+);
 const orbitControls = ENABLE_ORBIT_CONTROLS ? new OrbitControls(camera) : null;
-
 
 /**
  * Experiment variables
  */
 const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+const material = new THREE.MeshBasicMaterial({
+  color: 0x00ff00,
+  wireframe: true,
+});
 const cube = new THREE.Mesh(geometry, material);
-
-
 
 /**
  * Main/Setup function, initialize stuff...
@@ -62,7 +63,6 @@ async function main() {
   animator.start();
 }
 
-
 /**
  * Animate stuff...
  */
@@ -76,16 +76,14 @@ function animate() {
   if (ENABLE_STATS) stats.end();
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
 }
-
 
 /**
  * Clean your shit
@@ -100,10 +98,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));

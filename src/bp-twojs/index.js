@@ -1,14 +1,10 @@
-import Two from 'two.js';
-import Stats from 'stats.js';
-import CanvasResizer from '../utils/canvas-resizer';
-import Animator from '../utils/animator';
-
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+import { Animator } from '../lib/animator.js';
 
 /**
  * Constants
  */
 const ENABLE_STATS = true;
-
 
 /**
  * Setup environment
@@ -22,26 +18,24 @@ const two = new Two({
   type: Two.Types.canvas,
   width: resizer.width,
   height: resizer.height,
-  ratio: window.devicePixelRatio
+  ratio: window.devicePixelRatio,
 });
 const stats = new Stats();
 const animator = new Animator(animate);
 
-
 /**
  * Experiment variables
  */
-let circle: Two.Shape;
-let rect: Two.Shape;
-let group: Two.Group;
-
+let circle;
+let rect;
+let group;
 
 /**
  * Main/Setup function, initialize stuff...
  */
 async function main() {
   two.appendTo(elements.container);
-  resizer.canvas = (two as any).renderer.domElement;
+  resizer.canvas = two.renderer.domElement;
   resizer.resize = onWindowResize;
   resizer.init();
 
@@ -64,7 +58,6 @@ async function main() {
   animator.start();
 }
 
-
 /**
  * Animate stuff...
  */
@@ -82,15 +75,13 @@ function animate() {
   if (ENABLE_STATS) stats.end();
 }
 
-
 /**
  * On window resized
  */
-function onWindowResize(width: number, height: number) {
+function onWindowResize(width, height) {
   two.width = width;
   two.height = height;
 }
-
 
 /**
  * Clean your shit
@@ -101,10 +92,10 @@ function dispose() {
 
   Object.keys(elements).forEach((key) => {
     const element = elements[key];
-    while (element.firstChild) { element.removeChild(element.firstChild); }
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
   });
 }
 
-
-main().catch(err => console.error(err));
-(module as any).hot && (module as any).hot.dispose(dispose);
+main().catch((err) => console.error(err));
