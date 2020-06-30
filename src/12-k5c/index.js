@@ -3,6 +3,8 @@
 // - dat.gui
 // - lodash (times, throttle)
 
+import { CanvasResizer } from '../lib/canvas-resizer.js';
+
 /**
  * Constants
  */
@@ -10,8 +12,8 @@ const EASING = 'easeInOutQuart'; // https://easings.net/
 
 const GUISettings = class {
   screenCount = 2;
-  textSize = 0.95;
-  splitCount = 10;
+  textSize = 0.85;
+  splitCount = 21;
   duration = 2000;
   delay = 33;
   wait = 250;
@@ -44,12 +46,17 @@ const GUISettings = class {
  */
 const elements = {
   container: document.getElementById('container'),
+  canvas: document.createElement('div'),
   stats: document.getElementById('stats'),
 };
+const resizer = (window.resizer = new CanvasResizer(elements.canvas, {
+  dimension: [1080, 1080],
+  dimensionScaleFactor: 1,
+}));
 const settings = new GUISettings();
 const gui = new dat.GUI();
 const font = new FontFace('TallDark', `url(./talldark.ttf)`);
-let itemHeight;
+let splitHeight;
 const iterator = (arr) => {
   let i = 0;
   const next = () => {
@@ -70,11 +77,10 @@ let screenSettings = [];
  * Main/Setup function, initialize stuff...
  */
 async function main() {
-  elements.container.style.position = 'relative';
-  elements.container.style.overflow = 'none';
-  elements.container.style.height = '100%';
-  // elements.container.style.width = '1080px';
-  // elements.container.style.height = '1080px';
+  elements.canvas.style.position = 'relative';
+  elements.canvas.style.overflow = 'hidden';
+  elements.container.appendChild(elements.canvas);
+  resizer.init();
 
   // Settings
   gui
@@ -113,12 +119,15 @@ const stopConfigureGoThrottle = _.throttle(() => {
 }, 500);
 
 function configure() {
-  elements.container.style.backgroundColor = settings.bgColor0;
+  elements.canvas.style.backgroundColor = settings.bgColor0;
 
-  itemHeight = (window.innerHeight * settings.textSize) / settings.splitCount;
+  splitHeight = resizer.styleHeight / settings.splitCount;
 
   const texts = _.times(settings.screenCount, (i) => settings[`text${i}`]);
-  const bgColors = _.times(settings.screenCount, (i) => settings[`bgColor${i}`]);
+  const bgColors = _.times(
+    settings.screenCount,
+    (i) => settings[`bgColor${i}`]
+  );
   textsIterator = iterator(texts);
   bgColorsIterator = iterator(bgColors);
 
@@ -136,31 +145,27 @@ function configure() {
 }
 
 async function go() {
-  const textContainer = document.createElement('div');
-  textContainer.style.position = 'absolute';
-  textContainer.style.top = '0';
-  textContainer.style.right = '0';
-  textContainer.style.bottom = '0';
-  textContainer.style.left = '0';
-  textContainer.style.display = 'flex';
-  textContainer.style.alignItems = 'center';
-  textContainer.style.justifyContent = 'center';
-  textContainer.style.flexDirection = 'column';
+  const screenContainer = document.createElement('div');
+  screenContainer.style.position = 'absolute';
+  screenContainer.style.top = '0';
+  screenContainer.style.left = '0';
+  screenContainer.style.width = `${resizer.styleWidth}px`;
+  screenContainer.style.bottom = `${resizer.styleHeight}px`;
 
   const text = textsIterator.next();
   const texts = _.times(settings.splitCount, (i) => {
     const element = createText();
     element.style.width = `100%`;
-    element.style.height = `${itemHeight}px`;
+    element.style.height = `${splitHeight}px`;
     element.style.transform = `translateX(100%)`;
     element.firstChild.textContent = text;
     element.firstChild.style.color = settings.textColor;
-    element.firstChild.style.top = `${-i * itemHeight}px`;
-    textContainer.appendChild(element);
+    element.firstChild.style.top = `${-i * splitHeight}px`;
+    screenContainer.appendChild(element);
     return element;
   });
 
-  elements.container.appendChild(textContainer);
+  elements.canvas.appendChild(screenContainer);
 
   // Entry text animation
   entryTextAnimation = anime({
@@ -173,7 +178,7 @@ async function go() {
 
   // Background animation
   anime({
-    targets: elements.container,
+    targets: elements.canvas,
     easing: EASING,
     backgroundColor: bgColorsIterator.next(),
     duration: settings.duration,
@@ -201,8 +206,8 @@ async function go() {
   await outroTextAnimation.finished;
 
   // Clean up
-  if (elements.container.firstChild == textContainer) {
-    elements.container.removeChild(textContainer);
+  if (elements.canvas.firstChild == screenContainer) {
+    elements.canvas.removeChild(screenContainer);
   }
 }
 window.go = go;
@@ -211,24 +216,25 @@ function stop() {
   clearTimeout(waitTimeout);
   entryTextAnimation && entryTextAnimation.pause();
   outroTextAnimation && outroTextAnimation.pause();
-  while (elements.container.firstChild) {
-    elements.container.removeChild(elements.container.firstChild);
+  while (elements.canvas.firstChild) {
+    elements.canvas.removeChild(elements.canvas.firstChild);
   }
 }
 window.stop = stop;
 
 function createText() {
   const innerElement = document.createElement('div');
-  // innerElement.textContent = TEXT;
+  innerElement.style.width = `${resizer.styleWidth}px`;
+  innerElement.style.height = `${resizer.styleHeight}px`;
+  innerElement.style.display = 'flex';
+  innerElement.style.justifyContent = 'center';
+  innerElement.style.alignItems = 'center';
   innerElement.style.fontFamily = 'TallDark';
-  innerElement.style.fontSize = `${window.innerHeight * settings.textSize}px`;
-  innerElement.style.textAlign = 'center';
+  innerElement.style.fontSize = `${resizer.styleHeight * settings.textSize}px`;
   innerElement.style.position = 'relative';
-  // innerElement.style.top = '-50px';
 
   const outerElement = document.createElement('div');
   outerElement.style.overflow = 'hidden';
-  // outerElement.style.height = `${TEXT_SIZE / TEXT_SPLIT_COUNT}px`;
   outerElement.appendChild(innerElement);
 
   return outerElement;
@@ -244,6 +250,7 @@ function dispose() {
       element.removeChild(element.firstChild);
     }
   });
+  resizer.destroy();
 }
 
 main().catch((err) => console.error(err));
