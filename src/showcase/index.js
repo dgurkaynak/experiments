@@ -91,6 +91,13 @@ const experiments = [
     videoPath: './exports/9b/9b-1080h-5s.mp4',
   },
   {
+    title: '9C / Matter: YO',
+    description: '',
+    link: './9c-matter-yo',
+    imagePath: './exports/9c/9c-1080h.png',
+    videoPath: './exports/9c/9c-1080h-15s.mp4',
+  },
+  {
     title: '10A / Guess',
     description: '',
     link: './10a-guess',
