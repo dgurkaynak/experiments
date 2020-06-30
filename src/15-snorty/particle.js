@@ -1,14 +1,11 @@
-interface Vector { x: number, y: number };
-
-export default class Particle {
-  position: Vector = { x: 0, y: 0 };
-  velocity: Vector = { x: 0, y: 0 };
+export class Particle {
+  position = { x: 0, y: 0 };
+  velocity = { x: 0, y: 0 };
   dampingFactor = 0.9;
-  type: 'cocaine' | 'ketamine';
+  type = null; // 'cocaine' | 'ketamine';
   dirty = false;
 
-
-  update(force: Vector = { x: 0, y: 0 }) {
+  update(force = { x: 0, y: 0 }) {
     if (Math.abs(force.x) > 0) {
       this.velocity.x += force.x;
     } else {
