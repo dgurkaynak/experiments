@@ -186,6 +186,10 @@ class ExperimentView {
     this.mediaContainerElement.classList.add('experiment-media-container');
     this.element.appendChild(this.mediaContainerElement);
 
+    if (this.data.extraImages && this.data.extraImages.length > 0) {
+      this.mediaContainerElement.style.cursor = `ew-resize`;
+    }
+
     // Image
     this.imageElement = document.createElement('img');
     this.imageElement.classList.add('experiment-image');
