@@ -104,14 +104,12 @@ html, body {
   left: 0;
 }
 
-.experiment:hover .experiment-video-wrapper {
+.experiment-media-container:hover .experiment-video-wrapper {
   display: block;
 }
 
 .experiment-video {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 
