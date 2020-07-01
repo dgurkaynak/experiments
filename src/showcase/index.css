@@ -62,7 +62,7 @@ html, body {
 }
 
 .experiment-title {
-  font-size: 1.4em;
+  font-size: 1.5em;
   font-weight: bold;
   color: #000;
   margin-top: 0.5em;
@@ -73,7 +73,7 @@ html, body {
 }
 
 .experiment-description {
-  font-size: 0.9em;
+  font-size: 1em;
   margin-top: 0.5em;
   color: #000;
 }
