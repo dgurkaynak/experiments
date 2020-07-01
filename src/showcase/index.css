@@ -53,6 +53,7 @@ html, body {
 
 .experiment-media-container {
   position: relative;
+  display: block;
   overflow: hidden;
 }
 
@@ -66,10 +67,6 @@ html, body {
   font-weight: bold;
   color: #000;
   margin-top: 0.5em;
-}
-
-.experiment:hover .experiment-title {
-  text-decoration: underline;
 }
 
 .experiment-description {

@@ -165,8 +165,8 @@ const experiments = [
 ];
 
 class ExperimentView {
-  element = document.createElement('a');
-  mediaContainerElement = document.createElement('div');
+  element = document.createElement('div');
+  mediaContainerElement = document.createElement('a');
   spinnerElement = null;
   videoWrapperElement = null;
   videoElement = null;
@@ -182,8 +182,7 @@ class ExperimentView {
   init() {
     // Pre-defined elements
     this.element.classList.add('experiment');
-    this.element.href = this.data.link;
-    // this.element.title = this.data.title;
+    this.mediaContainerElement.href = this.data.link;
     this.mediaContainerElement.classList.add('experiment-media-container');
     this.element.appendChild(this.mediaContainerElement);
 
@@ -213,12 +212,12 @@ class ExperimentView {
 
   bindEvents() {
     if (this.data.videoPath) {
-      this.element.addEventListener(
+      this.mediaContainerElement.addEventListener(
         'mouseenter',
         this.onMouseEnter.bind(this),
         false
       );
-      this.element.addEventListener(
+      this.mediaContainerElement.addEventListener(
         'mouseleave',
         this.onMouseLeave.bind(this),
         false
@@ -226,7 +225,7 @@ class ExperimentView {
     }
 
     if (this.data.extraImages && this.data.extraImages.length > 0) {
-      this.element.addEventListener(
+      this.mediaContainerElement.addEventListener(
         'mousemove',
         this.onMouseMoveThrottled,
         false
