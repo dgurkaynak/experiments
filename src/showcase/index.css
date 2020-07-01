@@ -75,6 +75,17 @@ html, body {
   color: #000;
 }
 
+.experiment-description a {
+  color: #000;
+  text-decoration: underline;
+}
+
+.experiment-description a:hover {
+  color: #fff;
+  background: #000;
+  text-decoration: none;
+}
+
 .experiment .experiment-spinner {
   position: absolute;
   bottom: 0;

@@ -202,7 +202,7 @@ class ExperimentView {
     if (this.data.description) {
       const descriptionElement = document.createElement('div');
       descriptionElement.classList.add('experiment-description');
-      descriptionElement.textContent = this.data.description;
+      descriptionElement.innerHTML = this.data.description;
       this.element.appendChild(descriptionElement);
     }
 
