@@ -1,3 +1,9 @@
+/**
+ * Inspirations:
+ * http://bigblueboo.tumblr.com/post/171834504103/bigblueboo-eyes-see-you#notes
+ * http://bigblueboo.tumblr.com/post/174117883078/bigblueboo-eyeball#notes
+ */
+
 // Global Dependencies
 // - three.js
 // - stats.js
