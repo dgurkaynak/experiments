@@ -3,13 +3,6 @@
 // - lodash (times, sampleSize)
 
 export class MultipleLineCurveEntity {
-  lines = null;
-  curvePointCount = null;
-  xCoordSpace = null;
-  yCoordSpace = null;
-  lineWidthSpace = null;
-  colorSpace = null;
-
   static create(
     lineCount,
     curvePointCount,
@@ -58,6 +51,15 @@ export class MultipleLineCurveEntity {
     );
 
     return [entity1, entity2];
+  }
+
+  constructor() {
+    this.lines = null;
+    this.curvePointCount = null;
+    this.xCoordSpace = null;
+    this.yCoordSpace = null;
+    this.lineWidthSpace = null;
+    this.colorSpace = null;
   }
 
   draw(p) {

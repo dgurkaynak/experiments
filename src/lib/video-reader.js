@@ -1,11 +1,10 @@
 import { waitEvent } from './promise-helper.js';
 
 export class VideoReader {
-  video = document.createElement('video');
-  canvas = document.createElement('canvas');
-  canvasContext = this.canvas.getContext('2d');
-
   constructor(src, fps = 30) {
+    this.video = document.createElement('video');
+    this.canvas = document.createElement('canvas');
+    this.canvasContext = this.canvas.getContext('2d');
     this.src = src;
     this.fps = fps;
   }

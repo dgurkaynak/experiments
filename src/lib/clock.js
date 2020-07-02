@@ -1,28 +1,28 @@
 export class Clock {
-  /**
-   * When the clock is running, It holds the starttime of the clock.
-   * This counted from the number of milliseconds elapsed since 1 January 1970 00:00:00 UTC.
-   */
-  startTime = 0;
-
-  /**
-   * When the clock is running, It holds the previous time from a update.
-   * This counted from the number of milliseconds elapsed since 1 January 1970 00:00:00 UTC.
-   */
-  oldTime = 0;
-
-  /**
-   * When the clock is running, It holds the time elapsed between the start of the clock to the previous update.
-   * This parameter is in seconds of three decimal places.
-   */
-  elapsedTime = 0;
-
-  /**
-   * This property keeps track whether the clock is running or not.
-   */
-  running = false;
-
   constructor(autoStart = true) {
+    /**
+     * When the clock is running, It holds the starttime of the clock.
+     * This counted from the number of milliseconds elapsed since 1 January 1970 00:00:00 UTC.
+     */
+    this.startTime = 0;
+
+    /**
+     * When the clock is running, It holds the previous time from a update.
+     * This counted from the number of milliseconds elapsed since 1 January 1970 00:00:00 UTC.
+     */
+    this.oldTime = 0;
+
+    /**
+     * When the clock is running, It holds the time elapsed between the start of the clock to the previous update.
+     * This parameter is in seconds of three decimal places.
+     */
+    this.elapsedTime = 0;
+
+    /**
+     * This property keeps track whether the clock is running or not.
+     */
+    this.running = false;
+
     /**
      * If set, starts the clock automatically when the first update is called.
      */

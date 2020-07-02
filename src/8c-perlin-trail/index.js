@@ -23,20 +23,22 @@ const GUISettings = class {
   // #cad7b2 #ebe3aa #5d4157
   // #a8a7a7 #e8175d #363636
   // #e5f04c #a82743 #5c323e
-  bgColor = '#dee1b6';
-  lineColorUp = '#73c8a9';
-  lineColorDown = '#bd5532';
+  constructor() {
+    this.bgColor = '#dee1b6';
+    this.lineColorUp = '#73c8a9';
+    this.lineColorDown = '#bd5532';
 
-  radius = 300;
-  lineControlPoint = 10;
-  lineWidth = 1;
-  yStep = 3;
+    this.radius = 300;
+    this.lineControlPoint = 10;
+    this.lineWidth = 1;
+    this.yStep = 3;
 
-  noiseSpeed = 0.2;
-  noiseXStep = 1.0;
-  noiseYFactor = 0.1;
+    this.noiseSpeed = 0.2;
+    this.noiseXStep = 1.0;
+    this.noiseYFactor = 0.1;
+  }
 
-  randomizeColors = () => {
+  randomizeColors() {
     const randomTwoColors = _.sampleSize(
       _.sampleSize(niceColorPalettes100, 1)[0],
       3
@@ -48,8 +50,13 @@ const GUISettings = class {
     redraw();
   };
 
-  redraw = () => redraw();
-  saveImage = () => saveImage(resizer.canvas);
+  redraw() {
+    redraw();
+  }
+
+  saveImage() {
+    saveImage(resizer.canvas);
+  }
 };
 
 /**

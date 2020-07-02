@@ -15,21 +15,28 @@ const ENABLE_STATS = false;
 const MARGIN = [150, 150];
 
 const GUISettings = class {
-  gridCount = 5;
-  gridSpacing = 75;
+  constructor() {
+    this.gridCount = 5;
+    this.gridSpacing = 75;
 
-  innerGridCount = 25;
-  minStrokeWidth = 3;
-  maxStrokeWidth = 7;
-  lineCount = 3;
-  lineCurvePoint = 10;
-  lineAlpha = 0.75;
+    this.innerGridCount = 25;
+    this.minStrokeWidth = 3;
+    this.maxStrokeWidth = 7;
+    this.lineCount = 3;
+    this.lineCurvePoint = 10;
+    this.lineAlpha = 0.75;
 
-  hue = 'all';
-  luminosity = 'light';
+    this.hue = 'all';
+    this.luminosity = 'light';
+  }
 
-  saveImage = () => saveImage(resizer.canvas);
-  redraw = () => redrawThrottle();
+  saveImage() {
+    saveImage(resizer.canvas);
+  }
+
+  redraw() {
+    redrawThrottle();
+  }
 };
 
 /**

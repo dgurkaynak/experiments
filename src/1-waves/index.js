@@ -25,19 +25,21 @@ const SPHERE_DISTANCE = 1;
 // #2a2c31 - #fffedf
 
 const GUISettings = class {
-  waveType = 'perlin';
+  constructor() {
+    this.waveType = 'perlin';
 
-  bgColor = '#2a2c31';
-  sphereColor = '#fffedf';
-  sphereRadius = 0.075;
+    this.bgColor = '#2a2c31';
+    this.sphereColor = '#fffedf';
+    this.sphereRadius = 0.075;
 
-  xFactor = 0.1;
-  zFactor = 0.16;
-  timeFactor = 0.4;
+    this.xFactor = 0.1;
+    this.zFactor = 0.16;
+    this.timeFactor = 0.4;
 
-  totalScale = 3;
+    this.totalScale = 3;
+  }
 
-  randomizeColors = () => {
+  randomizeColors() {
     const randomTwoColors = _.sampleSize(
       _.sampleSize(niceColorPalettes100, 1)[0],
       2

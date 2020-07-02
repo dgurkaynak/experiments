@@ -16,21 +16,23 @@ const ENABLE_STATS = false;
 const PADDING_RATIO = { TOP: 0.15, RIGHT: 0.15, BOTTOM: 0.15, LEFT: 0.15 };
 
 const GUISettings = class {
-  bgColor = '#3b2d38';
-  lineColorUp = '#f02475';
-  lineColorDown = '#f27435';
+  constructor() {
+    this.bgColor = '#3b2d38';
+    this.lineColorUp = '#f02475';
+    this.lineColorDown = '#f27435';
 
-  lineCount = 100;
-  lineControlPoint = 50;
-  lineWidth = 1;
+    this.lineCount = 100;
+    this.lineControlPoint = 50;
+    this.lineWidth = 1;
 
-  noiseSpeed = 0.4;
-  noiseXStep = 0.2;
-  noiseYStep = 0.075;
-  noiseYFactor = 30;
-  dampingFactor = 3;
+    this.noiseSpeed = 0.4;
+    this.noiseXStep = 0.2;
+    this.noiseYStep = 0.075;
+    this.noiseYFactor = 30;
+    this.dampingFactor = 3;
+  }
 
-  randomizeColors = () => {
+  randomizeColors() {
     const randomTwoColors = _.sampleSize(_.sampleSize(niceColorPalettes100, 1)[0], 3);
     settings.bgColor = randomTwoColors[0];
     settings.lineColorUp = randomTwoColors[1];

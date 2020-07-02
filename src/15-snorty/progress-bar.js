@@ -2,20 +2,15 @@
 // - p5
 
 export class ProgressBar {
-  x = null;
-  y = null;
-  width = null;
-  height = null;
-  progress = 0;
-  borderWidth = 1;
-  borderColor = [255, 255, 255, 255];
-  fillColor = [255, 255, 255, 255];
-
   constructor(x, y, width, height) {
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
+    this.progress = 0;
+    this.borderWidth = 1;
+    this.borderColor = [255, 255, 255, 255];
+    this.fillColor = [255, 255, 255, 255];
   }
 
   draw(p) {

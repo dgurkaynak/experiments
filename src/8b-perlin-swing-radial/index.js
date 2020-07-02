@@ -19,20 +19,22 @@ const GUISettings = class {
   // #7fc7af #ff3d7f #3fb8af
   // #ffedbf #f7803c #f54828
   // #fffcdd #f5a2a2 #dcf7f3
-  bgColor = '#ffedbf';
-  lineColorOut = '#f7803c';
-  lineColorIn = '#f54828';
+  constructor() {
+    this.bgColor = '#ffedbf';
+    this.lineColorOut = '#f7803c';
+    this.lineColorIn = '#f54828';
 
-  lineCount = 100;
-  lineControlPoint = 30;
-  lineWidth = 1;
-  minRadius = 1;
+    this.lineCount = 100;
+    this.lineControlPoint = 30;
+    this.lineWidth = 1;
+    this.minRadius = 1;
 
-  noiseSpeed = 0.4;
-  noiseXStep = 0.2;
-  noiseYStep = 0.03;
+    this.noiseSpeed = 0.4;
+    this.noiseXStep = 0.2;
+    this.noiseYStep = 0.03;
+  }
 
-  randomizeColors = () => {
+  randomizeColors() {
     const randomTwoColors = _.sampleSize(_.sampleSize(niceColorPalettes100, 1)[0], 3);
     settings.bgColor = randomTwoColors[0];
     settings.lineColorOut = randomTwoColors[1];

@@ -14,14 +14,16 @@ const ENABLE_STATS = true;
 const VIDEO_SIZE = [1280, 720];
 
 const GUISettings = class {
-  fps = 30;
-  operation = 'difference';
+  constructor() {
+    this.fps = 30;
+    this.operation = 'difference';
+  }
 
-  saveImage = async () => {
+  async saveImage() {
     saveImage(resizer.canvas);
   };
 
-  play = () => {
+  play() {
     shouldStop = true;
     setTimeout(async () => {
       shouldStop = false;
@@ -32,7 +34,7 @@ const GUISettings = class {
     }, 250);
   };
 
-  stop = () => {
+  stop() {
     shouldStop = true;
     console.log('Stopped');
   };

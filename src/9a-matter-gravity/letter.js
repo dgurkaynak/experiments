@@ -86,14 +86,10 @@ const LETTER_VIEW_CORRECTIONS = {
 };
 
 export class Letter {
-  char = null;
-  path = null;
-  pathWidth = null;
-  pathHeight = null;
-  body = null;
-  view = null;
-
   constructor(font, char, size) {
+    this.body = null;
+    this.view = null;
+
     let viewChar = char;
     if (char == `'`) viewChar = ',';
 

@@ -1,15 +1,14 @@
 // http://curran.github.io/HTML5Examples/canvas/waveSimulation2D/
 
 export class Wave2dCanvas {
-  canvas = document.createElement('canvas');
-  c = this.canvas.getContext('2d');
-  grayStrings = [];
-
-  pullStrength = 0.005;
-  dampeningFactor = 0.98;
-  cells = [];
-
   constructor(cellCount, cellSize) {
+    this.canvas = document.createElement('canvas');
+    this.c = this.canvas.getContext('2d');
+    this.grayStrings = [];
+
+    this.pullStrength = 0.005;
+    this.dampeningFactor = 0.98;
+    this.cells = [];
     this.cellCount = cellCount;
     this.cellSize = cellSize;
     this.canvas.width = cellCount * cellSize;

@@ -16,52 +16,54 @@ const ENABLE_STATS = true;
 const TRACK_MARGIN = 75;
 
 const GUISettings = class {
-  showFPS = false;
-  trackCount = 2;
-  gameVelocity = 100;
-  maxWastePoint = 10000;
+  constructor() {
+    this.showFPS = false;
+    this.trackCount = 2;
+    this.gameVelocity = 100;
+    this.maxWastePoint = 10000;
 
-  // Sniff zone
-  showSniffZone = false;
-  noseX = 100;
-  noseWidth = 100;
-  noseHoleFactor = 1.0;
-  sniffZoneHeight = 50;
+    // Sniff zone
+    this.showSniffZone = false;
+    this.noseX = 100;
+    this.noseWidth = 100;
+    this.noseHoleFactor = 1.0;
+    this.sniffZoneHeight = 50;
 
-  // Sniffing & Lungs
-  sniffForce = 75;
-  gravityForce = 30;
-  maxLungCapacity = 100;
-  sniffingCost = this.maxLungCapacity / 3; // Will exhaust in 3s
-  lungRecover = this.maxLungCapacity / 6; // Will recover completely in 6s
-  lungExhaustPenaltyTime = 3000;
-  maxNoseShakeOffset = 5;
+    // Sniffing & Lungs
+    this.sniffForce = 75;
+    this.gravityForce = 30;
+    this.maxLungCapacity = 100;
+    this.sniffingCost = this.maxLungCapacity / 3; // Will exhaust in 3s
+    this.lungRecover = this.maxLungCapacity / 6; // Will recover completely in 6s
+    this.lungExhaustPenaltyTime = 3000;
+    this.maxNoseShakeOffset = 5;
 
-  // Cocaine particles
-  cocainePoint = 1;
-  cocaineSniffingGameVelocityGain = 0.1;
-  // Cocaine view
-  cocaineParticleSize = 4;
-  cocaineLineHeight = 5;
-  cocaineRandomOffsetStart = 5;
-  cocaineRandomOffsetRandomness = 5;
-  cocaineColor = [255, 255, 255];
-  cocaineOpacity = 150;
+    // Cocaine particles
+    this.cocainePoint = 1;
+    this.cocaineSniffingGameVelocityGain = 0.1;
+    // Cocaine view
+    this.cocaineParticleSize = 4;
+    this.cocaineLineHeight = 5;
+    this.cocaineRandomOffsetStart = 5;
+    this.cocaineRandomOffsetRandomness = 5;
+    this.cocaineColor = [255, 255, 255];
+    this.cocaineOpacity = 150;
 
-  // Ketamine particles
-  ketamineSniffingGameVelocityNegativeGain = 0.5;
-  ketamineSpawnPropability = 0.05;
-  // Kenamine view
-  ketamineParticleSize = 3;
-  ketamineLineHeight = 2;
-  ketamineRandomOffsetStart = 2;
-  ketamineRandomOffsetRandomness = 2;
-  ketamineColor = [76, 132, 227];
-  ketamineOpacity = 90;
-  ketamineSparkleSize = 12;
-  ketamineSparkleRandomness = 0.0025;
+    // Ketamine particles
+    this.ketamineSniffingGameVelocityNegativeGain = 0.5;
+    this.ketamineSpawnPropability = 0.05;
+    // Kenamine view
+    this.ketamineParticleSize = 3;
+    this.ketamineLineHeight = 2;
+    this.ketamineRandomOffsetStart = 2;
+    this.ketamineRandomOffsetRandomness = 2;
+    this.ketamineColor = [76, 132, 227];
+    this.ketamineOpacity = 90;
+    this.ketamineSparkleSize = 12;
+    this.ketamineSparkleRandomness = 0.0025;
+  }
 
-  restart = () => {
+  restart() {
     isGameRunning = true;
     isGamePaused = false;
     isGameOver = false;

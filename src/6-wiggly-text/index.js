@@ -19,25 +19,27 @@ const ENABLE_STATS = false;
 const ENABLE_ORBIT_CONTROLS = false;
 
 const GUISettings = class {
-  lineCount = 2;
-  lineText1 = 'WHAT';
-  lineText2 = 'EVER.';
-  lineText3 = '';
-  lineText4 = '';
-  lineText5 = '';
-  lineText6 = '';
-  lineText7 = '';
-  lineText8 = '';
-  lineText9 = '';
-  lineText10 = '';
+  constructor() {
+    this.lineCount = 2;
+    this.lineText1 = 'WHAT';
+    this.lineText2 = 'EVER.';
+    this.lineText3 = '';
+    this.lineText4 = '';
+    this.lineText5 = '';
+    this.lineText6 = '';
+    this.lineText7 = '';
+    this.lineText8 = '';
+    this.lineText9 = '';
+    this.lineText10 = '';
 
-  bgColor = '#000';
-  fontColor = '#ff0000';
+    this.bgColor = '#000';
+    this.fontColor = '#ff0000';
 
-  fontSize = 1;
-  xOffset = -1.65;
+    this.fontSize = 1;
+    this.xOffset = -1.65;
+  }
 
-  randomizeColors = () => {
+  randomizeColors() {
     const randomTwoColors = _.sampleSize(_.sampleSize(niceColorPalettes100, 1)[0], 2);
     settings.bgColor = randomTwoColors[0];
     setBackgroundColor(settings.bgColor);

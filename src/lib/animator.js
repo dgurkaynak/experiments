@@ -1,7 +1,6 @@
 export class Animator {
-  id = null;
-
   constructor(handler) {
+    this.id = null;
     this.handler = handler;
   }
 

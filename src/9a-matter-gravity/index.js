@@ -24,22 +24,24 @@ const ENABLE_STATS = false;
 const LINE_HEIGHT = 150;
 
 const GUISettings = class {
-  text =
-    `I CAN ONLY_NOTE THAT_THE PAST IS_BEAUTIFUL_BECAUSE_ONE NEVER_REALIZES_AN EMOTION_` +
-    `AT THE TIME_IT EXPANDS_LATER,_AND THUS_WE DON'T_HAVE COMPLETE_EMOTIONS_ABOUT_THE PRESENT,_` +
-    `ONLY ABOUT_THE PAST.`;
-  newLineSeperator = '_';
-  dropTimeout = 750;
+  constructor() {
+    this.text =
+      `I CAN ONLY_NOTE THAT_THE PAST IS_BEAUTIFUL_BECAUSE_ONE NEVER_REALIZES_AN EMOTION_` +
+      `AT THE TIME_IT EXPANDS_LATER,_AND THUS_WE DON'T_HAVE COMPLETE_EMOTIONS_ABOUT_THE PRESENT,_` +
+      `ONLY ABOUT_THE PAST.`;
+    this.newLineSeperator = '_';
+    this.dropTimeout = 750;
 
-  // Other favs:
-  // #5c5863 #b4dec1 #ff1f4c
-  // #f5f4d7 #e0dfb1 #951f2b
-  // #fff7bd #f2f26f #f04155
-  bgColor = '#542437';
-  fontColorLatest = '#ecd078';
-  fontColorFirst = '#c02942';
+    // Other favs:
+    // #5c5863 #b4dec1 #ff1f4c
+    // #f5f4d7 #e0dfb1 #951f2b
+    // #fff7bd #f2f26f #f04155
+    this.bgColor = '#542437';
+    this.fontColorLatest = '#ecd078';
+    this.fontColorFirst = '#c02942';
+  }
 
-  randomizeColors = () => {
+  randomizeColors() {
     const randomTwoColors = _.sampleSize(_.sampleSize(niceColorPalettes100, 1)[0], 3);
     settings.bgColor = randomTwoColors[0];
     settings.fontColorLatest = randomTwoColors[1];
@@ -47,8 +49,13 @@ const GUISettings = class {
     redraw();
   };
 
-  redraw = () => redraw();
-  saveImage = () => saveImage(resizer.canvas);
+  redraw() {
+    redraw();
+  }
+
+  saveImage() {
+    saveImage(resizer.canvas);
+  }
 };
 
 /**

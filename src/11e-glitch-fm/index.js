@@ -15,11 +15,13 @@ let IMAGE_SIZE = [1080, 1065];
 const ENABLE_STATS = false;
 
 const GUISettings = class {
-  omega = 0.5;
-  phase = 0.5;
-  quantVal = 15;
+  constructor() {
+    this.omega = 0.5;
+    this.phase = 0.5;
+    this.quantVal = 15;
+  }
 
-  saveImage = async () => {
+  saveImage() {
     saveImage(resizer.canvas);
   };
 };
@@ -45,9 +47,6 @@ const drawThrottled = _.throttle(draw, 500);
 
 // start
 class LowpassFilter {
-  alpha = null;
-  prev = null;
-
   constructor(rate, hz) {
     this.alpha = 0.0;
     this.prev = 0.0;

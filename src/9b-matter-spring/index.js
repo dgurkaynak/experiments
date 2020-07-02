@@ -23,20 +23,22 @@ const ENABLE_STATS = false;
 const LINE_HEIGHT = 150;
 
 const GUISettings = class {
-  text = `YOU MAKE_ME LAUGH,_BUT IT'S_NOT FUNNY.`;
-  newLineSeperator = '_';
+  constructor() {
+    this.text = `YOU MAKE_ME LAUGH,_BUT IT'S_NOT FUNNY.`;
+    this.newLineSeperator = '_';
 
-  springCount = 3;
-  springLength = 3;
-  springStiffness = 0.001;
+    this.springCount = 3;
+    this.springLength = 3;
+    this.springStiffness = 0.001;
 
-  // Other favs:
-  // #c6d6b8 #987f69
-  // #f03c02 #a30006
-  bgColor = '#83af9b';
-  textColor = '#f9cdad';
+    // Other favs:
+    // #c6d6b8 #987f69
+    // #f03c02 #a30006
+    this.bgColor = '#83af9b';
+    this.textColor = '#f9cdad';
+  }
 
-  randomizeColors = () => {
+  randomizeColors() {
     const randomTwoColors = _.sampleSize(
       _.sampleSize(niceColorPalettes100, 1)[0],
       2
@@ -46,8 +48,13 @@ const GUISettings = class {
     redraw();
   };
 
-  redraw = () => redraw();
-  saveImage = () => saveImage(resizer.canvas);
+  redraw() {
+    redraw();
+  }
+
+  saveImage() {
+    saveImage(resizer.canvas);
+  }
 };
 
 /**

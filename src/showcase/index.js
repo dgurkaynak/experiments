@@ -165,17 +165,16 @@ const experiments = [
 ];
 
 class ExperimentView {
-  element = document.createElement('div');
-  mediaContainerElement = document.createElement('a');
-  spinnerElement = null;
-  videoWrapperElement = null;
-  videoElement = null;
-  imageElement = null;
-  width = null;
-  areExtraImagesLoaded = false;
-  onMouseMoveThrottled = _.throttle(this.onMouseMove.bind(this), 250);
-
   constructor(data) {
+    this.element = document.createElement('div');
+    this.mediaContainerElement = document.createElement('a');
+    this.spinnerElement = null;
+    this.videoWrapperElement = null;
+    this.videoElement = null;
+    this.imageElement = null;
+    this.width = null;
+    this.areExtraImagesLoaded = false;
+    this.onMouseMoveThrottled = _.throttle(this.onMouseMove.bind(this), 250);
     this.data = data;
   }
 

@@ -23,12 +23,14 @@ const NUMBER_OF_BOXES_X = 10;
 const NUMBER_OF_BOXES_Y = 10;
 
 const GUISettings = class {
-  rotatePeriod = 2;
-  lineWidth = 2;
-  lineColor = '#000';
-  bgColor = '#FEF8EC';
+  constructor() {
+    this.rotatePeriod = 2;
+    this.lineWidth = 2;
+    this.lineColor = '#000';
+    this.bgColor = '#FEF8EC';
+  }
 
-  randomizeColors = () => {
+  randomizeColors() {
     const randomTwoColors = _.sampleSize(
       _.sampleSize(niceColorPalettes100, 1)[0],
       2

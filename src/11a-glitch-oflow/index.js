@@ -14,19 +14,21 @@ const ENABLE_STATS = true;
 const VIDEO_SIZE = [1280, 720];
 
 const GUISettings = class {
-  fps = 30;
-  zoneSize = 1;
-  bgAlpha = 50;
-  strokeWidth = 1;
-  strokeAlpha = 200;
+  constructor() {
+    this.fps = 30;
+    this.zoneSize = 1;
+    this.bgAlpha = 50;
+    this.strokeWidth = 1;
+    this.strokeAlpha = 200;
+  }
 
-  play = async () => {
+  async play() {
     cancelAnimationFrame(rAF);
     await videoReader.jumpToBegining();
     draw();
   };
 
-  stop = () => {
+  stop() {
     cancelAnimationFrame(rAF);
     console.log('Stopped');
   };

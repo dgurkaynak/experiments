@@ -2,14 +2,11 @@
 // - noise.js
 
 export class PerlinCanvas {
-  canvas = document.createElement('canvas');
-  ctx = this.canvas.getContext('2d');
-  image = null;
-  data = null;
-  height = 0;
-  noiseDivider = 50;
-
   constructor(size) {
+    this.canvas = document.createElement('canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.height = 0;
+    this.noiseDivider = 50;
     this.size = size;
     this.canvas.width = size;
     this.canvas.height = size;

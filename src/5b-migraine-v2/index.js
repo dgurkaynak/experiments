@@ -18,9 +18,11 @@ const ENABLE_STATS = false;
 const ENABLE_ORBIT_CONTROLS = false;
 
 const GUISettings = class {
-  springDisplaceMagnitude = 0.001;
-  springStrength = 0.001;
-  dampen = 0.999999;
+  constructor() {
+    this.springDisplaceMagnitude = 0.001;
+    this.springStrength = 0.001;
+    this.dampen = 0.999999;
+  }
 };
 
 /**

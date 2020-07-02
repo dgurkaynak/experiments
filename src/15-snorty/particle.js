@@ -1,9 +1,11 @@
 export class Particle {
-  position = { x: 0, y: 0 };
-  velocity = { x: 0, y: 0 };
-  dampingFactor = 0.9;
-  type = null; // 'cocaine' | 'ketamine';
-  dirty = false;
+  constructor() {
+    this.position = { x: 0, y: 0 };
+    this.velocity = { x: 0, y: 0 };
+    this.dampingFactor = 0.9;
+    this.type = null; // 'cocaine' | 'ketamine';
+    this.dirty = false;
+  }
 
   update(force = { x: 0, y: 0 }) {
     if (Math.abs(force.x) > 0) {

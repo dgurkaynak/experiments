@@ -14,11 +14,13 @@ const VIDEO_SIZE = [1280, 720];
 const ENABLE_STATS = true;
 
 const GUISettings = class {
-  fps = 30;
-  zoneSize = 10;
-  displacementThreshold = 1.0;
+  constructor() {
+    this.fps = 30;
+    this.zoneSize = 10;
+    this.displacementThreshold = 1.0;
+  }
 
-  play = () => {
+  play() {
     shouldStop = true;
     setTimeout(async () => {
       shouldStop = false;
@@ -29,7 +31,7 @@ const GUISettings = class {
     }, 250);
   };
 
-  stop = () => {
+  stop() {
     shouldStop = true;
     console.log('Stopped');
   };

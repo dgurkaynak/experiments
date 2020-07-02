@@ -5,10 +5,9 @@
 // - THREE
 
 export class GeometrySpringModifier {
-  SPRING_STRENGTH = 0.0005;
-  DAMPEN = 0.999;
-
   constructor(geometry) {
+    this.SPRING_STRENGTH = 0.0005;
+    this.DAMPEN = 0.999;
     this.geometry = geometry;
     geometry.faces.forEach((face) => {
       this.createSpring(face.a, face.b);

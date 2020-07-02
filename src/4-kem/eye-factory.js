@@ -4,9 +4,11 @@
 // - GLTFLoader
 
 export class EyeMeshFactory {
-  gltfLoader = new GLTFLoader();
-  textureLoader = new THREE.TextureLoader();
-  group = null;
+  constructor() {
+    this.gltfLoader = new GLTFLoader();
+    this.textureLoader = new THREE.TextureLoader();
+    this.group = null;
+  }
 
   async init() {
     const [

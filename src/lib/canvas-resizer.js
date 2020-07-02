@@ -4,14 +4,14 @@
 // Assuming: html, body { width: 100%; height: 100%; }
 
 export class CanvasResizer {
-  dimension = 'fullscreen';
-  dimensionScaleFactor = 1;
-  throttle = 500;
-  padding = 50;
-  resize = (width, height) => {};
-
   constructor(canvas, options = {}) {
     this.canvas = canvas;
+
+    this.dimension = 'fullscreen';
+    this.dimensionScaleFactor = 1;
+    this.throttle = 500;
+    this.padding = 50;
+    this.resize = (width, height) => {};
 
     if (options) {
       if (options.dimension) this.dimension = options.dimension;

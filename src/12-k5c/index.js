@@ -11,34 +11,36 @@ import { CanvasResizer } from '../lib/canvas-resizer.js';
 const EASING = 'easeInOutQuart'; // https://easings.net/
 
 const GUISettings = class {
-  screenCount = 2;
-  textSize = 0.85;
-  splitCount = 21;
-  duration = 2000;
-  delay = 33;
-  wait = 250;
-  textColor = '#ffffff';
+  constructor() {
+    this.screenCount = 2;
+    this.textSize = 0.85;
+    this.splitCount = 21;
+    this.duration = 2000;
+    this.delay = 33;
+    this.wait = 250;
+    this.textColor = '#ffffff';
 
-  text0 = 'WHAT';
-  bgColor0 = '#000000';
-  text1 = 'EVER';
-  bgColor1 = '#0B24FB';
-  text2 = '';
-  bgColor2 = '#000000';
-  text3 = '';
-  bgColor3 = '#000000';
-  text4 = '';
-  bgColor4 = '#000000';
-  text5 = '';
-  bgColor5 = '#000000';
-  text6 = '';
-  bgColor6 = '#000000';
-  text7 = '';
-  bgColor7 = '#000000';
-  text8 = '';
-  bgColor8 = '#000000';
-  text9 = '';
-  bgColor9 = '#000000';
+    this.text0 = 'WHAT';
+    this.bgColor0 = '#000000';
+    this.text1 = 'EVER';
+    this.bgColor1 = '#0B24FB';
+    this.text2 = '';
+    this.bgColor2 = '#000000';
+    this.text3 = '';
+    this.bgColor3 = '#000000';
+    this.text4 = '';
+    this.bgColor4 = '#000000';
+    this.text5 = '';
+    this.bgColor5 = '#000000';
+    this.text6 = '';
+    this.bgColor6 = '#000000';
+    this.text7 = '';
+    this.bgColor7 = '#000000';
+    this.text8 = '';
+    this.bgColor8 = '#000000';
+    this.text9 = '';
+    this.bgColor9 = '#000000';
+  }
 };
 
 /**

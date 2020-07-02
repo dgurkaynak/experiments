@@ -1,18 +1,16 @@
 import { Letter } from './letter.js';
 
 export class Line {
-  options = {
-    fontSize: 144,
-    letterSpacing: 10,
-    whitespaceSpacing: 50,
-  };
-  letters = [];
-  estimation = { width: 0, height: 0 };
-
   constructor(font, text, options) {
     this.font = font;
     this.text = text;
-    this.options = _.defaults(options, this.options);
+    this.options = _.defaults(options, {
+      fontSize: 144,
+      letterSpacing: 10,
+      whitespaceSpacing: 50,
+    });
+    this.letters = [];
+    this.estimation = { width: 0, height: 0 };
 
     // Height estimation
     const letterA = new Letter(font, 'A', this.options.fontSize);

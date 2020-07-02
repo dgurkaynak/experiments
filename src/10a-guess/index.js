@@ -18,30 +18,32 @@ const ENABLE_STATS = false;
 const MARGIN = 200;
 
 const GUISettings = class {
-  targetClass = 'all';
+  constructor() {
+    this.targetClass = 'all';
 
-  gridSize = 50;
-  minStrokeWidth = 5;
-  maxStrokeWidth = 100;
-  lineCount = 4;
-  linePointCurvePoint = 5;
-  lineAlpha = 0.5;
-  randomColorCount = 25;
+    this.gridSize = 50;
+    this.minStrokeWidth = 5;
+    this.maxStrokeWidth = 100;
+    this.lineCount = 4;
+    this.linePointCurvePoint = 5;
+    this.lineAlpha = 0.5;
+    this.randomColorCount = 25;
 
-  populationCount = 500;
-  mutationRate = 0.2;
-  maxGeneration = 10;
-  matchThreshold = 0.9;
+    this.populationCount = 500;
+    this.mutationRate = 0.2;
+    this.maxGeneration = 10;
+    this.matchThreshold = 0.9;
+  }
 
-  saveImage = () => {
+  saveImage() {
     saveImage(resizer.canvas);
   };
 
-  restart = () => {
+  restart() {
     restart();
   };
 
-  stop = () => {
+  stop() {
     shouldStop = true;
   };
 };
